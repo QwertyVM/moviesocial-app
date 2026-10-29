@@ -56,7 +56,7 @@ public struct FriendsFeedView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text(viewModel.selectedSection == .feed ? "ACTIVIDAD DE AMIGOS" : "LISTADO DE AMIGOS")
-                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .font(.system(size: 13, weight: .bold))
                         .tracking(3)
                         .foregroundColor(Theme.Colors.textPrimary)
                 }
@@ -172,7 +172,7 @@ public struct FriendsFeedView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("AMIGOS")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .font(.system(size: 10, weight: .bold))
                     .tracking(2)
                     .foregroundColor(Theme.Colors.textTertiary)
                 
@@ -455,7 +455,7 @@ public struct FriendsFeedView: View {
                             VStack(alignment: .leading, spacing: 3) {
                                 HStack {
                                     Text("PRIMERA RESEÑA (HISTÓRICO)")
-                                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                        .font(.system(size: 9, weight: .bold))
                                         .foregroundColor(Theme.Colors.friendsAccent)
                                     Spacer()
                                     HStack(spacing: 2) {

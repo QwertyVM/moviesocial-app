@@ -26,7 +26,7 @@ public struct MovieDetailView: View {
                 // Badges Oficiales: Rotten Tomatoes, IMDb y Amigos / Global
                 VStack(alignment: .leading, spacing: 6) {
                     Text("PUNTUACIONES")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .font(.system(size: 11, weight: .bold))
                         .tracking(2)
                         .foregroundColor(Theme.Colors.textSecondary)
                     
@@ -68,7 +68,7 @@ public struct MovieDetailView: View {
                 // Sinopsis
                 VStack(alignment: .leading, spacing: 6) {
                     Text("SINOPSIS")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .font(.system(size: 11, weight: .bold))
                         .tracking(2)
                         .foregroundColor(Theme.Colors.textSecondary)
                     
@@ -102,7 +102,7 @@ public struct MovieDetailView: View {
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text(viewModel.movie.title.uppercased())
-                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundColor(Theme.Colors.textPrimary)
                     .lineLimit(1)
             }
@@ -199,10 +199,53 @@ public struct MovieDetailView: View {
                     .font(.system(size: 11))
                     .foregroundColor(Color.green)
                 Text("EN CARTELERA LOCAL")
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .font(.system(size: 11, weight: .bold))
                     .tracking(2)
                     .foregroundColor(Theme.Colors.textSecondary)
                 Spacer()
+            }
+            
+            // Badges de Ciclo de Exhibición (Estreno / 2ª Semana) y Cine Nacional
+            let status = viewModel.movie.releaseStatus()
+            HStack(spacing: 8) {
+                if status == .premiereWeek {
+                    HStack(spacing: 4) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 10, weight: .bold))
+                        Text("SEMANA DE ESTRENO")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(Color(red: 1.0, green: 0.75, blue: 0.0))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color(red: 1.0, green: 0.75, blue: 0.0).opacity(0.15))
+                    .clipShape(Capsule())
+                } else if status == .secondWeek {
+                    HStack(spacing: 4) {
+                        Image(systemName: "ticket.fill")
+                            .font(.system(size: 10, weight: .bold))
+                        Text("2ª SEMANA EN CINES")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(Color(red: 0.3, green: 0.8, blue: 1.0))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color(red: 0.3, green: 0.8, blue: 1.0).opacity(0.15))
+                    .clipShape(Capsule())
+                }
+                
+                if let country = viewModel.movie.countryOfOrigin, !country.isEmpty {
+                    Text(nationalCinemaDescription(for: country))
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(Theme.Colors.textPrimary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Theme.Colors.surfaceElevated)
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule().stroke(Theme.Colors.border, lineWidth: 1)
+                        )
+                }
             }
             
             VStack(spacing: 8) {
@@ -261,13 +304,13 @@ public struct MovieDetailView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text("OPINIONES Y CRÍTICAS")
-                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .font(.system(size: 11, weight: .bold))
                             .tracking(2)
                             .foregroundColor(Theme.Colors.textSecondary)
                         
                         if viewModel.isSubscribed {
                             Text("PRO")
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .font(.system(size: 9, weight: .bold))
                                 .foregroundColor(.black)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 1)
@@ -453,7 +496,7 @@ public struct MovieDetailView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
                         Text("PASE SOCIAL DE PAGA")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .font(.system(size: 9, weight: .bold))
                             .tracking(2)
                             .foregroundColor(Theme.Colors.imdb)
                     }
@@ -751,7 +794,7 @@ public struct MovieDetailView: View {
                         .font(.system(size: 11))
                         .foregroundColor(Theme.Colors.friendsAccent)
                     Text("TU RESEÑA")
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .font(.system(size: 10, weight: .bold))
                         .tracking(1.5)
                         .foregroundColor(Theme.Colors.friendsAccent)
                 }
@@ -858,7 +901,7 @@ public struct MovieDetailView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         HStack {
                             Text("PRIMERA RESEÑA (HISTÓRICO)")
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .font(.system(size: 9, weight: .bold))
                                 .foregroundColor(Theme.Colors.friendsAccent)
                             Spacer()
                             HStack(spacing: 2) {
@@ -891,5 +934,20 @@ public struct MovieDetailView: View {
             }
         }
         .padding(.top, 2)
+    }
+    
+    private func nationalCinemaDescription(for code: String) -> String {
+        switch code.uppercased() {
+        case "PE": return "🇵🇪 Cine Peruano"
+        case "ES": return "🇪🇸 Cine Español"
+        case "MX": return "🇲🇽 Cine Mexicano"
+        case "AR": return "🇦🇷 Cine Argentino"
+        case "FR": return "🇫🇷 Cine Francés"
+        case "JP": return "🇯🇵 Cine Japonés"
+        case "CO": return "🇨🇴 Cine Colombiano"
+        case "CL": return "🇨🇱 Cine Chileno"
+        case "US": return "🇺🇸 Producción USA"
+        default: return "🎬 Cine Local"
+        }
     }
 }

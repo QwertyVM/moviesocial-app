@@ -99,7 +99,7 @@ public struct NewDirectChatSheetView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("NUEVO CHAT 1 A 1")
-                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .font(.system(size: 13, weight: .bold))
                         .foregroundColor(.white)
                 }
                 

@@ -88,4 +88,16 @@ struct AuthViewModelTests {
         
         #expect(viewModel.currentUser?.username == "@sofiacinefilia")
     }
+    
+    @Test("User Location Formatted Text Renders Flag and City Correctly")
+    func userLocationFormattedTextRendersProperly() {
+        let location = UserLocation(
+            city: "Tokio",
+            country: "Japón",
+            countryCode: "JP",
+            flagEmoji: "🇯🇵"
+        )
+        
+        #expect(location.formattedText == "🇯🇵 Tokio, Japón")
+    }
 }

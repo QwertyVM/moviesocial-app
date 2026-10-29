@@ -5,15 +5,21 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
     private var friends: [Friend]
     private var reviews: [Review]
     private var communityReviews: [Review]
+    private let database: AppDatabase
+    private let apiClient: MovieSocialAPIClient
     
     public init(
         friends: [Friend] = defaultFriends,
         reviews: [Review] = defaultReviews,
-        communityReviews: [Review] = defaultCommunityReviews
+        communityReviews: [Review] = defaultCommunityReviews,
+        database: AppDatabase = AppDatabase.shared,
+        apiClient: MovieSocialAPIClient = MovieSocialAPIClient.shared
     ) {
         self.friends = friends
         self.reviews = reviews
         self.communityReviews = communityReviews
+        self.database = database
+        self.apiClient = apiClient
     }
     
     public func getFriends() async throws -> [Friend] {
@@ -87,6 +93,23 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
         )
         
         reviews.insert(newReview, at: 0)
+        await database.saveReview(newReview, isCommunity: false)
+        
+        // Servicio REST: POST /api/reviews
+        let req = CreateReviewRequest(
+            id: newReview.id,
+            movieId: movieId,
+            movieTitle: movieTitle,
+            moviePosterURL: moviePosterURL?.absoluteString,
+            movieReleaseYear: movieReleaseYear,
+            userId: user.id,
+            userName: user.displayName,
+            rating: rating,
+            comment: comment,
+            isCommunity: false
+        )
+        _ = try? await apiClient.execute(endpoint: "/reviews", method: .post, body: req)
+        
         return newReview
     }
     
@@ -155,6 +178,11 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
         reviews[index].rating = rating
         reviews[index].comment = comment
         reviews[index].updatedAt = currentDate
+        await database.saveReview(reviews[index], isCommunity: false)
+        
+        // Servicio REST: PUT /api/reviews/:id
+        let updateReq = UpdateReviewRequest(rating: rating, comment: comment)
+        _ = try? await apiClient.execute(endpoint: "/reviews/\(reviewId)", method: .put, body: updateReq)
         
         return reviews[index]
     }
@@ -188,9 +216,11 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
         
         if let index = reviews.firstIndex(where: { $0.id == reviewId }) {
             reviews[index].comments.append(newComment)
+            await database.saveReview(reviews[index], isCommunity: false)
             return newComment
         } else if let index = communityReviews.firstIndex(where: { $0.id == reviewId }) {
             communityReviews[index].comments.append(newComment)
+            await database.saveReview(communityReviews[index], isCommunity: true)
             return newComment
         } else {
             throw NSError(domain: "Social", code: 404, userInfo: [NSLocalizedDescriptionKey: "Reseña no encontrada"])
@@ -205,11 +235,13 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             let willBeLiked = !reviews[index].isLikedByMe
             reviews[index].isLikedByMe = willBeLiked
             reviews[index].likesCount = willBeLiked ? reviews[index].likesCount + 1 : max(0, reviews[index].likesCount - 1)
+            await database.saveReview(reviews[index], isCommunity: false)
             return (reviews[index].isLikedByMe, reviews[index].likesCount)
         } else if let index = communityReviews.firstIndex(where: { $0.id == reviewId }) {
             let willBeLiked = !communityReviews[index].isLikedByMe
             communityReviews[index].isLikedByMe = willBeLiked
             communityReviews[index].likesCount = willBeLiked ? communityReviews[index].likesCount + 1 : max(0, communityReviews[index].likesCount - 1)
+            await database.saveReview(communityReviews[index], isCommunity: true)
             return (communityReviews[index].isLikedByMe, communityReviews[index].likesCount)
         } else {
             throw NSError(domain: "Social", code: 404, userInfo: [NSLocalizedDescriptionKey: "Reseña no encontrada"])
@@ -224,11 +256,13 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             let willBeHelpful = !communityReviews[index].isHelpfulByMe
             communityReviews[index].isHelpfulByMe = willBeHelpful
             communityReviews[index].helpfulCount = willBeHelpful ? communityReviews[index].helpfulCount + 1 : max(0, communityReviews[index].helpfulCount - 1)
+            await database.saveReview(communityReviews[index], isCommunity: true)
             return (communityReviews[index].isHelpfulByMe, communityReviews[index].helpfulCount)
         } else if let index = reviews.firstIndex(where: { $0.id == reviewId }) {
             let willBeHelpful = !reviews[index].isHelpfulByMe
             reviews[index].isHelpfulByMe = willBeHelpful
             reviews[index].helpfulCount = willBeHelpful ? reviews[index].helpfulCount + 1 : max(0, reviews[index].helpfulCount - 1)
+            await database.saveReview(reviews[index], isCommunity: false)
             return (reviews[index].isHelpfulByMe, reviews[index].helpfulCount)
         } else {
             throw NSError(domain: "Social", code: 404, userInfo: [NSLocalizedDescriptionKey: "Reseña no encontrada"])
@@ -250,11 +284,26 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             mutualMoviesCount: 1
         )
         friends.append(newFriend)
+        await database.saveFriend(newFriend)
+        
+        // Servicio REST: POST /api/friends
+        let friendReq = CreateFriendRequest(
+            id: newFriend.id,
+            displayName: newFriend.displayName,
+            username: newFriend.username,
+            avatarURL: newFriend.avatarURL?.absoluteString
+        )
+        _ = try? await apiClient.execute(endpoint: "/friends", method: .post, body: friendReq)
+        
         return newFriend
     }
     
     public func removeFriend(friendId: String) async throws {
         friends.removeAll { $0.id == friendId }
+        await database.removeFriend(id: friendId)
+        
+        // Servicio REST: DELETE /api/friends/:id
+        _ = try? await apiClient.execute(endpoint: "/friends/\(friendId)", method: .delete)
     }
     
     // MARK: - Dynamic Generator for Any Movie
@@ -358,7 +407,8 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             username: "@lucasfilm",
             avatarURL: URL(string: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200"),
             isMutual: true,
-            mutualMoviesCount: 14
+            mutualMoviesCount: 14,
+            isOnline: true
         ),
         Friend(
             id: "friend_2",
@@ -366,7 +416,8 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             username: "@camicine",
             avatarURL: URL(string: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200"),
             isMutual: true,
-            mutualMoviesCount: 22
+            mutualMoviesCount: 22,
+            isOnline: true
         ),
         Friend(
             id: "friend_3",
@@ -374,7 +425,26 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             username: "@mrossi",
             avatarURL: URL(string: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=200"),
             isMutual: true,
-            mutualMoviesCount: 8
+            mutualMoviesCount: 8,
+            isOnline: false
+        ),
+        Friend(
+            id: "friend_4",
+            displayName: "Sofía Alarcón",
+            username: "@sofiacine",
+            avatarURL: URL(string: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200"),
+            isMutual: true,
+            mutualMoviesCount: 19,
+            isOnline: true
+        ),
+        Friend(
+            id: "friend_5",
+            displayName: "Diego Mendoza",
+            username: "@diegofilms",
+            avatarURL: URL(string: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200"),
+            isMutual: false,
+            mutualMoviesCount: 5,
+            isOnline: false
         )
     ]
     
@@ -385,7 +455,7 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             userName: "Lucas Benítez",
             userAvatarURL: URL(string: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200"),
             movieId: "693134",
-            movieTitle: "Dune: Parte Dos",
+            movieTitle: "Duna: Parte dos",
             moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg"),
             movieReleaseYear: 2024,
             rating: 5.0,
@@ -464,7 +534,7 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             userName: "Mateo Rossi",
             userAvatarURL: URL(string: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=200"),
             movieId: "1022789",
-            movieTitle: "Del Revés 2",
+            movieTitle: "Intensamente 2",
             moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/vpnVM9B6NMmQpWeZvzLvDESb2QY.jpg"),
             movieReleaseYear: 2024,
             rating: 4.0,
@@ -477,18 +547,58 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             isFriend: true,
             helpfulCount: 6,
             isHelpfulByMe: false
+        ),
+        Review(
+            id: "rev_user_1",
+            userId: "apple_user_101",
+            userName: "Alex Rivera",
+            userAvatarURL: URL(string: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200"),
+            movieId: "157336",
+            movieTitle: "Interstellar",
+            moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg"),
+            movieReleaseYear: 2014,
+            rating: 5.0,
+            comment: "Una obra maestra de la ciencia ficción y el amor a través de las dimensiones.",
+            createdAt: Date().addingTimeInterval(-86400 * 3),
+            comments: [],
+            likesCount: 12,
+            isLikedByMe: false,
+            location: UserLocation(city: "Madrid", country: "España", countryCode: "ES", flagEmoji: "🇪🇸", isLocal: true),
+            isFriend: false,
+            helpfulCount: 15,
+            isHelpfulByMe: false
+        ),
+        Review(
+            id: "rev_user_2",
+            userId: "apple_user_101",
+            userName: "Alex Rivera",
+            userAvatarURL: URL(string: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200"),
+            movieId: "27205",
+            movieTitle: "El Origen",
+            moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg"),
+            movieReleaseYear: 2010,
+            rating: 4.5,
+            comment: "El diseño narrativo y los niveles de sueño siguen siendo revolucionarios.",
+            createdAt: Date().addingTimeInterval(-86400 * 10),
+            comments: [],
+            likesCount: 7,
+            isLikedByMe: false,
+            location: UserLocation(city: "Madrid", country: "España", countryCode: "ES", flagEmoji: "🇪🇸", isLocal: true),
+            isFriend: false,
+            helpfulCount: 8,
+            isHelpfulByMe: false
         )
     ]
     
     public static let defaultCommunityReviews: [Review] = [
-        // MARK: - Dune: Parte Dos (693134) - Locales (No Amigos)
+        // MARK: - Duna: Parte dos (693134) - Locales (No Amigos)
         Review(
             id: "comm_dune_loc_1",
             userId: "user_nonfriend_carlos",
             userName: "Carlos Navarro",
             userAvatarURL: URL(string: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200"),
             movieId: "693134",
-            movieTitle: "Dune: Parte Dos",
+            movieTitle: "Duna: Parte dos",
             moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg"),
             movieReleaseYear: 2024,
             rating: 4.5,
@@ -508,7 +618,7 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             userName: "Valentina Soto",
             userAvatarURL: URL(string: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200"),
             movieId: "693134",
-            movieTitle: "Dune: Parte Dos",
+            movieTitle: "Duna: Parte dos",
             moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg"),
             movieReleaseYear: 2024,
             rating: 5.0,
@@ -528,7 +638,7 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             userName: "Diego Álvarez",
             userAvatarURL: URL(string: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200"),
             movieId: "693134",
-            movieTitle: "Dune: Parte Dos",
+            movieTitle: "Duna: Parte dos",
             moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg"),
             movieReleaseYear: 2024,
             rating: 4.0,
@@ -543,14 +653,14 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             isHelpfulByMe: false
         ),
         
-        // MARK: - Dune: Parte Dos (693134) - Internacionales (No Amigos)
+        // MARK: - Duna: Parte dos (693134) - Internacionales (No Amigos)
         Review(
             id: "comm_dune_int_1",
             userId: "user_nonfriend_kenji",
             userName: "Kenji Sato",
             userAvatarURL: URL(string: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200"),
             movieId: "693134",
-            movieTitle: "Dune: Parte Dos",
+            movieTitle: "Duna: Parte dos",
             moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg"),
             movieReleaseYear: 2024,
             rating: 5.0,
@@ -570,7 +680,7 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             userName: "Sarah Jenkins",
             userAvatarURL: URL(string: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200"),
             movieId: "693134",
-            movieTitle: "Dune: Parte Dos",
+            movieTitle: "Duna: Parte dos",
             moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg"),
             movieReleaseYear: 2024,
             rating: 5.0,
@@ -590,7 +700,7 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             userName: "Jean-Luc Moreau",
             userAvatarURL: URL(string: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200"),
             movieId: "693134",
-            movieTitle: "Dune: Parte Dos",
+            movieTitle: "Duna: Parte dos",
             moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg"),
             movieReleaseYear: 2024,
             rating: 4.5,
@@ -610,7 +720,7 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             userName: "Min-jun Kim",
             userAvatarURL: URL(string: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200"),
             movieId: "693134",
-            movieTitle: "Dune: Parte Dos",
+            movieTitle: "Duna: Parte dos",
             moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg"),
             movieReleaseYear: 2024,
             rating: 5.0,

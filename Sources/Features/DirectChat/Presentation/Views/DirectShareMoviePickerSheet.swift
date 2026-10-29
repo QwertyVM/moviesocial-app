@@ -68,7 +68,7 @@ public struct DirectShareMoviePickerSheet: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("COMPARTIR PELÍCULA")
-                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .font(.system(size: 13, weight: .bold))
                         .foregroundColor(.white)
                 }
                 
@@ -143,7 +143,7 @@ public struct DirectShareMoviePickerSheet: View {
             // Nota opcional
             VStack(alignment: .leading, spacing: 6) {
                 Text("AÑADIR UN COMENTARIO (OPCIONAL)")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundColor(Theme.Colors.WhatsApp.accentGreen)
                 
                 TextField("¿Por qué recomiendas esta película?", text: $noteText, axis: .vertical)

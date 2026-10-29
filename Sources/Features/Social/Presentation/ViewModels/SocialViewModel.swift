@@ -51,11 +51,25 @@ public final class SocialViewModel: @unchecked Sendable {
     
     public var filteredFriends: [Friend] {
         let query = friendSearchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !query.isEmpty else { return friends }
-        return friends.filter {
-            $0.displayName.lowercased().contains(query) ||
-            $0.username.lowercased().contains(query)
+        let list: [Friend]
+        if query.isEmpty {
+            list = friends
+        } else {
+            list = friends.filter {
+                $0.displayName.lowercased().contains(query) ||
+                $0.username.lowercased().contains(query)
+            }
         }
+        return list.sorted { first, second in
+            if first.isOnline != second.isOnline {
+                return first.isOnline && !second.isOnline
+            }
+            return first.displayName.localizedCaseInsensitiveCompare(second.displayName) == .orderedAscending
+        }
+    }
+    
+    public var onlineFriendsCount: Int {
+        friends.filter { $0.isOnline }.count
     }
     
     public var totalMutualMoviesCount: Int {

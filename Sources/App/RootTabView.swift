@@ -105,8 +105,16 @@ public struct RootTabView: View {
                 ProfileView(
                     user: currentUser,
                     viewModel: profileVM,
+                    onSelectMovie: { movieId in
+                        selectMovieById(movieId)
+                    },
                     onUpdateUser: { updatedUser in
                         environment.authViewModel.currentUser = updatedUser
+                        if let loc = updatedUser.location {
+                            Task {
+                                await catalogViewModel?.selectCity(loc)
+                            }
+                        }
                     },
                     onSignOut: {
                         Task {

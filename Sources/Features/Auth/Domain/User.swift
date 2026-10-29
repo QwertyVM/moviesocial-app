@@ -6,29 +6,64 @@ public enum AuthProvider: String, Sendable, Codable {
     case mock = "Test"
 }
 
-public struct UserLocation: Sendable, Codable, Equatable {
+public struct UserLocation: Sendable, Codable, Equatable, Hashable {
     public let city: String
     public let country: String
     public let countryCode: String
     public let flagEmoji: String
     public let isLocal: Bool
+    public let area: String?
+    public let isDeviceLocation: Bool
     
     public init(
         city: String,
         country: String,
         countryCode: String,
         flagEmoji: String,
-        isLocal: Bool = false
+        isLocal: Bool = false,
+        area: String? = nil,
+        isDeviceLocation: Bool = false
     ) {
         self.city = city
         self.country = country
         self.countryCode = countryCode
         self.flagEmoji = flagEmoji
         self.isLocal = isLocal
+        self.area = area
+        self.isDeviceLocation = isDeviceLocation
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.city = try container.decode(String.self, forKey: .city)
+        self.country = try container.decode(String.self, forKey: .country)
+        self.countryCode = try container.decode(String.self, forKey: .countryCode)
+        self.flagEmoji = try container.decode(String.self, forKey: .flagEmoji)
+        self.isLocal = try container.decodeIfPresent(Bool.self, forKey: .isLocal) ?? false
+        self.area = try container.decodeIfPresent(String.self, forKey: .area)
+        self.isDeviceLocation = try container.decodeIfPresent(Bool.self, forKey: .isDeviceLocation) ?? false
     }
     
     public var formattedText: String {
         "\(flagEmoji) \(city), \(country)"
+    }
+    
+    public var detailedFormattedText: String {
+        if let area, !area.isEmpty, area.lowercased() != city.lowercased() {
+            return "\(flagEmoji) \(city) (\(area)), \(country)"
+        }
+        return "\(flagEmoji) \(city), \(country)"
+    }
+    
+    public var hierarchicalFormattedText: String {
+        if let area, !area.isEmpty, area.lowercased() != city.lowercased() {
+            return "\(flagEmoji) \(country) › \(area) › \(city)"
+        }
+        return "\(flagEmoji) \(country) › \(city)"
+    }
+    
+    public var shortLabel: String {
+        "\(flagEmoji) \(city)"
     }
 }
 
@@ -65,7 +100,8 @@ public struct User: Identifiable, Sendable, Codable, Equatable {
             country: "España",
             countryCode: "ES",
             flagEmoji: "🇪🇸",
-            isLocal: true
+            isLocal: true,
+            area: "Comunidad de Madrid"
         )
     ) {
         self.id = id

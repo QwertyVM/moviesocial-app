@@ -225,7 +225,7 @@ public struct GroupDetailView: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 Text("PELÍCULA EN DEBATE")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .font(.system(size: 9, weight: .bold))
                     .foregroundColor(Theme.Colors.WhatsApp.accentGreen)
                 Text(title)
                     .font(.system(size: 13, weight: .semibold))
@@ -684,7 +684,7 @@ public struct WhatsAppGroupInfoView: View {
                         if !group.description.isEmpty {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("DESCRIPCIÓN DEL GRUPO")
-                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                    .font(.system(size: 11, weight: .bold))
                                     .foregroundColor(Theme.Colors.WhatsApp.accentGreen)
                                 
                                 Text(group.description)
@@ -722,14 +722,14 @@ public struct WhatsAppGroupInfoView: View {
                             
                             HStack {
                                 Text(group.inviteLink)
-                                    .font(.system(size: 12, design: .monospaced))
+                                    .font(.system(size: 12))
                                     .foregroundColor(Theme.Colors.WhatsApp.accentGreen)
                                     .lineLimit(1)
                                 
                                 Spacer()
                                 
                                 Text(group.inviteCode)
-                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                    .font(.system(size: 10, weight: .bold))
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 2)
                                     .background(Theme.Colors.WhatsApp.accentGreen.opacity(0.2))
@@ -797,7 +797,7 @@ public struct WhatsAppGroupInfoView: View {
                         if let movieTitle = group.currentMovieTitle {
                             VStack(alignment: .leading, spacing: 10) {
                                 Text("PELÍCULA EN DISCUSIÓN")
-                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                    .font(.system(size: 11, weight: .bold))
                                     .foregroundColor(Theme.Colors.WhatsApp.accentGreen)
                                 
                                 HStack(spacing: 12) {
@@ -851,7 +851,7 @@ public struct WhatsAppGroupInfoView: View {
                         // Tarjeta: Participantes
                         VStack(alignment: .leading, spacing: 0) {
                             Text("\(group.totalMembersCount) PARTICIPANTES")
-                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(Theme.Colors.WhatsApp.messageTime)
                                 .padding(.horizontal, 14)
                                 .padding(.top, 14)

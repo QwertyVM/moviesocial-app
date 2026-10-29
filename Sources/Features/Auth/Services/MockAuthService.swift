@@ -2,9 +2,11 @@ import Foundation
 
 public final class MockAuthService: AuthServiceProtocol, @unchecked Sendable {
     private var currentUser: User?
+    private let database: AppDatabase
     
-    public init(initialUser: User? = nil) {
+    public init(initialUser: User? = nil, database: AppDatabase = AppDatabase.shared) {
         self.currentUser = initialUser
+        self.database = database
     }
     
     public func signInWithApple() async throws -> User {
@@ -16,6 +18,8 @@ public final class MockAuthService: AuthServiceProtocol, @unchecked Sendable {
             authProvider: .apple
         )
         self.currentUser = user
+        await database.saveUser(user)
+        await database.saveCurrentSessionUserId(user.id)
         return user
     }
     
@@ -28,15 +32,26 @@ public final class MockAuthService: AuthServiceProtocol, @unchecked Sendable {
             authProvider: .google
         )
         self.currentUser = user
+        await database.saveUser(user)
+        await database.saveCurrentSessionUserId(user.id)
         return user
     }
     
     public func signOut() async throws {
         self.currentUser = nil
+        await database.saveCurrentSessionUserId(nil)
     }
     
     public func getCurrentUser() async -> User? {
-        return currentUser
+        if let currentUser {
+            return currentUser
+        }
+        if let sessionId = await database.getCurrentSessionUserId(),
+           let persistedUser = await database.getUser(id: sessionId) {
+            self.currentUser = persistedUser
+            return persistedUser
+        }
+        return nil
     }
 }
 

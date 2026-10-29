@@ -15,3 +15,9 @@ build-sim/
 *.zip
 *.ipa
 MovieSocialApp.app
+
+# Backend & Secrets
+.env
+backend/.env
+backend/database.sqlite*
+backend/server.log

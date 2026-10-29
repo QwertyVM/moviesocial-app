@@ -33,7 +33,7 @@ public struct GroupsListView: View {
                     .toolbar {
                         ToolbarItem(placement: .principal) {
                             Text("CINECLUBS Y GRUPOS")
-                                .font(.system(size: 13, weight: .bold, design: .monospaced))
+                                .font(.system(size: 13, weight: .bold))
                                 .tracking(3)
                                 .foregroundColor(.white)
                         }
@@ -363,7 +363,7 @@ public struct GroupsListView: View {
             // Subtítulo con contador de seleccionados
             HStack {
                 Text("AÑADIR PARTICIPANTES")
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundColor(Theme.Colors.WhatsApp.messageTime)
                 Spacer()
                 Text("\(viewModel.selectedFriendIds.count) seleccionados")
@@ -597,7 +597,7 @@ public struct GroupsListView: View {
                 // Descripción
                 VStack(alignment: .leading, spacing: 6) {
                     Text("DESCRIPCIÓN O REGLAS (OPCIONAL)")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundColor(Theme.Colors.WhatsApp.messageTime)
                     
                     TextField("Añade una descripción para los miembros...", text: $viewModel.newGroupDescription)
@@ -612,7 +612,7 @@ public struct GroupsListView: View {
                 // Película inicial
                 VStack(alignment: .leading, spacing: 6) {
                     Text("PRIMERA PELÍCULA A DEBATIR (OPCIONAL)")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundColor(Theme.Colors.WhatsApp.messageTime)
                     
                     TextField("Ej: Dune: Parte Dos, El Padrino...", text: $viewModel.newGroupMovieTitle)
@@ -631,7 +631,7 @@ public struct GroupsListView: View {
                             .font(.system(size: 16))
                             .foregroundColor(Theme.Colors.WhatsApp.accentGreen)
                         Text("ENLACE DE INVITACIÓN DIRECTO")
-                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .font(.system(size: 11, weight: .bold))
                             .foregroundColor(Theme.Colors.WhatsApp.accentGreen)
                     }
                     
@@ -642,11 +642,11 @@ public struct GroupsListView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(viewModel.generatedInviteLink)
-                                .font(.system(size: 12, design: .monospaced))
+                                .font(.system(size: 12))
                                 .foregroundColor(.white)
                                 .lineLimit(1)
                             Text("Código: \(viewModel.generatedInviteCode)")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(Theme.Colors.WhatsApp.accentGreen)
                         }
                         
@@ -685,7 +685,7 @@ public struct GroupsListView: View {
                 if !viewModel.selectedFriends.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("PARTICIPANTES QUE SE AÑADIRÁN (\(viewModel.selectedFriends.count))")
-                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .font(.system(size: 11, weight: .bold))
                             .foregroundColor(Theme.Colors.WhatsApp.messageTime)
                         
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -804,14 +804,14 @@ public struct GroupsListView: View {
                     // Sugerencias rápidas de grupos oficiales de prueba
                     VStack(alignment: .leading, spacing: 8) {
                         Text("CINECLUBS DESTACADOS:")
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundColor(Theme.Colors.WhatsApp.messageTime)
                         
                         HStack(spacing: 8) {
                             Button("CINE-NOLAN") {
                                 viewModel.inviteLinkOrCodeInput = "CINE-NOLAN"
                             }
-                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .font(.system(size: 11, weight: .semibold))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .background(Color(red: 32/255, green: 44/255, blue: 51/255))
@@ -821,7 +821,7 @@ public struct GroupsListView: View {
                             Button("CINE-CLASSIC") {
                                 viewModel.inviteLinkOrCodeInput = "CINE-CLASSIC"
                             }
-                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .font(.system(size: 11, weight: .semibold))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .background(Color(red: 32/255, green: 44/255, blue: 51/255))
@@ -831,7 +831,7 @@ public struct GroupsListView: View {
                             Button("CINE-TERROR") {
                                 viewModel.inviteLinkOrCodeInput = "CINE-TERROR"
                             }
-                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .font(.system(size: 11, weight: .semibold))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .background(Color(red: 32/255, green: 44/255, blue: 51/255))

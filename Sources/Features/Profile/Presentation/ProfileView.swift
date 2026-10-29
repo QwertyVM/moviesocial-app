@@ -3,21 +3,24 @@ import SwiftUI
 public struct ProfileView: View {
     public let user: User
     @Bindable public var viewModel: ProfileViewModel
+    public let onSelectMovie: ((String) -> Void)?
     public let onUpdateUser: ((User) -> Void)?
     public let onSignOut: () -> Void
     
-    @State private var selectedFriend: Friend? = nil
     @State private var isEditingProfile: Bool = false
-    @State private var toastMessage: String? = nil
+    @State private var toastMessage: String?
+    @State private var showConfirmResetAlert: Bool = false
     
     public init(
         user: User,
         viewModel: ProfileViewModel,
+        onSelectMovie: ((String) -> Void)? = nil,
         onUpdateUser: ((User) -> Void)? = nil,
         onSignOut: @escaping () -> Void
     ) {
         self.user = user
         self.viewModel = viewModel
+        self.onSelectMovie = onSelectMovie
         self.onUpdateUser = onUpdateUser
         self.onSignOut = onSignOut
     }
@@ -29,60 +32,39 @@ public struct ProfileView: View {
                     .ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(spacing: Theme.Spacing.l) {
+                    VStack(spacing: 24) {
                         // Toast informativo
                         if let toast = toastMessage {
-                            HStack(spacing: 8) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(Theme.Colors.friendsAccent)
-                                Text(toast)
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(.white)
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(Theme.Colors.surfaceElevated)
-                            .clipShape(Capsule())
-                            .overlay(Capsule().stroke(Theme.Colors.friendsAccent.opacity(0.6), lineWidth: 1))
-                            .transition(.move(edge: .top).combined(with: .opacity))
+                            toastBanner(toast)
                         }
                         
-                        // User Header
-                        userHeader
+                        // Cabecera Minimalista
+                        minimalistHeader
                         
-                        // Cinema Preferences Card
-                        cinemaPreferencesCard
+                        // Barra de Métricas Unificada
+                        minimalistMetricsBar
                         
-                        // Membership Status Card
-                        membershipCard
+                        // Gustos Cinéfilos Minimalistas
+                        minimalistCinemaTags
                         
-                        // Minimalist Stats Row
-                        statsRow
+                        // Estado de Membresía
+                        minimalistMembershipRow
                         
-                        // Friends List Section
-                        friendsSection
+                        // Mis Calificaciones y Reseñas
+                        myReviewsSection
                         
-                        // Sign Out Button
-                        Button(role: .destructive, action: onSignOut) {
-                            HStack {
-                                Image(systemName: "rectangle.portrait.and.arrow.right")
-                                Text("Cerrar Sesión")
-                            }
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.red.opacity(0.85))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 48)
-                            .background(Theme.Colors.surface)
-                            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: Theme.Radius.medium)
-                                    .stroke(Theme.Colors.border, lineWidth: 1)
-                            )
-                        }
-                        .padding(.top, Theme.Spacing.m)
+                        // Estado y Mantenimiento de Base de Datos SQLite
+                        databaseSection
+                        
+                        // Botón Sutil de Cerrar Sesión
+                        signOutButton
                     }
-                    .padding(.horizontal, Theme.Spacing.m)
-                    .padding(.vertical, Theme.Spacing.m)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 36)
+                }
+                .refreshable {
+                    await viewModel.loadProfileData(user: user)
                 }
             }
             #if os(iOS)
@@ -90,12 +72,13 @@ public struct ProfileView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text("MI PERFIL")
-                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    Text("PERFIL")
+                        .font(.system(size: 13, weight: .bold))
                         .tracking(3)
                         .foregroundColor(Theme.Colors.textPrimary)
                 }
                 
+                // Único botón de edición en MI PERFIL
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         isEditingProfile = true
@@ -115,257 +98,572 @@ public struct ProfileView: View {
                     showToast("Perfil actualizado correctamente")
                 }
             }
-            .task {
-                await viewModel.loadProfileData(user: user)
-            }
-            .sheet(item: $selectedFriend) { friend in
-                NavigationStack {
-                    ZStack {
-                        Theme.Colors.background
-                            .ignoresSafeArea()
-                        
-                        VStack(spacing: 20) {
-                            Circle()
-                                .fill(Theme.Colors.surfaceElevated)
-                                .frame(width: 76, height: 76)
-                                .overlay(
-                                    Text(String(friend.displayName.prefix(1)))
-                                        .font(.title.bold())
-                                        .foregroundColor(Theme.Colors.textPrimary)
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(Theme.Colors.border, lineWidth: 1.5)
-                                )
-                            
-                            VStack(spacing: 4) {
-                                Text(friend.displayName)
-                                    .font(.title3.bold())
-                                    .foregroundColor(Theme.Colors.textPrimary)
-                                
-                                Text(friend.username)
-                                    .font(.subheadline)
-                                    .foregroundColor(Theme.Colors.textTertiary)
-                                
-                                HStack(spacing: 6) {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "film")
-                                            .font(.system(size: 10))
-                                        Text("\(friend.mutualMoviesCount) películas en común")
-                                            .font(.system(size: 11, weight: .medium))
-                                    }
-                                    .foregroundColor(Theme.Colors.friendsAccent)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 4)
-                                    .background(Theme.Colors.friendsAccent.opacity(0.12))
-                                    .clipShape(Capsule())
-                                    
-                                    if friend.isMutual {
-                                        Text("Amigos mutuos")
-                                            .font(.system(size: 11, weight: .medium))
-                                            .foregroundColor(Theme.Colors.textSecondary)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 4)
-                                            .background(Theme.Colors.surfaceElevated)
-                                            .clipShape(Capsule())
-                                    }
-                                }
-                                .padding(.top, 4)
-                            }
-                            
-                            Spacer()
-                        }
-                        .padding(.top, 30)
-                    }
-                    #if os(iOS)
-                    .navigationBarTitleDisplayMode(.inline)
-                    #endif
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Cerrar") {
-                                selectedFriend = nil
-                            }
-                            .foregroundColor(Theme.Colors.textSecondary)
-                        }
+            .alert("¿Reiniciar Base de Datos?", isPresented: $showConfirmResetAlert) {
+                Button("Cancelar", role: .cancel) { }
+                Button("Reiniciar Todo", role: .destructive) {
+                    Task {
+                        await viewModel.resetDatabase(user: user)
+                        showToast("Base de datos reiniciada con éxito")
                     }
                 }
+            } message: {
+                Text("Esta acción eliminará todas las tablas SQLite locales y reiniciará los datos a su estado limpio inicial.")
+            }
+            .task {
+                await viewModel.loadProfileData(user: user)
             }
         }
     }
     
-    // MARK: - Subviews
+    // MARK: - Minimalist Header
     
-    private var userHeader: some View {
+    private var minimalistHeader: some View {
         VStack(spacing: 12) {
-            // Avatar con Icono o Inicial
+            // Avatar Puro
             ZStack {
                 Circle()
                     .fill(Theme.Colors.surfaceElevated)
-                    .frame(width: 80, height: 80)
+                    .frame(width: 86, height: 86)
                 
                 if !user.avatarEmoji.isEmpty {
                     Text(user.avatarEmoji)
-                        .font(.system(size: 40))
+                        .font(.system(size: 44))
                 } else {
                     Text(String(user.displayName.prefix(1)))
-                        .font(.title.bold())
+                        .font(.system(size: 32, weight: .bold))
                         .foregroundColor(Theme.Colors.textPrimary)
                 }
             }
             .overlay(
                 Circle()
-                    .stroke(Theme.Colors.border, lineWidth: 1.5)
+                    .stroke(Theme.Colors.border.opacity(0.6), lineWidth: 1.5)
             )
-            .shadow(color: Theme.Colors.friendsAccent.opacity(0.15), radius: 6)
+            .shadow(color: Theme.Colors.friendsAccent.opacity(0.12), radius: 10)
             
+            // Textos de Identidad
             VStack(spacing: 4) {
                 Text(user.displayName)
-                    .font(.title3.bold())
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundColor(Theme.Colors.textPrimary)
                 
                 Text(user.username)
-                    .font(.subheadline.bold())
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(Theme.Colors.friendsAccent)
                 
-                Text(user.email)
-                    .font(.caption)
-                    .foregroundColor(Theme.Colors.textTertiary)
-                
-                // Badges de Proveedor de Autenticación y Ubicación
-                HStack(spacing: 6) {
-                    HStack(spacing: 4) {
-                        Image(systemName: user.authProvider == .apple ? "applelogo" : "globe")
-                            .font(.system(size: 10))
-                        Text("Conectado con \(user.authProvider.rawValue)")
-                            .font(.system(size: 10, weight: .medium))
-                    }
-                    .foregroundColor(Theme.Colors.textSecondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(Theme.Colors.surfaceElevated)
-                    .clipShape(Capsule())
-                    
+                // Ubicación y Proveedor Inline Minimalista
+                HStack(spacing: 8) {
                     if let location = user.location {
                         Text(location.formattedText)
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(Color.green)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(Color.green.opacity(0.12))
-                            .clipShape(Capsule())
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(Theme.Colors.textSecondary)
                     }
+                    
+                    if user.location != nil {
+                        Text("•")
+                            .font(.system(size: 10))
+                            .foregroundColor(Theme.Colors.textTertiary)
+                    }
+                    
+                    HStack(spacing: 3) {
+                        Image(systemName: user.authProvider == .apple ? "applelogo" : "globe")
+                            .font(.system(size: 10))
+                        Text(user.authProvider.rawValue.capitalized)
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundColor(Theme.Colors.textTertiary)
                 }
-                .padding(.top, 4)
+                .padding(.top, 2)
                 
-                // Biografía cinéfila
+                // Biografía Cinéfila
                 if !user.bio.isEmpty {
                     Text(user.bio)
                         .font(.system(size: 13))
                         .foregroundColor(Theme.Colors.textSecondary)
                         .multilineTextAlignment(.center)
-                        .lineSpacing(2)
-                        .padding(.horizontal, 20)
+                        .lineSpacing(3)
+                        .padding(.horizontal, 16)
                         .padding(.top, 6)
                 }
-                
-                // Botón rápido para editar perfil
-                Button {
-                    isEditingProfile = true
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "pencil")
-                            .font(.system(size: 12, weight: .bold))
-                        Text("Editar Perfil")
-                            .font(.system(size: 13, weight: .semibold))
-                    }
-                    .foregroundColor(Theme.Colors.friendsAccent)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 7)
-                    .background(Theme.Colors.friendsAccent.opacity(0.12))
-                    .clipShape(Capsule())
-                    .overlay(
-                        Capsule()
-                            .stroke(Theme.Colors.friendsAccent.opacity(0.35), lineWidth: 1)
-                    )
-                }
-                .buttonStyle(.plain)
-                .padding(.top, 8)
             }
         }
-        .padding(.top, Theme.Spacing.s)
     }
     
-    private var cinemaPreferencesCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+    // MARK: - Minimalist Metrics Bar
+    
+    private var minimalistMetricsBar: some View {
+        HStack(spacing: 0) {
+            metricItem(title: "CRÍTICAS", value: "\(viewModel.userReviewsCount)")
+            
+            Divider()
+                .frame(height: 26)
+                .background(Theme.Colors.border.opacity(0.4))
+            
+            metricItem(title: "PROMEDIO", value: String(format: "%.1f", viewModel.averageGivenRating))
+            
+            Divider()
+                .frame(height: 26)
+                .background(Theme.Colors.border.opacity(0.4))
+            
+            metricItem(title: "AMIGOS", value: "\(viewModel.friendsCount)")
+        }
+        .padding(.vertical, 14)
+        .background(Theme.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Theme.Colors.border.opacity(0.6), lineWidth: 1)
+        )
+    }
+    
+    private func metricItem(title: String, value: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(size: 19, weight: .bold))
+                .foregroundColor(Theme.Colors.textPrimary)
+            
+            Text(title)
+                .font(.system(size: 9, weight: .bold))
+                .tracking(1)
+                .foregroundColor(Theme.Colors.textTertiary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+    
+    // MARK: - Minimalist Cinema Tags
+    
+    private var minimalistCinemaTags: some View {
+        HStack(spacing: 10) {
+            // Director Favorito
+            HStack(spacing: 8) {
+                Image(systemName: "video.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(Theme.Colors.friendsAccent)
+                
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("DIRECTOR")
+                        .font(.system(size: 8, weight: .bold))
+                        .tracking(1)
+                        .foregroundColor(Theme.Colors.textTertiary)
+                    
+                    Text(user.favoriteDirector.isEmpty ? "Sin definir" : user.favoriteDirector)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(Theme.Colors.textPrimary)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background(Theme.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Theme.Colors.border.opacity(0.6), lineWidth: 1)
+            )
+            
+            // Género Predilecto
+            HStack(spacing: 8) {
+                Image(systemName: "film.stack.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(Theme.Colors.imdb)
+                
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("GÉNERO")
+                        .font(.system(size: 8, weight: .bold))
+                        .tracking(1)
+                        .foregroundColor(Theme.Colors.textTertiary)
+                    
+                    Text(user.favoriteGenre.isEmpty ? "Sin definir" : user.favoriteGenre)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(Theme.Colors.textPrimary)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background(Theme.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Theme.Colors.border.opacity(0.6), lineWidth: 1)
+            )
+        }
+    }
+    
+    // MARK: - Minimalist Membership Row
+    
+    private var minimalistMembershipRow: some View {
+        HStack(spacing: 12) {
+            Image(systemName: user.isPremium ? "crown.fill" : "person.crop.circle.badge.checkmark")
+                .font(.system(size: 16))
+                .foregroundColor(user.isPremium ? Theme.Colors.imdb : Theme.Colors.textSecondary)
+                .frame(width: 28, height: 28)
+                .background(
+                    (user.isPremium ? Theme.Colors.imdb : Theme.Colors.textSecondary)
+                        .opacity(0.12)
+                )
+                .clipShape(Circle())
+            
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(user.isPremium ? "Cinéfilo PRO" : "Pase Social")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Theme.Colors.textPrimary)
+                    
+                    if user.isPremium {
+                        Text("ACTIVO")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .background(Theme.Colors.imdb)
+                            .clipShape(Capsule())
+                    }
+                }
+                
+                Text(user.isPremium ? "Críticas globales ilimitadas y análisis de autor." : "Opiniones de tu red cercana de cinéfilos.")
+                    .font(.system(size: 11))
+                    .foregroundColor(Theme.Colors.textTertiary)
+                    .lineLimit(1)
+            }
+            
+            Spacer()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Theme.Colors.surface.opacity(0.6))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(user.isPremium ? Theme.Colors.imdb.opacity(0.3) : Theme.Colors.border.opacity(0.5), lineWidth: 1)
+        )
+    }
+    
+    // MARK: - My Reviews Section
+    
+    private var myReviewsSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text("GUSTOS CINÉFILOS")
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .tracking(2)
-                    .foregroundColor(Theme.Colors.textSecondary)
+                HStack(spacing: 6) {
+                    Image(systemName: "star.bubble.fill")
+                        .font(.system(size: 13))
+                        .foregroundColor(Theme.Colors.imdb)
+                    
+                    Text("MIS CALIFICACIONES (\(viewModel.userReviews.count))")
+                        .font(.system(size: 11, weight: .bold))
+                        .tracking(2)
+                        .foregroundColor(Theme.Colors.textSecondary)
+                }
                 
                 Spacer()
                 
-                Button {
-                    isEditingProfile = true
-                } label: {
-                    Image(systemName: "pencil")
-                        .font(.system(size: 12))
-                        .foregroundColor(Theme.Colors.friendsAccent)
+                if !viewModel.userReviews.isEmpty {
+                    Text("Promedio: \(String(format: "%.1f", viewModel.averageGivenRating)) ★")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(Theme.Colors.imdb)
                 }
-                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 2)
+            
+            if viewModel.userReviews.isEmpty {
+                VStack(spacing: 10) {
+                    Image(systemName: "film.stack")
+                        .font(.system(size: 32))
+                        .foregroundColor(Theme.Colors.textTertiary)
+                    
+                    Text("Aún no has calificado películas")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Theme.Colors.textPrimary)
+                    
+                    Text("Tus notas y opiniones aparecerán aquí cuando valores películas en el catálogo de Cine.")
+                        .font(.system(size: 12))
+                        .foregroundColor(Theme.Colors.textTertiary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+                .background(Theme.Colors.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Theme.Colors.border.opacity(0.6), lineWidth: 1)
+                )
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(viewModel.userReviews) { review in
+                        userReviewCard(review)
+                    }
+                }
+            }
+        }
+    }
+    
+    private func userReviewCard(_ review: Review) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // Cabecera con película y calificación
+            Button {
+                onSelectMovie?(review.movieId)
+            } label: {
+                HStack(spacing: 12) {
+                    if let poster = review.moviePosterURL {
+                        AsyncImage(url: poster) { img in
+                            img.resizable().aspectRatio(contentMode: .fill)
+                        } placeholder: {
+                            Rectangle().fill(Theme.Colors.surfaceElevated)
+                        }
+                        .frame(width: 42, height: 60)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.small))
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(review.movieTitle)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(Theme.Colors.textPrimary)
+                            .lineLimit(1)
+                        
+                        if let year = review.movieReleaseYear {
+                            Text("\(year)")
+                                .font(.system(size: 11))
+                                .foregroundColor(Theme.Colors.textTertiary)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    HStack(spacing: 4) {
+                        Text("★")
+                            .font(.system(size: 12))
+                            .foregroundColor(Theme.Colors.imdb)
+                        Text(review.formattedRating)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(Theme.Colors.textPrimary)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Theme.Colors.surfaceElevated)
+                    .clipShape(Capsule())
+                    
+                    if onSelectMovie != nil {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11))
+                            .foregroundColor(Theme.Colors.textTertiary)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            
+            // Comentario
+            if !review.comment.isEmpty {
+                Text(review.comment)
+                    .font(.system(size: 13))
+                    .lineSpacing(3)
+                    .foregroundColor(Theme.Colors.textPrimary.opacity(0.9))
+                    .padding(.top, 2)
             }
             
-            HStack(spacing: 12) {
-                // Director Favorito
-                VStack(alignment: .leading, spacing: 4) {
+            // Pie con fecha y likes / comentarios
+            HStack {
+                Text(review.createdAt.formatted(date: .abbreviated, time: .shortened))
+                    .font(.system(size: 11))
+                    .foregroundColor(Theme.Colors.textTertiary)
+                
+                Spacer()
+                
+                if review.likesCount > 0 {
                     HStack(spacing: 4) {
-                        Image(systemName: "video.fill")
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.red.opacity(0.8))
+                        Text("\(review.likesCount)")
+                            .font(.system(size: 11))
+                            .foregroundColor(Theme.Colors.textTertiary)
+                    }
+                }
+                
+                if !review.comments.isEmpty {
+                    HStack(spacing: 4) {
+                        Image(systemName: "bubble.left.fill")
                             .font(.system(size: 10))
                             .foregroundColor(Theme.Colors.friendsAccent)
-                        Text("DIRECTOR(A)")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        Text("\(review.comments.count)")
+                            .font(.system(size: 11))
                             .foregroundColor(Theme.Colors.textTertiary)
                     }
-                    
-                    Text(user.favoriteDirector.isEmpty ? "No especificado" : user.favoriteDirector)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Theme.Colors.textPrimary)
-                        .lineLimit(1)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(10)
-                .background(Theme.Colors.surfaceElevated)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                
-                // Género Predilecto
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "film.stack.fill")
-                            .font(.system(size: 10))
-                            .foregroundColor(Theme.Colors.imdb)
-                        Text("GÉNERO")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundColor(Theme.Colors.textTertiary)
-                    }
-                    
-                    Text(user.favoriteGenre.isEmpty ? "No especificado" : user.favoriteGenre)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Theme.Colors.textPrimary)
-                        .lineLimit(1)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(10)
-                .background(Theme.Colors.surfaceElevated)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
         }
         .padding(14)
         .background(Theme.Colors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
-            RoundedRectangle(cornerRadius: Theme.Radius.medium)
-                .stroke(Theme.Colors.border, lineWidth: 1)
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Theme.Colors.border.opacity(0.6), lineWidth: 1)
         )
+    }
+    
+    // MARK: - Database & REST Services Management
+    
+    private var databaseSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 6) {
+                Image(systemName: "network")
+                    .font(.system(size: 11))
+                    .foregroundColor(Theme.Colors.friendsAccent)
+                Text("SERVICIOS REST Y BASE DE DATOS")
+                    .font(.system(size: 11, weight: .bold))
+                    .tracking(2)
+                    .foregroundColor(Theme.Colors.textSecondary)
+                Spacer()
+                
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(Color.green)
+                        .frame(width: 6, height: 6)
+                    Text("API REST Activa")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(Color.green)
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(Color.green.opacity(0.12))
+                .clipShape(Capsule())
+            }
+            .padding(.horizontal, 2)
+            
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Servicios HTTP Conectados a BD")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(Theme.Colors.textPrimary)
+                        Text("database.sqlite • GET, POST, PUT, DELETE")
+                            .font(.system(size: 11))
+                            .foregroundColor(Theme.Colors.textTertiary)
+                    }
+                    Spacer()
+                }
+                
+                // Métodos HTTP soportados
+                HStack(spacing: 6) {
+                    Text("GET")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Color.blue.opacity(0.15))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                    
+                    Text("POST")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.green)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Color.green.opacity(0.15))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        
+                    Text("PUT")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.orange)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Color.orange.opacity(0.15))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        
+                    Text("DELETE")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.red)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Color.red.opacity(0.15))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                }
+                
+                // Métrica de tablas en BD
+                if !viewModel.databaseStats.isEmpty {
+                    HStack(spacing: 8) {
+                        ForEach(["reviews", "friends", "movie_groups", "direct_conversations"], id: \.self) { table in
+                            if let count = viewModel.databaseStats[table] {
+                                let label = table == "reviews" ? "reseñas" : (table == "friends" ? "amigos" : (table == "movie_groups" ? "grupos" : "chats"))
+                                Text("\(count) \(label)")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(Theme.Colors.textSecondary)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 3)
+                                    .background(Theme.Colors.surfaceElevated)
+                                    .clipShape(Capsule())
+                            }
+                        }
+                    }
+                    .padding(.top, 2)
+                }
+                
+                Divider()
+                    .background(Theme.Colors.border.opacity(0.5))
+                    .padding(.vertical, 2)
+                
+                Button {
+                    showConfirmResetAlert = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.counterclockwise.circle")
+                            .font(.system(size: 12))
+                        Text("Reiniciar Base de Datos y Datos Iniciales")
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundColor(Theme.Colors.textSecondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(14)
+            .background(Theme.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Theme.Colors.border.opacity(0.6), lineWidth: 1)
+            )
+        }
+    }
+    
+    // MARK: - Sign Out
+    
+    private var signOutButton: some View {
+        Button(role: .destructive, action: onSignOut) {
+            HStack(spacing: 6) {
+                Image(systemName: "rectangle.portrait.and.arrow.right")
+                    .font(.system(size: 13))
+                Text("Cerrar Sesión")
+                    .font(.system(size: 13, weight: .medium))
+            }
+            .foregroundColor(.red.opacity(0.85))
+            .padding(.vertical, 12)
+            .padding(.horizontal, 20)
+            .background(Color.red.opacity(0.08))
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 4)
+    }
+    
+    // MARK: - Helpers
+    
+    private func toastBanner(_ text: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundColor(Theme.Colors.friendsAccent)
+            Text(text)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.white)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(Theme.Colors.surfaceElevated)
+        .clipShape(Capsule())
+        .overlay(Capsule().stroke(Theme.Colors.friendsAccent.opacity(0.6), lineWidth: 1))
+        .transition(.move(edge: .top).combined(with: .opacity))
     }
     
     private func showToast(_ message: String) {
@@ -377,149 +675,4 @@ public struct ProfileView: View {
             }
         }
     }
-    
-    private var membershipCard: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(user.isPremium ? Theme.Colors.imdb.opacity(0.15) : Theme.Colors.surfaceElevated)
-                    .frame(width: 40, height: 40)
-                
-                Image(systemName: user.isPremium ? "crown.fill" : "lock.fill")
-                    .font(.system(size: 18))
-                    .foregroundColor(user.isPremium ? Theme.Colors.imdb : Theme.Colors.textTertiary)
-            }
-            
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(user.isPremium ? "CINÉFILO PRO" : "PASE SOCIAL")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .tracking(1.5)
-                        .foregroundColor(user.isPremium ? Theme.Colors.imdb : Theme.Colors.textPrimary)
-                    
-                    if user.isPremium {
-                        Text("ACTIVO")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(.black)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1)
-                            .background(Theme.Colors.imdb)
-                            .clipShape(Capsule())
-                    }
-                }
-                
-                Text(user.isPremium ? "Acceso ilimitado a críticas locales y globales fuera de tu lista de amigos." : "Desbloquea opiniones globales y locales de cinéfilos de todo el mundo.")
-                    .font(.system(size: 11))
-                    .foregroundColor(Theme.Colors.textTertiary)
-                    .lineLimit(2)
-            }
-            
-            Spacer()
-        }
-        .padding(12)
-        .background(Theme.Colors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.Radius.medium)
-                .stroke(user.isPremium ? Theme.Colors.imdb.opacity(0.4) : Theme.Colors.border, lineWidth: 1)
-        )
-    }
-    
-    private var statsRow: some View {
-        HStack(spacing: 12) {
-            statCard(title: "CALIFICADAS", value: "\(viewModel.userReviewsCount)")
-            statCard(title: "NOTA MEDIA", value: String(format: "%.1f", viewModel.averageGivenRating))
-            statCard(title: "AMIGOS", value: "\(viewModel.friendsCount)")
-        }
-    }
-    
-    private func statCard(title: String, value: String) -> some View {
-        VStack(spacing: 4) {
-            Text(value)
-                .font(.title2.bold())
-                .foregroundColor(Theme.Colors.textPrimary)
-            Text(title)
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .tracking(1)
-                .foregroundColor(Theme.Colors.textTertiary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .background(Theme.Colors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.Radius.medium)
-                .stroke(Theme.Colors.border, lineWidth: 1)
-        )
-    }
-    
-    private var friendsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("AMIGOS CONECTADOS (\(viewModel.friendsCount))")
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .tracking(2)
-                    .foregroundColor(Theme.Colors.textSecondary)
-                
-                Spacer()
-            }
-            
-            if viewModel.friends.isEmpty {
-                Text("No tienes amigos agregados todavía.")
-                    .font(.subheadline)
-                    .foregroundColor(Theme.Colors.textTertiary)
-            } else {
-                VStack(spacing: 8) {
-                    ForEach(viewModel.friends) { friend in
-                        Button {
-                            selectedFriend = friend
-                        } label: {
-                            HStack(spacing: 12) {
-                                Circle()
-                                    .fill(Theme.Colors.surfaceElevated)
-                                    .frame(width: 34, height: 34)
-                                    .overlay(
-                                        Text(String(friend.displayName.prefix(1)))
-                                            .font(.caption.bold())
-                                            .foregroundColor(Theme.Colors.textPrimary)
-                                    )
-                                
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(friend.displayName)
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundColor(Theme.Colors.textPrimary)
-                                    Text(friend.username)
-                                        .font(.system(size: 11))
-                                        .foregroundColor(Theme.Colors.textTertiary)
-                                }
-                                
-                                Spacer()
-                                
-                                Text("\(friend.mutualMoviesCount) en común")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(Theme.Colors.friendsAccent)
-                                    .padding(.horizontal, 7)
-                                    .padding(.vertical, 3)
-                                    .background(Theme.Colors.surfaceElevated)
-                                    .clipShape(Capsule())
-                                
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(Theme.Colors.textTertiary)
-                            }
-                            .padding(10)
-                            .background(Theme.Colors.surface)
-                            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: Theme.Radius.medium)
-                                    .stroke(Theme.Colors.border, lineWidth: 1)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-        }
-    }
 }
-

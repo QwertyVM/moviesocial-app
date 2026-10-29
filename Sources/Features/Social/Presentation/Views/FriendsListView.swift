@@ -37,7 +37,7 @@ public struct FriendsListView: View {
                 // Cabecera de la sección
                 HStack {
                     Text("TUS AMIGOS (\(viewModel.filteredFriends.count))")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .font(.system(size: 11, weight: .bold))
                         .tracking(2)
                         .foregroundColor(Theme.Colors.textSecondary)
                     
@@ -137,7 +137,7 @@ public struct FriendsListView: View {
     }
     
     private var statsSummaryView: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             statItem(
                 icon: "person.2.fill",
                 title: "AMIGOS",
@@ -145,8 +145,15 @@ public struct FriendsListView: View {
             )
             
             statItem(
-                icon: "film.stack.fill",
-                title: "EN COMÚN",
+                icon: "circle.fill",
+                title: "EN LÍNEA",
+                value: "\(viewModel.onlineFriendsCount)",
+                tint: .green
+            )
+            
+            statItem(
+                icon: "sparkles",
+                title: "GUSTOS",
                 value: "\(viewModel.totalMutualMoviesCount)"
             )
             
@@ -158,20 +165,20 @@ public struct FriendsListView: View {
         }
     }
     
-    private func statItem(icon: String, title: String, value: String) -> some View {
+    private func statItem(icon: String, title: String, value: String, tint: Color = Theme.Colors.friendsAccent) -> some View {
         VStack(spacing: 4) {
             HStack(spacing: 4) {
                 Image(systemName: icon)
-                    .font(.system(size: 10))
-                    .foregroundColor(Theme.Colors.friendsAccent)
+                    .font(.system(size: 9))
+                    .foregroundColor(tint)
                 Text(title)
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .font(.system(size: 8, weight: .bold))
                     .tracking(1)
                     .foregroundColor(Theme.Colors.textTertiary)
             }
             
             Text(value)
-                .font(.system(size: 18, weight: .bold))
+                .font(.system(size: 16, weight: .bold))
                 .foregroundColor(Theme.Colors.textPrimary)
         }
         .frame(maxWidth: .infinity)
@@ -225,25 +232,35 @@ public struct FriendsListView: View {
     }
     
     private func friendCard(_ friend: Friend) -> some View {
-        let friendReviews = viewModel.reviewsForFriend(friendId: friend.id)
-        
-        return Button {
+        Button {
             viewModel.selectedFriendForDetail = friend
         } label: {
             HStack(spacing: 12) {
-                // Avatar
-                Circle()
-                    .fill(Theme.Colors.surfaceElevated)
-                    .frame(width: 46, height: 46)
-                    .overlay(
-                        Text(String(friend.displayName.prefix(1)))
-                            .font(.system(size: 17, weight: .bold))
-                            .foregroundColor(Theme.Colors.textPrimary)
-                    )
-                    .overlay(
+                // Avatar con estado de conexión
+                ZStack(alignment: .bottomTrailing) {
+                    Circle()
+                        .fill(Theme.Colors.surfaceElevated)
+                        .frame(width: 46, height: 46)
+                        .overlay(
+                            Text(String(friend.displayName.prefix(1)))
+                                .font(.system(size: 17, weight: .bold))
+                                .foregroundColor(Theme.Colors.textPrimary)
+                        )
+                        .overlay(
+                            Circle()
+                                .stroke(Theme.Colors.border, lineWidth: 1)
+                        )
+                    
+                    if friend.isOnline {
                         Circle()
-                            .stroke(Theme.Colors.border, lineWidth: 1)
-                    )
+                            .fill(Color.green)
+                            .frame(width: 12, height: 12)
+                            .overlay(
+                                Circle()
+                                    .stroke(Theme.Colors.surface, lineWidth: 2)
+                            )
+                    }
+                }
                 
                 // Info
                 VStack(alignment: .leading, spacing: 4) {
@@ -265,10 +282,25 @@ public struct FriendsListView: View {
                     
                     // Badges
                     HStack(spacing: 6) {
+                        if friend.isOnline {
+                            HStack(spacing: 3) {
+                                Circle()
+                                    .fill(Color.green)
+                                    .frame(width: 6, height: 6)
+                                Text("En línea")
+                                    .font(.system(size: 10, weight: .semibold))
+                            }
+                            .foregroundColor(Color.green)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 2.5)
+                            .background(Color.green.opacity(0.12))
+                            .clipShape(Capsule())
+                        }
+                        
                         HStack(spacing: 3) {
-                            Image(systemName: "film")
+                            Image(systemName: "sparkles")
                                 .font(.system(size: 9))
-                            Text("\(friend.mutualMoviesCount) en común")
+                            Text("\(friend.mutualMoviesCount) gustos compartidos")
                                 .font(.system(size: 10, weight: .medium))
                         }
                         .foregroundColor(Theme.Colors.friendsAccent)
@@ -276,21 +308,6 @@ public struct FriendsListView: View {
                         .padding(.vertical, 2.5)
                         .background(Theme.Colors.friendsAccent.opacity(0.12))
                         .clipShape(Capsule())
-                        
-                        if !friendReviews.isEmpty {
-                            HStack(spacing: 3) {
-                                Image(systemName: "star.fill")
-                                    .font(.system(size: 8))
-                                    .foregroundColor(Theme.Colors.imdb)
-                                Text("\(friendReviews.count) \(friendReviews.count == 1 ? "reseña" : "reseñas")")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(Theme.Colors.textSecondary)
-                            }
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 2.5)
-                            .background(Theme.Colors.surfaceElevated)
-                            .clipShape(Capsule())
-                        }
                     }
                     .padding(.top, 2)
                 }
@@ -463,7 +480,7 @@ public struct FriendDetailSheetView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("PERFIL DE AMIGO")
-                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .font(.system(size: 12, weight: .bold))
                         .tracking(2)
                         .foregroundColor(Theme.Colors.textPrimary)
                 }
@@ -495,18 +512,30 @@ public struct FriendDetailSheetView: View {
     
     private var friendHeaderView: some View {
         VStack(spacing: 12) {
-            Circle()
-                .fill(Theme.Colors.surfaceElevated)
-                .frame(width: 76, height: 76)
-                .overlay(
-                    Text(String(friend.displayName.prefix(1)))
-                        .font(.title.bold())
-                        .foregroundColor(Theme.Colors.textPrimary)
-                )
-                .overlay(
+            ZStack(alignment: .bottomTrailing) {
+                Circle()
+                    .fill(Theme.Colors.surfaceElevated)
+                    .frame(width: 76, height: 76)
+                    .overlay(
+                        Text(String(friend.displayName.prefix(1)))
+                            .font(.title.bold())
+                            .foregroundColor(Theme.Colors.textPrimary)
+                    )
+                    .overlay(
+                        Circle()
+                            .stroke(Theme.Colors.border, lineWidth: 1.5)
+                    )
+                
+                if friend.isOnline {
                     Circle()
-                        .stroke(Theme.Colors.border, lineWidth: 1.5)
-                )
+                        .fill(Color.green)
+                        .frame(width: 18, height: 18)
+                        .overlay(
+                            Circle()
+                                .stroke(Theme.Colors.background, lineWidth: 3)
+                        )
+                }
+            }
             
             VStack(spacing: 4) {
                 Text(friend.displayName)
@@ -518,10 +547,25 @@ public struct FriendDetailSheetView: View {
                     .foregroundColor(Theme.Colors.textTertiary)
                 
                 HStack(spacing: 8) {
+                    if friend.isOnline {
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 6, height: 6)
+                            Text("En línea")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundColor(Color.green)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Color.green.opacity(0.12))
+                        .clipShape(Capsule())
+                    }
+                    
                     HStack(spacing: 4) {
-                        Image(systemName: "film")
+                        Image(systemName: "sparkles")
                             .font(.system(size: 10))
-                        Text("\(friend.mutualMoviesCount) películas en común")
+                        Text("\(friend.mutualMoviesCount) gustos compartidos (> 3★)")
                             .font(.system(size: 11, weight: .medium))
                     }
                     .foregroundColor(Theme.Colors.friendsAccent)
@@ -532,8 +576,8 @@ public struct FriendDetailSheetView: View {
                     
                     if friend.isMutual {
                         HStack(spacing: 3) {
-                            Image(systemName: "person.2.fill")
-                                .font(.system(size: 9))
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 10))
                             Text("Amigos mutuos")
                                 .font(.system(size: 11, weight: .medium))
                         }
@@ -599,7 +643,7 @@ public struct FriendDetailSheetView: View {
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("RESEÑAS (\(reviews.count))")
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .font(.system(size: 11, weight: .bold))
                     .tracking(2)
                     .foregroundColor(Theme.Colors.textSecondary)
                 

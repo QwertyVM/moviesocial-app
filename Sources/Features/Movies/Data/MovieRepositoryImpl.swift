@@ -31,6 +31,10 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
         showtimesService.getAvailableCities()
     }
     
+    nonisolated public func getAvailableCountryGroups() -> [CountryAreaGroup] {
+        showtimesService.getAvailableCountryGroups()
+    }
+    
     public func getNowPlaying(
         city: String? = nil,
         countryCode: String? = nil,
@@ -59,7 +63,17 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
             countryCode: countryCode ?? ""
         )) ?? [:]
         
-        let enriched = baseMovies.map { movie -> Movie in
+        // Incluir cualquier película del catálogo que tenga salas activas en esta ciudad/país
+        var workingMovies = baseMovies
+        for (movieId, _) in localTheatersMap {
+            if !workingMovies.contains(where: { $0.id == movieId }) {
+                if let found = cache[movieId] ?? Self.curatedMovies.first(where: { $0.id == movieId }) {
+                    workingMovies.append(found)
+                }
+            }
+        }
+        
+        let enriched = workingMovies.map { movie -> Movie in
             if let showtimes = localTheatersMap[movie.id], !showtimes.isEmpty {
                 var copy = movie
                 copy.isInTheatersLocally = true
@@ -75,6 +89,11 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
         return enriched.sorted { (m1, m2) -> Bool in
             if m1.isInTheatersLocally != m2.isInTheatersLocally {
                 return m1.isInTheatersLocally && !m2.isInTheatersLocally
+            }
+            let isNat1 = m1.isNationalCinema(for: countryCode)
+            let isNat2 = m2.isNationalCinema(for: countryCode)
+            if isNat1 != isNat2 {
+                return isNat1 && !isNat2
             }
             return (m1.ratings.compositeScore ?? 0.0) > (m2.ratings.compositeScore ?? 0.0)
         }
@@ -162,7 +181,7 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
     // MARK: - Private Remote API Integration
     
     private func fetchTMDBNowPlaying(apiKey: String, page: Int, countryCode: String? = nil) async throws -> [Movie] {
-        var urlString = "https://api.themoviedb.org/3/movie/now_playing?api_key=\(apiKey)&page=\(page)&language=es-ES"
+        var urlString = "https://api.themoviedb.org/3/movie/now_playing?api_key=\(apiKey)&page=\(page)&language=es-MX"
         if let countryCode, !countryCode.isEmpty {
             urlString += "&region=\(countryCode.uppercased())"
         }
@@ -185,7 +204,7 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
     }
     
     private func fetchTMDBClassics(apiKey: String, page: Int) async throws -> [Movie] {
-        guard let url = URL(string: "https://api.themoviedb.org/3/movie/top_rated?api_key=\(apiKey)&page=\(page)&language=es-ES") else {
+        guard let url = URL(string: "https://api.themoviedb.org/3/movie/top_rated?api_key=\(apiKey)&page=\(page)&language=es-MX") else {
             throw URLError(.badURL)
         }
         let (data, _) = try await urlSession.data(from: url)
@@ -204,7 +223,7 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
     
     private func fetchTMDBSearch(apiKey: String, query: String) async throws -> [Movie] {
         guard let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: "https://api.themoviedb.org/3/search/movie?api_key=\(apiKey)&query=\(encoded)&language=es-ES") else {
+              let url = URL(string: "https://api.themoviedb.org/3/search/movie?api_key=\(apiKey)&query=\(encoded)&language=es-MX") else {
             throw URLError(.badURL)
         }
         let (data, _) = try await urlSession.data(from: url)
@@ -222,7 +241,7 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
     }
     
     private func fetchTMDBDetail(apiKey: String, id: Int) async throws -> Movie {
-        guard let url = URL(string: "https://api.themoviedb.org/3/movie/\(id)?api_key=\(apiKey)&append_to_response=external_ids&language=es-ES") else {
+        guard let url = URL(string: "https://api.themoviedb.org/3/movie/\(id)?api_key=\(apiKey)&append_to_response=external_ids&language=es-MX") else {
             throw URLError(.badURL)
         }
         let (data, _) = try await urlSession.data(from: url)
@@ -267,10 +286,48 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
     
     // MARK: - Curated Real-World Catalog with Authentic Rotten Tomatoes & IMDb Scores
     public static let curatedMovies: [Movie] = [
-        // ESTRENOS RECIENTES
+        // ESTRENOS GLOBALES Y REGIONALES (2026/2024)
+        Movie(
+            id: "ekeko_pe_2026",
+            title: "Ekeko",
+            overview: "Buscando dejar atrás heridas del pasado y cambiar su suerte, una mujer recurre al misticismo del Ekeko para pedir que se cumplan sus anhelos más profundos. Pero lo que empieza como una promesa de prosperidad pronto desata una espiral de terror sobrenatural bajo la premisa de que cada deseo concedido exige un costo aterrador.",
+            releaseYear: 2026,
+            releaseDate: "2026-10-24",
+            posterURL: URL(string: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500"),
+            backdropURL: URL(string: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=1280"),
+            genres: ["Terror", "Misterio", "Suspenso"],
+            runtimeMinutes: 98,
+            imdbId: "tt33984120",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 84,
+                rottenTomatoesAudience: 88,
+                imdbScore: 7.2,
+                imdbVotes: "4.5K"
+            ),
+            countryOfOrigin: "PE"
+        ),
+        Movie(
+            id: "smile_2_2026",
+            title: "Sonríe 2",
+            overview: "A punto de embarcarse en una nueva gira mundial, la sensación del pop mundial Skye Riley comienza a experimentar sucesos cada vez más aterradores e inexplicables. Abrumada por los crecientes horrores y las presiones de la fama, debe enfrentar su oscuro pasado.",
+            releaseYear: 2026,
+            releaseDate: "2026-10-17",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/aMFl9wA548xYyHkQZpL38lYvT3s.jpg"),
+            backdropURL: URL(string: "https://image.tmdb.org/t/p/w1280/h3fwlwHotDGMbz5OiMRm6DeWMIc.jpg"),
+            genres: ["Terror", "Misterio"],
+            runtimeMinutes: 127,
+            imdbId: "tt29268110",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 85,
+                rottenTomatoesAudience: 82,
+                imdbScore: 7.1,
+                imdbVotes: "65K"
+            ),
+            countryOfOrigin: "US"
+        ),
         Movie(
             id: "693134",
-            title: "Dune: Parte Dos",
+            title: "Duna: Parte dos",
             overview: "Paul Atreides se une a Chani y a los Fremen mientras busca venganza contra los conspiradores que destruyeron a su familia, enfrentándose a una elección entre el amor de su vida y el destino del universo.",
             releaseYear: 2024,
             releaseDate: "2024-03-01",
@@ -284,11 +341,12 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
                 rottenTomatoesAudience: 95,
                 imdbScore: 8.5,
                 imdbVotes: "480K"
-            )
+            ),
+            countryOfOrigin: "US"
         ),
         Movie(
             id: "1022789",
-            title: "Del Revés 2 (Inside Out 2)",
+            title: "Intensamente 2",
             overview: "Riley entra en la adolescencia y el Cuartel General sufre una repentina reforma para hacer espacio a algo totalmente inesperado: ¡nuevas emociones! Alegría, Tristeza, Furia, Temor y Desagrado reciben a Ansiedad, Envidia, Ennui y Vergüenza.",
             releaseYear: 2024,
             releaseDate: "2024-06-14",
@@ -301,7 +359,8 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
                 rottenTomatoesAudience: 96,
                 imdbScore: 7.7,
                 imdbVotes: "210K"
-            )
+            ),
+            countryOfOrigin: "US"
         ),
         Movie(
             id: "533535",
@@ -318,7 +377,171 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
                 rottenTomatoesAudience: 94,
                 imdbScore: 7.8,
                 imdbVotes: "380K"
-            )
+            ),
+            countryOfOrigin: "US"
+        ),
+        Movie(
+            id: "945961",
+            title: "Alien: Romulus",
+            overview: "Mientras hurgan en las profundidades de una estación espacial abandonada, un grupo de jóvenes colonizadores se encuentra cara a cara con la forma de vida más aterradora del universo.",
+            releaseYear: 2024,
+            releaseDate: "2024-08-16",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/b33nnKl1GSFbao4l3fZDDqsMx0F.jpg"),
+            backdropURL: URL(string: "https://image.tmdb.org/t/p/w1280/9SSEUrSqhljBMzRe4aBTh17rUaC.jpg"),
+            genres: ["Terror", "Ciencia Ficción", "Suspense"],
+            runtimeMinutes: 119,
+            imdbId: "tt18412256",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 80,
+                rottenTomatoesAudience: 85,
+                imdbScore: 7.2,
+                imdbVotes: "190K"
+            ),
+            countryOfOrigin: "US"
+        ),
+        Movie(
+            id: "939335",
+            title: "La Sociedad de la Nieve",
+            overview: "El relato del vuelo 571 de la Fuerza Aérea Uruguaya fletado para llevar a un equipo de rugby a Chile, que se estrella en el corazón de los Andes.",
+            releaseYear: 2024,
+            releaseDate: "2024-01-04",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/2rLWm5jZuhA0v1rE4Wk4b4q1x7G.jpg"),
+            genres: ["Drama", "Aventura", "Historia"],
+            runtimeMinutes: 144,
+            imdbId: "tt16277242",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 90,
+                rottenTomatoesAudience: 85,
+                imdbScore: 7.8,
+                imdbVotes: "135K"
+            ),
+            countryOfOrigin: "ES"
+        ),
+        Movie(
+            id: "1032823",
+            title: "Radical",
+            overview: "En una ciudad fronteriza mexicana plagada de abandono, corrupción y violencia, un profesor frustrado prueba un método radicalmente nuevo.",
+            releaseYear: 2024,
+            releaseDate: "2024-01-19",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/e9t47YqN6BvV0gVjD9b5s3v7H8Q.jpg"),
+            genres: ["Drama"],
+            runtimeMinutes: 125,
+            imdbId: "tt21865910",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 94,
+                rottenTomatoesAudience: 99,
+                imdbScore: 7.9,
+                imdbVotes: "18K"
+            ),
+            countryOfOrigin: "MX"
+        ),
+        Movie(
+            id: "929590",
+            title: "Civil War",
+            overview: "En un futuro cercano, un grupo de corresponsales de guerra recorre los Estados Unidos en medio de una violenta guerra civil que se extiende con rapidez.",
+            releaseYear: 2024,
+            releaseDate: "2024-04-12",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/sh7Rg8Er3tFcN9BpKIPOMvALgZd.jpg"),
+            genres: ["Acción", "Drama", "Bélico"],
+            runtimeMinutes: 109,
+            imdbId: "tt17279496",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 81,
+                rottenTomatoesAudience: 70,
+                imdbScore: 7.1,
+                imdbVotes: "210K"
+            ),
+            countryOfOrigin: "US"
+        ),
+        Movie(
+            id: "937287",
+            title: "Challengers",
+            overview: "Tashi, una extenista convertida en entrenadora, transforma a su esposo en campeón mundial del Grand Slam. Para sacarlo de una mala racha, lo inscribe en un torneo Challenger.",
+            releaseYear: 2024,
+            releaseDate: "2024-04-26",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/H6vke73qEp2FF4YPF4KLWR2w9v.jpg"),
+            genres: ["Drama", "Romance"],
+            runtimeMinutes: 131,
+            imdbId: "tt16426418",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 88,
+                rottenTomatoesAudience: 73,
+                imdbScore: 7.2,
+                imdbVotes: "165K"
+            ),
+            countryOfOrigin: "US"
+        ),
+        Movie(
+            id: "1058694",
+            title: "Puan",
+            overview: "Marcelo Pena ha dedicado su vida a la enseñanza de filosofía en la Universidad de Buenos Aires. Cuando su mentor fallece súbitamente, asume que heredará el puesto de titular de cátedra.",
+            releaseYear: 2024,
+            releaseDate: "2024-02-15",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/gB3H6wH1x2z5v8Y9w3v7Q4z.jpg"),
+            genres: ["Comedia", "Drama"],
+            runtimeMinutes: 111,
+            imdbId: "tt27771746",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 88,
+                rottenTomatoesAudience: 78,
+                imdbScore: 7.1,
+                imdbVotes: "6K"
+            ),
+            countryOfOrigin: "AR"
+        ),
+        Movie(
+            id: "915935",
+            title: "Anatomía de una Caída",
+            overview: "Una mujer es sospechosa de la muerte de su marido y su hijo ciego se enfrenta a un dilema moral como único testigo.",
+            releaseYear: 2024,
+            releaseDate: "2024-01-26",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/5aGhaI2l5Uv4dFqJ9R3j8kL2s1.jpg"),
+            genres: ["Drama", "Crimen", "Misterio"],
+            runtimeMinutes: 151,
+            imdbId: "tt17009710",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 96,
+                rottenTomatoesAudience: 90,
+                imdbScore: 7.7,
+                imdbVotes: "195K"
+            ),
+            countryOfOrigin: "FR"
+        ),
+        Movie(
+            id: "508883",
+            title: "El Chico y la Garza",
+            overview: "A través de los encuentros con sus amigos y su tío, un joven vive una experiencia que le ayuda a reflexionar sobre la vida y la muerte en una mansión misteriosa.",
+            releaseYear: 2024,
+            releaseDate: "2024-01-11",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/jDQhu2cfsY85y578v1E9L3K8J9.jpg"),
+            genres: ["Animación", "Aventura", "Fantasía"],
+            runtimeMinutes: 124,
+            imdbId: "tt6587046",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 97,
+                rottenTomatoesAudience: 88,
+                imdbScore: 7.5,
+                imdbVotes: "95K"
+            ),
+            countryOfOrigin: "JP"
+        ),
+        Movie(
+            id: "940721",
+            title: "Godzilla Minus One",
+            overview: "En el Japón de posguerra surge un nuevo terror: Godzilla. ¿Podrán los supervivientes defenderse y resistir?",
+            releaseYear: 2024,
+            releaseDate: "2024-01-01",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/hkxxMIGaiCTmrEArK7J56J1Gso.jpg"),
+            genres: ["Acción", "Ciencia Ficción", "Drama"],
+            runtimeMinutes: 125,
+            imdbId: "tt23289160",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 98,
+                rottenTomatoesAudience: 98,
+                imdbScore: 7.9,
+                imdbVotes: "165K"
+            ),
+            countryOfOrigin: "JP"
         ),
         Movie(
             id: "872585",
@@ -358,7 +581,7 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
         ),
         Movie(
             id: "680",
-            title: "Pulp Fiction",
+            title: "Tiempos Violentos (Pulp Fiction)",
             overview: "Las vidas de dos mafiosos, la esposa de un gánster, un boxeador y dos asaltantes de poca monta se entrelazan en cuatro historias de violencia y redención.",
             releaseYear: 1994,
             releaseDate: "1994-10-14",
@@ -409,7 +632,7 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
         ),
         Movie(
             id: "157336",
-            title: "Interstellar",
+            title: "Interestelar (Interstellar)",
             overview: "Un equipo de exploradores viaja a través de un agujero de gusano en el espacio en un intento por asegurar la supervivencia de la humanidad ante una Tierra moribunda.",
             releaseYear: 2014,
             releaseDate: "2014-11-07",
@@ -427,7 +650,7 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
         ),
         Movie(
             id: "569094",
-            title: "Spider-Man: Cruzando el Multiverso",
+            title: "Spider-Man: A Través del Spider-Verso",
             overview: "Miles Morales es catapultado a través del Multiverso, donde se encuentra con una Sociedad Araña encargada de proteger su existencia frente a una nueva amenaza.",
             releaseYear: 2023,
             releaseDate: "2023-06-02",
@@ -463,7 +686,7 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
         ),
         Movie(
             id: "155",
-            title: "El Caballero Oscuro (The Dark Knight)",
+            title: "Batman: El Caballero de la Noche",
             overview: "Batman se propone desmantelar las organizaciones criminales restantes que plagan las calles de Gotham, pero pronto se encuentra presa del reinado del caos desatado por el Joker.",
             releaseYear: 2008,
             releaseDate: "2008-07-18",
@@ -481,7 +704,7 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
         ),
         Movie(
             id: "313369",
-            title: "La La Land (La Ciudad de las Estrellas)",
+            title: "La La Land: Una Historia de Amor",
             overview: "Una aspirante a actriz y un dedicado pianista de jazz luchan por llegar a fin de mes mientras persiguen sus sueños en Los Ángeles, enfrentándose a decisiones que pondrán a prueba su amor.",
             releaseYear: 2016,
             releaseDate: "2016-12-09",
@@ -495,24 +718,6 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
                 rottenTomatoesAudience: 81,
                 imdbScore: 8.0,
                 imdbVotes: "670K"
-            )
-        ),
-        Movie(
-            id: "945961",
-            title: "Alien: Romulus",
-            overview: "Mientras hurgan en las profundidades de una estación espacial abandonada, un grupo de jóvenes colonizadores se encuentra cara a cara con la forma de vida más aterradora del universo.",
-            releaseYear: 2024,
-            releaseDate: "2024-08-16",
-            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/b33nnKl1GSFbao4l3fZDDqsMx0F.jpg"),
-            backdropURL: URL(string: "https://image.tmdb.org/t/p/w1280/9SSEUrSqhljBMzRe4aBTh17rUaC.jpg"),
-            genres: ["Terror", "Ciencia Ficción", "Suspense"],
-            runtimeMinutes: 119,
-            imdbId: "tt18412256",
-            ratings: ExternalRatings(
-                rottenTomatoesCritics: 80,
-                rottenTomatoesAudience: 85,
-                imdbScore: 7.2,
-                imdbVotes: "190K"
             )
         ),
         
@@ -536,7 +741,7 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
         ),
         Movie(
             id: "278",
-            title: "Cadena Perpetua (The Shawshank Redemption)",
+            title: "Sueño de Fuga (The Shawshank Redemption)",
             overview: "Condenado a cadena perpetua por el asesinato de su esposa y su amante, un banquero inocente entabla amistad con otro recluso y encuentra esperanza a través de actos de decencia común.",
             releaseYear: 1994,
             releaseDate: "1994-09-23",
@@ -570,7 +775,7 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
         ),
         Movie(
             id: "105",
-            title: "Regreso al Futuro (Back to the Future)",
+            title: "Volver al Futuro (Back to the Future)",
             overview: "Marty McFly, un estudiante de secundaria típico de los años 80, es enviado accidentalmente a 1955 en un automóvil DeLorean modificado para viajar en el tiempo por un excéntrico científico.",
             releaseYear: 1985,
             releaseDate: "1985-07-03",
@@ -587,7 +792,7 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
         ),
         Movie(
             id: "244786",
-            title: "Whiplash",
+            title: "Whiplash: Música y Obsesión",
             overview: "Un joven y prometedor baterista de jazz se matricula en un conservatorio de música muy competitivo donde sus sueños de grandeza son guiados por un despiadado instructor.",
             releaseYear: 2014,
             releaseDate: "2014-10-10",

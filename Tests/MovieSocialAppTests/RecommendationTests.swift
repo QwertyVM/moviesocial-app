@@ -40,7 +40,7 @@ struct RecommendationTests {
         // Rate Dune: Parte Dos with 5.0 stars (Sci-Fi, Aventura)
         _ = try await submitReviewUseCase.execute(
             movieId: "693134",
-            movieTitle: "Dune: Parte Dos",
+            movieTitle: "Duna: Parte dos",
             moviePosterURL: nil,
             movieReleaseYear: 2024,
             rating: 5.0,

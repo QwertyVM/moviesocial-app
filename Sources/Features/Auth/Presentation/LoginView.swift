@@ -23,7 +23,7 @@ public struct LoginView: View {
                         .foregroundColor(Theme.Colors.textPrimary)
                     
                     Text("CINEPHILE")
-                        .font(.system(size: 28, weight: .bold, design: .monospaced))
+                        .font(.system(size: 28, weight: .bold))
                         .tracking(4)
                         .foregroundColor(Theme.Colors.textPrimary)
                     
@@ -92,7 +92,7 @@ public struct LoginView: View {
                     } label: {
                         HStack(spacing: 10) {
                             Text("G")
-                                .font(.system(size: 18, weight: .black, design: .rounded))
+                                .font(.system(size: 18, weight: .black))
                                 .foregroundColor(.white)
                             Text("Continuar con Google")
                                 .font(.system(size: 16, weight: .semibold))

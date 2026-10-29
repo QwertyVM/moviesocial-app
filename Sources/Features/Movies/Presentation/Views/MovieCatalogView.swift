@@ -70,10 +70,20 @@ public struct MovieCatalogView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("CATÁLOGO")
-                        .font(.system(size: 14, weight: .bold, design: .monospaced))
+                        .font(.system(size: 14, weight: .bold))
                         .tracking(3)
                         .foregroundColor(Theme.Colors.textPrimary)
                 }
+            }
+            .sheet(isPresented: $viewModel.isLocationSelectorPresented) {
+                LocationSelectorSheetView(
+                    viewModel: viewModel,
+                    onLocationSelected: { location in
+                        Task {
+                            await viewModel.selectCity(location)
+                        }
+                    }
+                )
             }
             .task {
                 if viewModel.nowPlayingMovies.isEmpty {
@@ -89,62 +99,156 @@ public struct MovieCatalogView: View {
     // MARK: - Subviews
     
     private var cityFilterHeader: some View {
-        HStack(spacing: 8) {
-            Menu {
-                ForEach(viewModel.availableCities, id: \.city) { location in
-                    Button {
-                        Task {
-                            await viewModel.selectCity(location)
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                // Pill de ubicación minimalista e inteligente
+                Button {
+                    viewModel.isLocationSelectorPresented = true
+                } label: {
+                    HStack(spacing: 6) {
+                        if viewModel.selectedCity.isDeviceLocation {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 11))
+                                .foregroundColor(.green)
+                        } else {
+                            Image(systemName: "mappin.circle.fill")
+                                .font(.system(size: 11))
+                                .foregroundColor(Theme.Colors.recommendationAccent)
                         }
-                    } label: {
-                        HStack {
-                            Text("\(location.flagEmoji) \(location.city)")
-                            if viewModel.selectedCity.city == location.city {
-                                Image(systemName: "checkmark")
-                            }
+                        
+                        Text(viewModel.selectedCity.shortLabel)
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(Theme.Colors.textPrimary)
+                        
+                        if let area = viewModel.selectedCity.area, !area.isEmpty, area.lowercased() != viewModel.selectedCity.city.lowercased() {
+                            Text("• \(area)")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(Theme.Colors.textTertiary)
+                                .lineLimit(1)
                         }
+                        
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundColor(Theme.Colors.textTertiary)
                     }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Theme.Colors.surfaceElevated)
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule().stroke(
+                            viewModel.selectedCity.isDeviceLocation ? Color.green.opacity(0.5) : Theme.Colors.border,
+                            lineWidth: 1
+                        )
+                    )
                 }
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "mappin.circle.fill")
-                        .font(.system(size: 12))
-                        .foregroundColor(Theme.Colors.recommendationAccent)
-                    
-                    Text("\(viewModel.selectedCity.flagEmoji) \(viewModel.selectedCity.city)")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(Theme.Colors.textPrimary)
-                    
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundColor(Theme.Colors.textTertiary)
+                .buttonStyle(.plain)
+                
+                // Botón inteligente de GPS rápido (1-tap)
+                Button {
+                    Task {
+                        await viewModel.useDeviceLocation()
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        if viewModel.isDetectingLocation {
+                            ProgressView()
+                                .scaleEffect(0.6)
+                                .frame(width: 12, height: 12)
+                        } else {
+                            Image(systemName: "location.north.fill")
+                                .font(.system(size: 10, weight: .bold))
+                        }
+                        Text("GPS")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(viewModel.selectedCity.isDeviceLocation ? .green : Theme.Colors.textSecondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(Theme.Colors.surfaceElevated.opacity(0.8))
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule().stroke(viewModel.selectedCity.isDeviceLocation ? Color.green.opacity(0.5) : Theme.Colors.border, lineWidth: 1)
+                    )
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Theme.Colors.surfaceElevated)
+                .buttonStyle(.plain)
+                .disabled(viewModel.isDetectingLocation)
+                
+                Spacer()
+                
+                // Contador inteligente de cartelera en cines
+                let inTheatersCount = viewModel.nowPlayingMovies.filter(\.isInTheatersLocally).count
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(inTheatersCount > 0 ? Color.green : Theme.Colors.textTertiary)
+                        .frame(width: 6, height: 6)
+                    Text("\(inTheatersCount) en cartelera")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(inTheatersCount > 0 ? Color.green : Theme.Colors.textSecondary)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(Theme.Colors.surface.opacity(0.6))
                 .clipShape(Capsule())
-                .overlay(
-                    Capsule().stroke(Theme.Colors.border, lineWidth: 1)
-                )
             }
             
-            Text("Cartelera en cines")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(Theme.Colors.textSecondary)
-            
-            Spacer()
-            
-            let inTheatersCount = viewModel.nowPlayingMovies.filter(\.isInTheatersLocally).count
-            if inTheatersCount > 0 {
-                HStack(spacing: 3) {
-                    Image(systemName: "ticket")
-                        .font(.system(size: 10))
-                    Text("\(inTheatersCount) activas")
-                        .font(.system(size: 11, weight: .semibold))
+            // Sub-filtros dinámicos de cartelera: Todos, Estrenos de la semana, 2ª Semana y Cine Local/Nacional
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    theatricalFilterButton(
+                        title: "Todos",
+                        filter: .all,
+                        count: viewModel.nowPlayingMovies.count
+                    )
+                    theatricalFilterButton(
+                        title: "🌟 Estrenos",
+                        filter: .premiere,
+                        count: viewModel.premiereCount
+                    )
+                    theatricalFilterButton(
+                        title: "🎟️ 2ª Semana",
+                        filter: .secondWeek,
+                        count: viewModel.secondWeekCount
+                    )
+                    theatricalFilterButton(
+                        title: viewModel.nationalCinemaLabel,
+                        filter: .national,
+                        count: viewModel.nationalCinemaCount
+                    )
                 }
-                .foregroundColor(Color.green)
+                .padding(.vertical, 2)
             }
         }
+    }
+    
+    private func theatricalFilterButton(title: String, filter: NowPlayingFilter, count: Int) -> some View {
+        let isSelected = viewModel.selectedNowPlayingFilter == filter
+        return Button {
+            viewModel.selectNowPlayingFilter(filter)
+        } label: {
+            HStack(spacing: 5) {
+                Text(title)
+                    .font(.system(size: 11, weight: isSelected ? .bold : .medium))
+                
+                if count > 0 {
+                    Text("\(count)")
+                        .font(.system(size: 9, weight: .bold))
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(isSelected ? Color.white.opacity(0.25) : Theme.Colors.surfaceElevated)
+                        .clipShape(Capsule())
+                }
+            }
+            .foregroundColor(isSelected ? .black : Theme.Colors.textSecondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(isSelected ? Theme.Colors.textPrimary : Theme.Colors.surface)
+            .clipShape(Capsule())
+            .overlay(
+                Capsule().stroke(isSelected ? Color.clear : Theme.Colors.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
     
     private var classicsFilterHeader: some View {
@@ -301,7 +405,10 @@ public struct MovieCatalogView: View {
                 
                 LazyVGrid(columns: columns, spacing: 18) {
                     ForEach(viewModel.displayedMovies) { movie in
-                        MoviePosterCard(movie: movie) {
+                        MoviePosterCard(
+                            movie: movie,
+                            selectedCountryCode: viewModel.selectedCity.countryCode
+                        ) {
                             onSelectMovie(movie)
                         }
                     }
@@ -318,33 +425,41 @@ public struct MovieCatalogView: View {
         }
     }
     
+    @ViewBuilder
     private var recommendationHeaderBadge: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             Image(systemName: "sparkles")
-                .font(.system(size: 11, weight: .bold))
                 .foregroundColor(Theme.Colors.recommendationAccent)
+                .font(.system(size: 14))
             
-            Text("Basado en tus \(viewModel.userRatedCount) películas calificadas")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(Theme.Colors.textSecondary)
-            
-            if !viewModel.topGenrePreferences.isEmpty {
-                Text("•")
-                    .foregroundColor(Theme.Colors.textTertiary)
-                Text(viewModel.topGenrePreferences.joined(separator: ", "))
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(Theme.Colors.textPrimary)
-                    .lineLimit(1)
+            VStack(alignment: .leading, spacing: 2) {
+                if viewModel.userRatedCount > 0 {
+                    Text("RECOMENDACIONES PARA TI")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(Theme.Colors.recommendationAccent)
+                    
+                    if !viewModel.topGenrePreferences.isEmpty {
+                        Text("Basadas en tus gustos por \(viewModel.topGenrePreferences.joined(separator: ", "))")
+                            .font(.system(size: 11))
+                            .foregroundColor(Theme.Colors.textSecondary)
+                    }
+                } else {
+                    Text("DESCUBRE NUEVAS PELÍCULAS")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(Theme.Colors.textSecondary)
+                    Text("Puntúa 1 o más películas para desbloquear tu algoritmo personalizado.")
+                        .font(.system(size: 11))
+                        .foregroundColor(Theme.Colors.textTertiary)
+                }
             }
             
             Spacer()
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Theme.Colors.surface)
-        .clipShape(Capsule())
+        .padding(Theme.Spacing.s)
+        .background(Theme.Colors.surfaceElevated.opacity(0.8))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium))
         .overlay(
-            Capsule()
+            RoundedRectangle(cornerRadius: Theme.Radius.medium)
                 .stroke(Theme.Colors.border, lineWidth: 1)
         )
     }
@@ -352,69 +467,20 @@ public struct MovieCatalogView: View {
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             Spacer()
+            Image(systemName: "film")
+                .font(.system(size: 44))
+                .foregroundColor(Theme.Colors.textTertiary)
             
-            if viewModel.selectedSection == .recommended && !viewModel.isSearching {
-                // Cold start para recomendaciones
-                VStack(spacing: 14) {
-                    ZStack {
-                        Circle()
-                            .fill(Theme.Colors.recommendationAccent.opacity(0.12))
-                            .frame(width: 64, height: 64)
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 28))
-                            .foregroundColor(Theme.Colors.recommendationAccent)
-                    }
-                    
-                    Text("Recomendaciones para ti")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(Theme.Colors.textPrimary)
-                    
-                    Text("Aún no has calificado ninguna película con estrellas. Califica tus películas favoritas para que el recomendador aprenda tus preferencias cinematográficas.")
-                        .font(.system(size: 13))
-                        .foregroundColor(Theme.Colors.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
-                        .lineSpacing(3)
-                    
-                    Button {
-                        withAnimation {
-                            viewModel.selectedSection = .nowPlaying
-                        }
-                    } label: {
-                        HStack(spacing: 6) {
-                            Text("Explorar Estrenos y Calificar")
-                            Image(systemName: "arrow.right")
-                        }
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Theme.Colors.textPrimary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(Theme.Colors.surfaceElevated)
-                        .clipShape(Capsule())
-                        .overlay(
-                            Capsule().stroke(Theme.Colors.border, lineWidth: 1)
-                        )
-                    }
-                    .padding(.top, 4)
-                }
-                .padding(24)
-                .background(Theme.Colors.surface)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Theme.Radius.large)
-                        .stroke(Theme.Colors.border, lineWidth: 1)
-                )
-                .padding(.horizontal, Theme.Spacing.m)
-            } else {
-                Image(systemName: "film")
-                    .font(.system(size: 36))
-                    .foregroundColor(Theme.Colors.textTertiary)
-                Text(viewModel.isSearching ? "No se encontraron películas" : "No hay películas disponibles")
-                    .font(.subheadline)
-                    .foregroundColor(Theme.Colors.textSecondary)
-            }
+            Text("No se encontraron películas")
+                .font(.headline)
+                .foregroundColor(Theme.Colors.textPrimary)
             
+            Text("Intenta con otro término o cambia tu filtro.")
+                .font(.subheadline)
+                .foregroundColor(Theme.Colors.textSecondary)
             Spacer()
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
     }
 }

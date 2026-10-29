@@ -25,7 +25,7 @@ struct SocialUseCasesTests {
     func getFriendsFeedReturnsActivity() async throws {
         let feed = try await getActivityUseCase.execute()
         #expect(!feed.isEmpty)
-        #expect(feed.first?.movieTitle == "Dune: Parte Dos")
+        #expect(feed.first?.movieTitle == "Duna: Parte dos")
     }
     
     @Test("Submit Review Adds New Review To Top")
@@ -193,7 +193,7 @@ struct SocialUseCasesTests {
         
         let initialReview = try await submitReviewUseCase.execute(
             movieId: "155",
-            movieTitle: "El Caballero Oscuro",
+            movieTitle: "Batman: El Caballero de la Noche",
             moviePosterURL: nil,
             movieReleaseYear: 2008,
             rating: 4.0,
@@ -308,5 +308,33 @@ struct SocialUseCasesTests {
         #expect(userReviews.count == 1)
         #expect(userReviews.first?.rating == 4.5)
         #expect(userReviews.first?.comment == "El 3D sigue siendo insuperable.")
+    }
+    
+    @Test("Friends list places online/connected friends first")
+    func testFriendsListSortsOnlineFriendsFirst() async throws {
+        let repo = SocialRepositoryImpl()
+        let vm = SocialViewModel(
+            getFriendsActivityUseCase: GetFriendsActivityUseCase(repository: repo),
+            getFriendsListUseCase: GetFriendsListUseCase(repository: repo),
+            addFriendUseCase: AddFriendUseCase(repository: repo)
+        )
+        
+        await vm.loadSocialFeed()
+        
+        #expect(!vm.filteredFriends.isEmpty)
+        
+        // El primer elemento debe estar conectado si existen amigos en línea
+        let onlineCount = vm.onlineFriendsCount
+        #expect(onlineCount > 0)
+        
+        // Verificar que los primeros 'onlineCount' amigos están en línea
+        for i in 0..<onlineCount {
+            #expect(vm.filteredFriends[i].isOnline == true)
+        }
+        
+        // Verificar que los subsecuentes están desconectados
+        for i in onlineCount..<vm.filteredFriends.count {
+            #expect(vm.filteredFriends[i].isOnline == false)
+        }
     }
 }

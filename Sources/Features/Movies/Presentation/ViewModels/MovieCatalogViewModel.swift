@@ -16,23 +16,22 @@ public final class MovieCatalogViewModel: @unchecked Sendable {
     public var userRatedCount: Int = 0
     public var topGenrePreferences: [String] = []
     
-    // Cartelera Local por Ciudad
+    // Cartelera y Ubicación Inteligente (Dispositivo / País / Área)
     public var selectedCity: UserLocation = UserLocation(
         city: "Madrid",
         country: "España",
         countryCode: "ES",
         flagEmoji: "🇪🇸",
-        isLocal: true
+        isLocal: true,
+        area: "Comunidad de Madrid"
     )
-    public var availableCities: [UserLocation] = [
-        UserLocation(city: "Madrid", country: "España", countryCode: "ES", flagEmoji: "🇪🇸", isLocal: true),
-        UserLocation(city: "Barcelona", country: "España", countryCode: "ES", flagEmoji: "🇪🇸", isLocal: true),
-        UserLocation(city: "Ciudad de México", country: "México", countryCode: "MX", flagEmoji: "🇲🇽", isLocal: true),
-        UserLocation(city: "Bogotá", country: "Colombia", countryCode: "CO", flagEmoji: "🇨🇴", isLocal: true),
-        UserLocation(city: "Buenos Aires", country: "Argentina", countryCode: "AR", flagEmoji: "🇦🇷", isLocal: true),
-        UserLocation(city: "Santiago", country: "Chile", countryCode: "CL", flagEmoji: "🇨🇱", isLocal: true),
-        UserLocation(city: "Lima", country: "Perú", countryCode: "PE", flagEmoji: "🇵🇪", isLocal: true)
-    ]
+    public var availableCities: [UserLocation] = []
+    public var countryGroups: [CountryAreaGroup] = []
+    public var isDetectingLocation: Bool = false
+    public var isLocationSelectorPresented: Bool = false
+    
+    // Filtros de Cartelera: Estrenos (Semana 1), 2ª Semana y Cine Nacional
+    public var selectedNowPlayingFilter: NowPlayingFilter = .all
     
     // Clásicos Históricos por Cruce de Ratings (IMDb + RT) y Filtro de Épocas
     public var selectedDecade: Int? = nil // nil = "Todas"
@@ -54,6 +53,11 @@ public final class MovieCatalogViewModel: @unchecked Sendable {
         self.getClassicsUseCase = getClassicsUseCase
         self.searchMoviesUseCase = searchMoviesUseCase
         self.getRecommendedMoviesUseCase = getRecommendedMoviesUseCase
+        
+        let showtimes = ShowtimesServiceImpl()
+        self.availableCities = showtimes.getAvailableCities()
+        self.countryGroups = showtimes.getAvailableCountryGroups()
+        
         if let initialCity {
             self.selectedCity = initialCity
         }
@@ -71,7 +75,16 @@ public final class MovieCatalogViewModel: @unchecked Sendable {
         case .recommended:
             return recommendedMovies
         case .nowPlaying:
-            return nowPlayingMovies
+            switch selectedNowPlayingFilter {
+            case .all:
+                return nowPlayingMovies
+            case .premiere:
+                return nowPlayingMovies.filter { $0.releaseStatus() == .premiereWeek }
+            case .secondWeek:
+                return nowPlayingMovies.filter { $0.releaseStatus() == .secondWeek }
+            case .national:
+                return nowPlayingMovies.filter { $0.isNationalCinema(for: selectedCity.countryCode) }
+            }
         case .classics:
             return classicMovies
         }
@@ -119,6 +132,20 @@ public final class MovieCatalogViewModel: @unchecked Sendable {
         } catch {
             self.errorMessage = error.localizedDescription
         }
+    }
+    
+    @MainActor
+    public func selectLocation(_ location: UserLocation) async {
+        await selectCity(location)
+    }
+    
+    /// Detección inteligente de la ubicación del dispositivo mediante GPS o configuración regional
+    @MainActor
+    public func useDeviceLocation() async {
+        isDetectingLocation = true
+        let detected = await DeviceLocationService.shared.detectDeviceLocation()
+        await selectCity(detected)
+        isDetectingLocation = false
     }
     
     @MainActor
@@ -177,4 +204,48 @@ public final class MovieCatalogViewModel: @unchecked Sendable {
         }
         isLoading = false
     }
+    
+    // MARK: - Filtros de Cartelera y Cine Nacional
+    
+    @MainActor
+    public func selectNowPlayingFilter(_ filter: NowPlayingFilter) {
+        self.selectedNowPlayingFilter = filter
+    }
+    
+    public var premiereCount: Int {
+        nowPlayingMovies.filter { $0.releaseStatus() == .premiereWeek }.count
+    }
+    
+    public var secondWeekCount: Int {
+        nowPlayingMovies.filter { $0.releaseStatus() == .secondWeek }.count
+    }
+    
+    public var nationalCinemaCount: Int {
+        nowPlayingMovies.filter { $0.isNationalCinema(for: selectedCity.countryCode) }.count
+    }
+    
+    public var nationalCinemaLabel: String {
+        switch selectedCity.countryCode.uppercased() {
+        case "PE": return "🇵🇪 Cine Peruano"
+        case "ES": return "🇪🇸 Cine Español"
+        case "MX": return "🇲🇽 Cine Mexicano"
+        case "AR": return "🇦🇷 Cine Argentino"
+        case "FR": return "🇫🇷 Cine Francés"
+        case "JP": return "🇯🇵 Cine Japonés"
+        case "CO": return "🇨🇴 Cine Colombiano"
+        case "CL": return "🇨🇱 Cine Chileno"
+        case "US": return "🇺🇸 Cine USA"
+        default: return "🎬 Cine Nacional"
+        }
+    }
+}
+
+/// Filtros para la cartelera en cines (Estrenos, 2ª semana, Cine nacional)
+public enum NowPlayingFilter: String, CaseIterable, Identifiable, Sendable {
+    case all = "Todos"
+    case premiere = "Estrenos"
+    case secondWeek = "2ª Semana"
+    case national = "Cine Nacional"
+    
+    public var id: String { rawValue }
 }

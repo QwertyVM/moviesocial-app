@@ -7,6 +7,7 @@ public protocol MovieRepositoryProtocol: Sendable {
     func getMovieDetail(id: String) async throws -> Movie
     func getAllMovies() async throws -> [Movie]
     func getAvailableCities() -> [UserLocation]
+    func getAvailableCountryGroups() -> [CountryAreaGroup]
 }
 
 public extension MovieRepositoryProtocol {
@@ -21,6 +22,8 @@ public extension MovieRepositoryProtocol {
     func getAvailableCities() -> [UserLocation] {
         return []
     }
+    
+    func getAvailableCountryGroups() -> [CountryAreaGroup] {
+        return []
+    }
 }
-
-

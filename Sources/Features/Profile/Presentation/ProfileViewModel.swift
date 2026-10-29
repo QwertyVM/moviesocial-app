@@ -7,17 +7,23 @@ public final class ProfileViewModel: @unchecked Sendable {
     public var userReviewsCount: Int = 0
     public var averageGivenRating: Double = 0.0
     public var friends: [Friend] = []
+    public var userReviews: [Review] = []
+    public var databaseStats: [String: Int] = [:]
     public var isLoading: Bool = false
+    public var showResetSuccessAlert: Bool = false
     
     private let getFriendsListUseCase: GetFriendsListUseCase
     private let getFriendsActivityUseCase: GetFriendsActivityUseCase
+    private let database: AppDatabase
     
     public init(
         getFriendsListUseCase: GetFriendsListUseCase,
-        getFriendsActivityUseCase: GetFriendsActivityUseCase
+        getFriendsActivityUseCase: GetFriendsActivityUseCase,
+        database: AppDatabase = AppDatabase.shared
     ) {
         self.getFriendsListUseCase = getFriendsListUseCase
         self.getFriendsActivityUseCase = getFriendsActivityUseCase
+        self.database = database
     }
     
     @MainActor
@@ -31,16 +37,26 @@ public final class ProfileViewModel: @unchecked Sendable {
             
             self.friends = friendList
             self.friendsCount = friendList.count
+            self.userReviews = userReviews
             self.userReviewsCount = userReviews.count
             if !userReviews.isEmpty {
                 self.averageGivenRating = userReviews.reduce(0.0) { $0 + $1.rating } / Double(userReviews.count)
             } else {
-                self.averageGivenRating = 4.8
+                self.averageGivenRating = 0.0
             }
+            
+            self.databaseStats = await database.getDatabaseStats()
         } catch {
             // handle silently
         }
         isLoading = false
     }
+    
+    @MainActor
+    public func resetDatabase(user: User) async {
+        await database.clearAllTables()
+        self.databaseStats = await database.getDatabaseStats()
+        self.showResetSuccessAlert = true
+        await loadProfileData(user: user)
+    }
 }
-

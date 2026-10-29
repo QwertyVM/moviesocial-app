@@ -58,5 +58,24 @@ public enum Theme {
         public static let large: CGFloat = 16
         public static let full: CGFloat = 999
     }
+    
+    public enum Typography {
+        /// Base iPhone system font (San Francisco)
+        public static func system(size: CGFloat, weight: Font.Weight = .regular) -> Font {
+            .system(size: size, weight: weight)
+        }
+        
+        public static func bold(size: CGFloat) -> Font {
+            .system(size: size, weight: .bold)
+        }
+        
+        public static func semibold(size: CGFloat) -> Font {
+            .system(size: size, weight: .semibold)
+        }
+        
+        public static func medium(size: CGFloat) -> Font {
+            .system(size: size, weight: .medium)
+        }
+    }
 }
 

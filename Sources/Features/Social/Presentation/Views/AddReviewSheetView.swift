@@ -102,7 +102,7 @@ public struct AddReviewSheetView: View {
                     // Rating picker
                     VStack(spacing: 8) {
                         Text(existingReview != nil ? "MODIFICAR TU PUNTUACIÓN" : "TU PUNTUACIÓN")
-                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .font(.system(size: 11, weight: .bold))
                             .tracking(2)
                             .foregroundColor(Theme.Colors.textSecondary)
                         
@@ -112,23 +112,42 @@ public struct AddReviewSheetView: View {
                     
                     // Review text
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(existingReview != nil ? "EDITAR OPINIÓN" : "OPINIÓN PARA TUS AMIGOS")
-                            .font(.system(size: 11, weight: .bold, design: .monospaced))
-                            .tracking(2)
-                            .foregroundColor(Theme.Colors.textSecondary)
+                        HStack {
+                            Text(existingReview != nil ? "EDITAR COMENTARIO" : "COMENTARIO")
+                                .font(.system(size: 11, weight: .bold))
+                                .tracking(2)
+                                .foregroundColor(Theme.Colors.textSecondary)
+                            
+                            Spacer()
+                            
+                            Text("OPCIONAL")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundColor(Theme.Colors.textTertiary)
+                        }
                         
-                        TextEditor(text: $comment)
-                            .font(.body)
-                            .scrollContentBackground(.hidden)
-                            .foregroundColor(Theme.Colors.textPrimary)
-                            .padding(12)
-                            .frame(height: 120)
-                            .background(Theme.Colors.surface)
-                            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: Theme.Radius.medium)
-                                    .stroke(Theme.Colors.border, lineWidth: 1)
-                            )
+                        ZStack(alignment: .topLeading) {
+                            if comment.isEmpty {
+                                Text("Solo se requiere un puntaje. Si lo deseas, puedes escribir un comentario u opinión aquí...")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(Theme.Colors.textTertiary)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 12)
+                                    .allowsHitTesting(false)
+                            }
+                            
+                            TextEditor(text: $comment)
+                                .font(.system(size: 13))
+                                .scrollContentBackground(.hidden)
+                                .foregroundColor(Theme.Colors.textPrimary)
+                                .padding(10)
+                                .frame(height: 100)
+                        }
+                        .background(Theme.Colors.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Theme.Radius.medium)
+                                .stroke(Theme.Colors.border, lineWidth: 1)
+                        )
                     }
                     .padding(.horizontal)
                     
@@ -162,7 +181,7 @@ public struct AddReviewSheetView: View {
                             ProgressView()
                                 .tint(Theme.Colors.textPrimary)
                         } else {
-                            Text(existingReview != nil ? "Actualizar" : "Guardar")
+                            Text(existingReview != nil ? "Actualizar" : "Guardar Calificación")
                                 .fontWeight(.semibold)
                                 .foregroundColor(Theme.Colors.textPrimary)
                         }

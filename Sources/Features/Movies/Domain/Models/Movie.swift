@@ -18,6 +18,7 @@ public struct Movie: Identifiable, Sendable, Codable, Equatable {
     public var isInTheatersLocally: Bool
     public var theatersPlaying: [String]
     public var localShowtimes: [CinemaShowtime]
+    public var countryOfOrigin: String?
     
     public init(
         id: String,
@@ -35,7 +36,8 @@ public struct Movie: Identifiable, Sendable, Codable, Equatable {
         recommendationReason: String? = nil,
         isInTheatersLocally: Bool = false,
         theatersPlaying: [String] = [],
-        localShowtimes: [CinemaShowtime] = []
+        localShowtimes: [CinemaShowtime] = [],
+        countryOfOrigin: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -53,6 +55,69 @@ public struct Movie: Identifiable, Sendable, Codable, Equatable {
         self.isInTheatersLocally = isInTheatersLocally
         self.theatersPlaying = theatersPlaying
         self.localShowtimes = localShowtimes
+        self.countryOfOrigin = countryOfOrigin
+    }
+    
+    /// Determina si la película pertenece a la cinematografía nacional del país consultado
+    public func isNationalCinema(for countryCode: String?) -> Bool {
+        guard let countryCode, !countryCode.isEmpty,
+              let origin = countryOfOrigin, !origin.isEmpty else {
+            return false
+        }
+        return countryCode.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == origin.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+    
+    /// Calcula el estado comercial de exhibición teatral en cines (Estreno Semana 1, 2ª Semana, En Cartelera, etc.)
+    public func releaseStatus(referenceDate: Date = Date()) -> TheatricalReleaseStatus {
+        guard let releaseDate else {
+            return isInTheatersLocally ? .inTheaters : .catalog
+        }
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+        
+        guard let date = formatter.date(from: releaseDate) else {
+            return isInTheatersLocally ? .inTheaters : .catalog
+        }
+        
+        let calendar = Calendar.current
+        let startOfRef = calendar.startOfDay(for: referenceDate)
+        let startOfRelease = calendar.startOfDay(for: date)
+        
+        let diff = calendar.dateComponents([.day], from: startOfRelease, to: startOfRef).day ?? 0
+        
+        if diff < 0 {
+            return .comingSoon
+        } else if diff <= 7 {
+            return .premiereWeek
+        } else if diff <= 14 {
+            return .secondWeek
+        } else if isInTheatersLocally || !localShowtimes.isEmpty {
+            return .inTheaters
+        } else {
+            return .catalog
+        }
+    }
+}
+
+/// Estado de la película en el ciclo de exhibición en salas de cine
+public enum TheatricalReleaseStatus: String, Codable, Sendable, CaseIterable {
+    case premiereWeek = "Estreno"        // Semana 1 (0 a 7 días de estreno)
+    case secondWeek = "2ª Semana"       // Semana 2 (8 a 14 días en salas)
+    case inTheaters = "En Cartelera"    // Semana 3 en adelante
+    case comingSoon = "Próximamente"    // Aún no estrena
+    case catalog = "Catálogo"           // Fuera de exhibición activa
+    
+    public var badgeTitle: String {
+        switch self {
+        case .premiereWeek: return "ESTRENO"
+        case .secondWeek: return "2ª SEMANA"
+        case .inTheaters: return "EN CINES"
+        case .comingSoon: return "PRÓXIMAMENTE"
+        case .catalog: return "CATÁLOGO"
+        }
     }
 }
 

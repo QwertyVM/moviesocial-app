@@ -3,13 +3,19 @@ import Foundation
 public actor GroupRepositoryImpl: GroupRepositoryProtocol {
     private var groups: [MovieGroup]
     private var messages: [String: [GroupMessage]]
+    private let database: AppDatabase
+    private let apiClient: MovieSocialAPIClient
     
     public init(
         groups: [MovieGroup] = defaultGroups,
-        messages: [String: [GroupMessage]] = defaultMessages
+        messages: [String: [GroupMessage]] = defaultMessages,
+        database: AppDatabase = AppDatabase.shared,
+        apiClient: MovieSocialAPIClient = MovieSocialAPIClient.shared
     ) {
         self.groups = groups
         self.messages = messages
+        self.database = database
+        self.apiClient = apiClient
     }
     
     public func getGroups() async throws -> [MovieGroup] {
@@ -68,6 +74,21 @@ public actor GroupRepositoryImpl: GroupRepositoryProtocol {
             createdAt: Date()
         )
         messages[newGroup.id] = [initialMsg]
+        await database.saveGroup(newGroup)
+        await database.saveGroupMessage(initialMsg)
+        
+        // Servicio REST: POST /api/groups
+        let groupReq = CreateGroupRequest(
+            id: newGroup.id,
+            name: name,
+            description: description,
+            iconEmoji: iconEmoji,
+            creatorId: creator.id,
+            creatorName: creator.displayName,
+            inviteCode: inviteCode
+        )
+        _ = try? await apiClient.execute(endpoint: "/groups", method: .post, body: groupReq)
+        
         return newGroup
     }
     
@@ -102,6 +123,8 @@ public actor GroupRepositoryImpl: GroupRepositoryProtocol {
             }
             messages[groupId]?.append(joinMsg)
             groups[index].messagesCount += 1
+            await database.saveGroup(groups[index])
+            await database.saveGroupMessage(joinMsg)
         }
         
         return groups[index]
@@ -151,6 +174,8 @@ public actor GroupRepositoryImpl: GroupRepositoryProtocol {
             }
             messages[targetGroup.id]?.append(joinMsg)
             groups[index].messagesCount += 1
+            await database.saveGroup(groups[index])
+            await database.saveGroupMessage(joinMsg)
         }
         
         return groups[index]
@@ -186,6 +211,8 @@ public actor GroupRepositoryImpl: GroupRepositoryProtocol {
             }
             messages[groupId]?.append(addMsg)
             groups[index].messagesCount += 1
+            await database.saveGroup(groups[index])
+            await database.saveGroupMessage(addMsg)
         }
         
         return groups[index]
@@ -229,6 +256,20 @@ public actor GroupRepositoryImpl: GroupRepositoryProtocol {
         }
         messages[groupId]?.append(newMessage)
         groups[index].messagesCount += 1
+        await database.saveGroup(groups[index])
+        await database.saveGroupMessage(newMessage)
+        
+        // Servicio REST: POST /api/groups/:id/messages
+        let msgReq = SendGroupMessageRequest(
+            id: newMessage.id,
+            userId: user.id,
+            userName: user.displayName,
+            text: text,
+            messageType: messageType.rawValue,
+            sharedMovieId: sharedMovieId,
+            sharedMovieTitle: sharedMovieTitle
+        )
+        _ = try? await apiClient.execute(endpoint: "/groups/\(groupId)/messages", method: .post, body: msgReq)
         
         return newMessage
     }
@@ -276,7 +317,7 @@ public actor GroupRepositoryImpl: GroupRepositoryProtocol {
             ],
             inviteCode: "CINE-NOLAN",
             currentMovieId: "693134",
-            currentMovieTitle: "Dune: Parte Dos",
+            currentMovieTitle: "Duna: Parte dos",
             currentMoviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg"),
             currentMovieYear: 2024,
             messagesCount: 4,
@@ -337,7 +378,7 @@ public actor GroupRepositoryImpl: GroupRepositoryProtocol {
                 groupId: "group_1",
                 userId: "friend_1",
                 userName: "Lucas Benítez",
-                text: "¡Bienvenidos al grupo! Este finde hacemos sesión conjunta para comentar Dune: Parte Dos. ¿Quién confirma?",
+                text: "¡Bienvenidos al grupo! Este finde hacemos sesión conjunta para comentar Duna: Parte dos. ¿Quién confirma?",
                 createdAt: Date().addingTimeInterval(-7200)
             ),
             GroupMessage(
@@ -353,7 +394,7 @@ public actor GroupRepositoryImpl: GroupRepositoryProtocol {
                 groupId: "group_1",
                 userId: "friend_3",
                 userName: "Mateo Rossi",
-                text: "Contad conmigo. Llevo nachos y refrescos. Al terminar abrimos debate aquí.",
+                text: "Cuenten conmigo. Llevo botanas y refrescos. Al terminar abrimos debate aquí.",
                 createdAt: Date().addingTimeInterval(-3600)
             )
         ],
@@ -372,7 +413,7 @@ public actor GroupRepositoryImpl: GroupRepositoryProtocol {
                 groupId: "group_2",
                 userId: "friend_2",
                 userName: "Camila Vega",
-                text: "Película elegida de esta semana: El Padrino (1972). Fijaos especialmente en el uso de la luz de Gordon Willis.",
+                text: "Película elegida de esta semana: El Padrino (1972). Fíjense especialmente en el uso de la luz de Gordon Willis.",
                 createdAt: Date().addingTimeInterval(-20000)
             ),
             GroupMessage(

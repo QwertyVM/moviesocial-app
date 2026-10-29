@@ -4,13 +4,16 @@ import Foundation
 public actor DirectChatRepositoryImpl: DirectChatRepositoryProtocol {
     private var conversations: [DirectConversation]
     private var messages: [String: [DirectMessage]]
+    private let database: AppDatabase
     
     public init(
         conversations: [DirectConversation] = defaultConversations,
-        messages: [String: [DirectMessage]] = defaultMessages
+        messages: [String: [DirectMessage]] = defaultMessages,
+        database: AppDatabase = AppDatabase.shared
     ) {
         self.conversations = conversations
         self.messages = messages
+        self.database = database
     }
     
     public func getConversations(userId: String) async throws -> [DirectConversation] {
@@ -38,6 +41,7 @@ public actor DirectChatRepositoryImpl: DirectChatRepositoryProtocol {
         
         conversations.insert(newConv, at: 0)
         messages[conversationId] = []
+        await database.saveConversation(newConv)
         return newConv
     }
     
@@ -85,6 +89,7 @@ public actor DirectChatRepositoryImpl: DirectChatRepositoryProtocol {
             conversations[index].updatedAt = msg.createdAt
             let updated = conversations.remove(at: index)
             conversations.insert(updated, at: 0)
+            await database.saveConversation(updated)
         } else {
             let newConv = DirectConversation(
                 id: conversationId,
@@ -94,14 +99,17 @@ public actor DirectChatRepositoryImpl: DirectChatRepositoryProtocol {
                 updatedAt: msg.createdAt
             )
             conversations.insert(newConv, at: 0)
+            await database.saveConversation(newConv)
         }
         
+        await database.saveDirectMessage(msg)
         return msg
     }
     
     public func markAsRead(conversationId: String, userId: String) async throws {
         if let index = conversations.firstIndex(where: { $0.id == conversationId }) {
             conversations[index].unreadCount = 0
+            await database.saveConversation(conversations[index])
         }
         
         if var list = messages[conversationId] {
@@ -213,7 +221,7 @@ public actor DirectChatRepositoryImpl: DirectChatRepositoryProtocol {
                 text: "Mira la ficha, las notas de la crítica son una locura",
                 messageType: .movieShare,
                 sharedMovieId: "693134",
-                sharedMovieTitle: "Dune: Parte Dos",
+                sharedMovieTitle: "Duna: Parte dos",
                 sharedMoviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg"),
                 sharedMovieYear: 2024,
                 isRead: true,

@@ -98,7 +98,7 @@ public struct GlobalReviewsPaywallSheetView: View {
             VStack(spacing: 6) {
                 HStack(spacing: 6) {
                     Text("PASE SOCIAL DE PAGA")
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .font(.system(size: 10, weight: .bold))
                         .tracking(2.5)
                         .foregroundColor(Theme.Colors.imdb)
                         .padding(.horizontal, 8)
@@ -213,7 +213,7 @@ public struct GlobalReviewsPaywallSheetView: View {
                         
                         if let badge = plan.badge {
                             Text(badge)
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .font(.system(size: 9, weight: .bold))
                                 .foregroundColor(isSelected ? .black : Theme.Colors.imdb)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)

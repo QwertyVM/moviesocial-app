@@ -4,11 +4,18 @@ import SwiftUI
 public struct MoviePosterCard: View {
     public let movie: Movie
     public let friendsAverage: Double?
+    public let selectedCountryCode: String?
     public let onTap: () -> Void
     
-    public init(movie: Movie, friendsAverage: Double? = nil, onTap: @escaping () -> Void) {
+    public init(
+        movie: Movie,
+        friendsAverage: Double? = nil,
+        selectedCountryCode: String? = nil,
+        onTap: @escaping () -> Void
+    ) {
         self.movie = movie
         self.friendsAverage = friendsAverage
+        self.selectedCountryCode = selectedCountryCode
         self.onTap = onTap
     }
     
@@ -27,15 +34,27 @@ public struct MoviePosterCard: View {
                     
                     // Badges on top of poster
                     HStack {
-                        // Match score pill on top left OR In Theaters badge
+                        // Match score pill on top left OR Theatrical Release badge (Estreno / 2ª Semana / En Cines)
                         if movie.isInTheatersLocally {
+                            let status = movie.releaseStatus()
+                            let isNational = movie.isNationalCinema(for: selectedCountryCode)
+                            
                             HStack(spacing: 3) {
-                                Image(systemName: "ticket.fill")
-                                    .font(.system(size: 8))
-                                Text("EN CINES")
+                                if isNational {
+                                    Text(nationalFlag(for: movie.countryOfOrigin))
+                                        .font(.system(size: 9))
+                                } else if status == .premiereWeek {
+                                    Image(systemName: "sparkles")
+                                        .font(.system(size: 8))
+                                } else {
+                                    Image(systemName: "ticket.fill")
+                                        .font(.system(size: 8))
+                                }
+                                
+                                Text(status == .premiereWeek ? "ESTRENO" : (status == .secondWeek ? "2ª SEMANA" : "EN CINES"))
                                     .font(.system(size: 9, weight: .bold))
                             }
-                            .foregroundColor(Color.green)
+                            .foregroundColor(theatricalColor(status: status, isNational: isNational))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
                             .background(Color.black.opacity(0.85))
@@ -102,6 +121,11 @@ public struct MoviePosterCard: View {
                     }
                     
                     HStack(spacing: 4) {
+                        if let origin = movie.countryOfOrigin, movie.isNationalCinema(for: selectedCountryCode) {
+                            Text(nationalFlag(for: origin))
+                                .font(.system(size: 10))
+                        }
+                        
                         Text("\(movie.releaseYear)")
                             .font(.system(size: 11))
                             .foregroundColor(Theme.Colors.textTertiary)
@@ -128,6 +152,39 @@ public struct MoviePosterCard: View {
             }
         }
         .buttonStyle(.plain)
+    }
+    
+    private func theatricalColor(status: TheatricalReleaseStatus, isNational: Bool) -> Color {
+        if isNational {
+            return Color(red: 1.0, green: 0.35, blue: 0.35)
+        }
+        switch status {
+        case .premiereWeek:
+            return Color(red: 1.0, green: 0.75, blue: 0.0)
+        case .secondWeek:
+            return Color(red: 0.3, green: 0.8, blue: 1.0)
+        case .inTheaters:
+            return Color.green
+        case .comingSoon:
+            return Color.purple
+        case .catalog:
+            return Theme.Colors.textSecondary
+        }
+    }
+    
+    private func nationalFlag(for code: String?) -> String {
+        switch code?.uppercased() {
+        case "PE": return "🇵🇪"
+        case "ES": return "🇪🇸"
+        case "MX": return "🇲🇽"
+        case "AR": return "🇦🇷"
+        case "FR": return "🇫🇷"
+        case "JP": return "🇯🇵"
+        case "CO": return "🇨🇴"
+        case "CL": return "🇨🇱"
+        case "US": return "🇺🇸"
+        default: return "🎬"
+        }
     }
     
     @ViewBuilder

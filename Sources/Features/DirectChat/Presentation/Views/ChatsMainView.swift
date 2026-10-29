@@ -63,7 +63,7 @@ public struct ChatsMainView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text(selectedSection == .direct ? "CHATS DIRECTOS (1 A 1)" : "CINECLUBS Y GRUPOS")
-                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .font(.system(size: 13, weight: .bold))
                         .tracking(2)
                         .foregroundColor(.white)
                 }

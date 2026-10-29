@@ -56,7 +56,7 @@ public struct ReviewCommentsSheetView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("COMENTARIOS (\(review.comments.count))")
-                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .font(.system(size: 12, weight: .bold))
                         .tracking(2)
                         .foregroundColor(Theme.Colors.textPrimary)
                 }
@@ -157,7 +157,7 @@ public struct ReviewCommentsSheetView: View {
     private var commentsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("RESPUESTAS DE AMIGOS")
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .font(.system(size: 11, weight: .bold))
                 .tracking(2)
                 .foregroundColor(Theme.Colors.textSecondary)
             
