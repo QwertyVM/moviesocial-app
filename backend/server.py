@@ -201,15 +201,52 @@ class MovieSocialAPIHandler(BaseHTTPRequestHandler):
                 fri_c = list(db.fetchall()[0].values())[0]
                 db.execute("SELECT COUNT(*) as c FROM movie_groups")
                 grp_c = list(db.fetchall()[0].values())[0]
+                try:
+                    db.execute("SELECT COUNT(*) as c FROM theatrical_movies")
+                    theat_c = list(db.fetchall()[0].values())[0]
+                except Exception:
+                    theat_c = 0
 
                 db_engine = "Neon DB (PostgreSQL Serverless)" if db.is_postgres else "SQLite Local (database.sqlite)"
                 self._respond_json({
                     "status": "online",
                     "database": db_engine,
                     "server": "MovieSocialApp REST API",
-                    "version": "2.1.0",
-                    "stats": {"reviews": rev_c, "friends": fri_c, "groups": grp_c}
+                    "version": "2.2.0",
+                    "stats": {
+                        "theatrical_movies": theat_c,
+                        "reviews": rev_c,
+                        "friends": fri_c,
+                        "groups": grp_c
+                    }
                 })
+
+            elif path == "/api/movies/theatrical":
+                city = query.get('city', [None])[0]
+                country = query.get('country', [None])[0]
+
+                db.execute("SELECT * FROM theatrical_movies WHERE is_active = TRUE ORDER BY release_date DESC")
+                movies = db.fetchall()
+
+                for m in movies:
+                    m_id = m.get("id")
+                    if city:
+                        db.execute("SELECT * FROM cinema_showtimes WHERE movie_id = ? AND LOWER(city) = LOWER(?) ORDER BY cinema_name ASC", (m_id, city))
+                    else:
+                        db.execute("SELECT * FROM cinema_showtimes WHERE movie_id = ? ORDER BY cinema_name ASC", (m_id,))
+                    m["showtimes"] = db.fetchall()
+
+                self._respond_json({"movies": movies, "count": len(movies)})
+
+            elif path.startswith("/api/movies/") and path.endswith("/showtimes"):
+                movie_id = path.strip("/").split("/")[2]
+                city = query.get('city', [None])[0]
+                if city:
+                    db.execute("SELECT * FROM cinema_showtimes WHERE movie_id = ? AND LOWER(city) = LOWER(?) ORDER BY cinema_name ASC", (movie_id, city))
+                else:
+                    db.execute("SELECT * FROM cinema_showtimes WHERE movie_id = ? ORDER BY cinema_name ASC", (movie_id,))
+                rows = db.fetchall()
+                self._respond_json({"movieId": movie_id, "city": city, "showtimes": rows, "count": len(rows)})
 
             elif path == "/api/reviews":
                 movie_id = query.get('movieId', [None])[0]
@@ -339,6 +376,21 @@ class MovieSocialAPIHandler(BaseHTTPRequestHandler):
                 db.commit()
                 self._respond_json({"message": "Mensaje enviado al grupo", "id": msg_id}, status=201)
 
+            elif path == "/api/movies/theatrical":
+                m_id = body.get("id") or f"mov_{int(datetime.utcnow().timestamp())}"
+                db.execute("""
+                INSERT INTO theatrical_movies 
+                (id, title, synopsis, poster_url, release_date, origin_country, origin_country_name, genres, director, composite_score)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    m_id, body.get("title", "Estreno"), body.get("synopsis", ""),
+                    body.get("posterUrl", ""), body.get("releaseDate", "2026-10-25"),
+                    body.get("originCountry", "US"), body.get("originCountryName", "Estados Unidos"),
+                    body.get("genres", "Drama"), body.get("director", ""), float(body.get("compositeScore", 8.0))
+                ))
+                db.commit()
+                self._respond_json({"message": "Película agregada a cartelera", "id": m_id}, status=201)
+
             elif path == "/api/database/reset":
                 if not db.is_postgres:
                     init_database()
@@ -412,6 +464,12 @@ class MovieSocialAPIHandler(BaseHTTPRequestHandler):
                 db.execute("DELETE FROM friends WHERE id = ?", (friend_id,))
                 db.commit()
                 self._respond_json({"message": "Amigo eliminado", "id": friend_id})
+
+            elif path.startswith("/api/movies/theatrical/"):
+                movie_id = path.strip("/").split("/")[4] if len(path.strip("/").split("/")) > 4 else path.strip("/").split("/")[3]
+                db.execute("DELETE FROM theatrical_movies WHERE id = ?", (movie_id,))
+                db.commit()
+                self._respond_json({"message": "Película eliminada de cartelera", "id": movie_id})
 
             else:
                 self._respond_json({"error": f"Endpoint DELETE {path} no encontrado"}, status=404)

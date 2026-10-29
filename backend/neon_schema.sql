@@ -144,3 +144,48 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO movie_groups (id, name, description, icon_emoji, creator_id, creator_name, invite_code, messages_count)
 VALUES ('grp_cine_peruano', 'Cine Peruano y Latinoamericano', 'Debates de estrenos y clásicos locales', '🇵🇪', 'user_alex_101', 'Alex Rivera', 'CINE-PERU', 1)
 ON CONFLICT (id) DO NOTHING;
+-- ==========================================================
+-- Películas en Cartelera y Horarios de Cines Reales
+-- ==========================================================
+
+CREATE TABLE IF NOT EXISTS theatrical_movies (
+    id VARCHAR(100) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    synopsis TEXT,
+    poster_url TEXT NOT NULL,
+    backdrop_url TEXT,
+    release_date DATE NOT NULL,
+    origin_country VARCHAR(10) NOT NULL DEFAULT 'US',
+    origin_country_name VARCHAR(100) DEFAULT 'Estados Unidos',
+    genres VARCHAR(255) DEFAULT 'Drama',
+    director VARCHAR(255),
+    cast_members TEXT,
+    duration_minutes INT DEFAULT 120,
+    age_rating VARCHAR(50) DEFAULT '+14',
+    rotten_critics INT,
+    rotten_audience INT,
+    imdb_rating NUMERIC(3, 1),
+    composite_score NUMERIC(3, 1),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS cinema_showtimes (
+    id VARCHAR(100) PRIMARY KEY,
+    movie_id VARCHAR(100) NOT NULL REFERENCES theatrical_movies(id) ON DELETE CASCADE,
+    cinema_chain VARCHAR(100) NOT NULL,
+    cinema_name VARCHAR(255) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    country_code VARCHAR(10) NOT NULL,
+    address TEXT,
+    screen_type VARCHAR(50) DEFAULT '2D Digital',
+    language_version VARCHAR(50) DEFAULT 'Subtitulada',
+    showtimes TEXT NOT NULL,
+    ticket_booking_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_theatrical_release ON theatrical_movies(release_date DESC);
+CREATE INDEX IF NOT EXISTS idx_cinema_showtimes_city ON cinema_showtimes(city, movie_id);
+
+
