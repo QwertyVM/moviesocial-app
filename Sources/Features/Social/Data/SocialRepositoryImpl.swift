@@ -4,10 +4,16 @@ import Foundation
 public actor SocialRepositoryImpl: SocialRepositoryProtocol {
     private var friends: [Friend]
     private var reviews: [Review]
+    private var communityReviews: [Review]
     
-    public init(friends: [Friend] = defaultFriends, reviews: [Review] = defaultReviews) {
+    public init(
+        friends: [Friend] = defaultFriends,
+        reviews: [Review] = defaultReviews,
+        communityReviews: [Review] = defaultCommunityReviews
+    ) {
         self.friends = friends
         self.reviews = reviews
+        self.communityReviews = communityReviews
     }
     
     public func getFriends() async throws -> [Friend] {
@@ -15,13 +21,39 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
     }
     
     public func getFriendsFeed() async throws -> [Review] {
-        return reviews.sorted { $0.createdAt > $1.createdAt }
+        return reviews
+            .filter { !$0.isHistorical }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+    
+    public func getUserReviews(userId: String) async throws -> [Review] {
+        return reviews.filter { $0.userId == userId && !$0.isHistorical }
     }
     
     public func getReviewsForMovie(movieId: String) async throws -> [Review] {
         return reviews
-            .filter { $0.movieId == movieId }
+            .filter { $0.movieId == movieId && !$0.isHistorical }
             .sorted { $0.createdAt > $1.createdAt }
+    }
+    
+    public func getCommunityReviewsForMovie(movieId: String) async throws -> [Review] {
+        let friendRevs = reviews.filter { $0.movieId == movieId && !$0.isHistorical }
+        var nonFriendRevs = communityReviews.filter { $0.movieId == movieId && !$0.isHistorical }
+        
+        // Si no hay reseñas precargadas para este movieId, generar plantilla dinámica enriquecida
+        if nonFriendRevs.isEmpty {
+            let generated = generateDynamicCommunityReviews(movieId: movieId)
+            communityReviews.append(contentsOf: generated)
+            nonFriendRevs = generated
+        }
+        
+        // Devolver combinación ordenada por votos útiles y fecha
+        return (friendRevs + nonFriendRevs).sorted {
+            if $0.helpfulCount != $1.helpfulCount {
+                return $0.helpfulCount > $1.helpfulCount
+            }
+            return $0.createdAt > $1.createdAt
+        }
     }
     
     public func addReview(
@@ -33,6 +65,11 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
         comment: String,
         user: User
     ) async throws -> Review {
+        // Regla de negocio: Una persona solo puede publicar una reseña por película
+        if reviews.contains(where: { $0.userId == user.id && $0.movieId == movieId && !$0.isHistorical }) {
+            throw SocialError.reviewAlreadyExists
+        }
+        
         let newReview = Review(
             id: UUID().uuidString,
             userId: user.id,
@@ -44,11 +81,89 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             movieReleaseYear: movieReleaseYear,
             rating: rating,
             comment: comment,
-            createdAt: Date()
+            createdAt: Date(),
+            location: user.location ?? UserLocation(city: "Madrid", country: "España", countryCode: "ES", flagEmoji: "🇪🇸", isLocal: true),
+            isFriend: true
         )
         
         reviews.insert(newReview, at: 0)
         return newReview
+    }
+    
+    public func editReview(
+        reviewId: String,
+        rating: Double,
+        comment: String,
+        currentDate: Date = Date()
+    ) async throws -> Review {
+        guard let index = reviews.firstIndex(where: { $0.id == reviewId }) else {
+            throw SocialError.reviewNotFound
+        }
+        
+        let current = reviews[index]
+        let passedThreeMonths = Review.hasPassedMoreThanThreeMonths(from: current.createdAt, to: currentDate)
+        
+        if passedThreeMonths {
+            // "si quiere editarla su primera reseña deberia quedar como historico si ya pasaron mas de 3 meses"
+            if reviews[index].history.isEmpty {
+                let firstReviewEntry = ReviewHistoryEntry(
+                    id: UUID().uuidString,
+                    rating: current.rating,
+                    comment: current.comment,
+                    createdAt: current.createdAt,
+                    archivedAt: currentDate
+                )
+                reviews[index].history.append(firstReviewEntry)
+            } else {
+                let previousEntry = ReviewHistoryEntry(
+                    id: UUID().uuidString,
+                    rating: current.rating,
+                    comment: current.comment,
+                    createdAt: current.updatedAt ?? current.createdAt,
+                    archivedAt: currentDate
+                )
+                reviews[index].history.append(previousEntry)
+            }
+            
+            // Registro histórico archivado en el repositorio
+            let historicalSnapshot = Review(
+                id: "\(current.id)_historical_\(UUID().uuidString.prefix(6))",
+                userId: current.userId,
+                userName: current.userName,
+                userAvatarURL: current.userAvatarURL,
+                movieId: current.movieId,
+                movieTitle: current.movieTitle,
+                moviePosterURL: current.moviePosterURL,
+                movieReleaseYear: current.movieReleaseYear,
+                rating: current.rating,
+                comment: current.comment,
+                createdAt: current.createdAt,
+                updatedAt: currentDate,
+                comments: current.comments,
+                likesCount: current.likesCount,
+                isLikedByMe: current.isLikedByMe,
+                location: current.location,
+                isFriend: current.isFriend,
+                helpfulCount: current.helpfulCount,
+                isHelpfulByMe: current.isHelpfulByMe,
+                isHistorical: true,
+                history: []
+            )
+            reviews.append(historicalSnapshot)
+        }
+        
+        reviews[index].rating = rating
+        reviews[index].comment = comment
+        reviews[index].updatedAt = currentDate
+        
+        return reviews[index]
+    }
+    
+    public func getReviewHistory(reviewId: String) async throws -> [ReviewHistoryEntry] {
+        guard let review = reviews.first(where: { $0.id == reviewId }) else {
+            throw SocialError.reviewNotFound
+        }
+        return review.history
     }
     
     public func addCommentToReview(
@@ -61,10 +176,6 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             throw NSError(domain: "Social", code: 400, userInfo: [NSLocalizedDescriptionKey: "El comentario no puede estar vacío"])
         }
         
-        guard let index = reviews.firstIndex(where: { $0.id == reviewId }) else {
-            throw NSError(domain: "Social", code: 404, userInfo: [NSLocalizedDescriptionKey: "Reseña no encontrada"])
-        }
-        
         let newComment = ReviewComment(
             id: UUID().uuidString,
             reviewId: reviewId,
@@ -75,27 +186,53 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             createdAt: Date()
         )
         
-        reviews[index].comments.append(newComment)
-        return newComment
+        if let index = reviews.firstIndex(where: { $0.id == reviewId }) {
+            reviews[index].comments.append(newComment)
+            return newComment
+        } else if let index = communityReviews.firstIndex(where: { $0.id == reviewId }) {
+            communityReviews[index].comments.append(newComment)
+            return newComment
+        } else {
+            throw NSError(domain: "Social", code: 404, userInfo: [NSLocalizedDescriptionKey: "Reseña no encontrada"])
+        }
     }
     
     public func toggleLikeReview(
         reviewId: String,
         userId: String
     ) async throws -> (isLiked: Bool, newCount: Int) {
-        guard let index = reviews.firstIndex(where: { $0.id == reviewId }) else {
+        if let index = reviews.firstIndex(where: { $0.id == reviewId }) {
+            let willBeLiked = !reviews[index].isLikedByMe
+            reviews[index].isLikedByMe = willBeLiked
+            reviews[index].likesCount = willBeLiked ? reviews[index].likesCount + 1 : max(0, reviews[index].likesCount - 1)
+            return (reviews[index].isLikedByMe, reviews[index].likesCount)
+        } else if let index = communityReviews.firstIndex(where: { $0.id == reviewId }) {
+            let willBeLiked = !communityReviews[index].isLikedByMe
+            communityReviews[index].isLikedByMe = willBeLiked
+            communityReviews[index].likesCount = willBeLiked ? communityReviews[index].likesCount + 1 : max(0, communityReviews[index].likesCount - 1)
+            return (communityReviews[index].isLikedByMe, communityReviews[index].likesCount)
+        } else {
             throw NSError(domain: "Social", code: 404, userInfo: [NSLocalizedDescriptionKey: "Reseña no encontrada"])
         }
-        
-        let willBeLiked = !reviews[index].isLikedByMe
-        reviews[index].isLikedByMe = willBeLiked
-        if willBeLiked {
-            reviews[index].likesCount += 1
+    }
+    
+    public func toggleHelpfulReview(
+        reviewId: String,
+        userId: String
+    ) async throws -> (isHelpful: Bool, newCount: Int) {
+        if let index = communityReviews.firstIndex(where: { $0.id == reviewId }) {
+            let willBeHelpful = !communityReviews[index].isHelpfulByMe
+            communityReviews[index].isHelpfulByMe = willBeHelpful
+            communityReviews[index].helpfulCount = willBeHelpful ? communityReviews[index].helpfulCount + 1 : max(0, communityReviews[index].helpfulCount - 1)
+            return (communityReviews[index].isHelpfulByMe, communityReviews[index].helpfulCount)
+        } else if let index = reviews.firstIndex(where: { $0.id == reviewId }) {
+            let willBeHelpful = !reviews[index].isHelpfulByMe
+            reviews[index].isHelpfulByMe = willBeHelpful
+            reviews[index].helpfulCount = willBeHelpful ? reviews[index].helpfulCount + 1 : max(0, reviews[index].helpfulCount - 1)
+            return (reviews[index].isHelpfulByMe, reviews[index].helpfulCount)
         } else {
-            reviews[index].likesCount = max(0, reviews[index].likesCount - 1)
+            throw NSError(domain: "Social", code: 404, userInfo: [NSLocalizedDescriptionKey: "Reseña no encontrada"])
         }
-        
-        return (reviews[index].isLikedByMe, reviews[index].likesCount)
     }
     
     public func addFriend(username: String) async throws -> Friend {
@@ -115,6 +252,104 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
         friends.append(newFriend)
         return newFriend
     }
+    
+    public func removeFriend(friendId: String) async throws {
+        friends.removeAll { $0.id == friendId }
+    }
+    
+    // MARK: - Dynamic Generator for Any Movie
+    
+    private func generateDynamicCommunityReviews(movieId: String) -> [Review] {
+        return [
+            Review(
+                id: "comm_gen_loc_1_\(movieId)",
+                userId: "user_loc_carlos",
+                userName: "Carlos Navarro",
+                userAvatarURL: URL(string: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200"),
+                movieId: movieId,
+                movieTitle: "Película Seleccionada",
+                rating: 4.5,
+                comment: "Vista en cines locales de Madrid. La dirección artística y el sonido envolvente me dejaron fascinado. Una recomendación segura.",
+                createdAt: Date().addingTimeInterval(-14400),
+                likesCount: 14,
+                isLikedByMe: false,
+                location: UserLocation(city: "Madrid", country: "España", countryCode: "ES", flagEmoji: "🇪🇸", isLocal: true),
+                isFriend: false,
+                helpfulCount: 22,
+                isHelpfulByMe: false
+            ),
+            Review(
+                id: "comm_gen_loc_2_\(movieId)",
+                userId: "user_loc_valen",
+                userName: "Valentina Soto",
+                userAvatarURL: URL(string: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200"),
+                movieId: movieId,
+                movieTitle: "Película Seleccionada",
+                rating: 5.0,
+                comment: "Increíble cómo maneja el ritmo narrativo. La vi con amigos en Barcelona y no paramos de debatirla después.",
+                createdAt: Date().addingTimeInterval(-28800),
+                likesCount: 9,
+                isLikedByMe: false,
+                location: UserLocation(city: "Barcelona", country: "España", countryCode: "ES", flagEmoji: "🇪🇸", isLocal: true),
+                isFriend: false,
+                helpfulCount: 17,
+                isHelpfulByMe: false
+            ),
+            Review(
+                id: "comm_gen_int_1_\(movieId)",
+                userId: "user_int_kenji",
+                userName: "Kenji Sato",
+                userAvatarURL: URL(string: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200"),
+                movieId: movieId,
+                movieTitle: "Película Seleccionada",
+                rating: 4.5,
+                comment: "池袋のIMAXで鑑賞。映像美と演出の緻密さに圧倒されました。世界中の映画ファンに体験してほしい傑作です。(Visto en Tokio, una experiencia cinematográfica impresionante).",
+                createdAt: Date().addingTimeInterval(-43200),
+                likesCount: 31,
+                isLikedByMe: false,
+                location: UserLocation(city: "Tokio", country: "Japón", countryCode: "JP", flagEmoji: "🇯🇵", isLocal: false),
+                isFriend: false,
+                helpfulCount: 45,
+                isHelpfulByMe: false
+            ),
+            Review(
+                id: "comm_gen_int_2_\(movieId)",
+                userId: "user_int_sarah",
+                userName: "Sarah Jenkins",
+                userAvatarURL: URL(string: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200"),
+                movieId: movieId,
+                movieTitle: "Película Seleccionada",
+                rating: 5.0,
+                comment: "Saw this in NYC Lincoln Square. Breathtaking cinematography and powerful character dynamics. A true modern masterpiece.",
+                createdAt: Date().addingTimeInterval(-60000),
+                likesCount: 26,
+                isLikedByMe: false,
+                location: UserLocation(city: "Nueva York", country: "EE. UU.", countryCode: "US", flagEmoji: "🇺🇸", isLocal: false),
+                isFriend: false,
+                helpfulCount: 38,
+                isHelpfulByMe: false
+            ),
+            Review(
+                id: "comm_gen_int_3_\(movieId)",
+                userId: "user_int_jeanluc",
+                userName: "Jean-Luc Moreau",
+                userAvatarURL: URL(string: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200"),
+                movieId: movieId,
+                movieTitle: "Película Seleccionada",
+                rating: 4.0,
+                comment: "Une mise en scène brillante et élégante. Les thématiques universelles résonnent bien au-delà des frontières.",
+                createdAt: Date().addingTimeInterval(-72000),
+                likesCount: 18,
+                isLikedByMe: false,
+                location: UserLocation(city: "París", country: "Francia", countryCode: "FR", flagEmoji: "🇫🇷", isLocal: false),
+                isFriend: false,
+                helpfulCount: 19,
+                isHelpfulByMe: false
+            )
+        ]
+    }
+    
+    // MARK: - Curated Static Data
     
     public static let defaultFriends: [Friend] = [
         Friend(
@@ -177,7 +412,11 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
                 )
             ],
             likesCount: 5,
-            isLikedByMe: true
+            isLikedByMe: true,
+            location: UserLocation(city: "Madrid", country: "España", countryCode: "ES", flagEmoji: "🇪🇸", isLocal: true),
+            isFriend: true,
+            helpfulCount: 14,
+            isHelpfulByMe: false
         ),
         Review(
             id: "rev_2",
@@ -190,7 +429,8 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             movieReleaseYear: 1972,
             rating: 5.0,
             comment: "La volví a ver en pantalla grande. El ritmo, la fotografía de Gordon Willis y la mirada de Al Pacino son insuperables.",
-            createdAt: Date().addingTimeInterval(-86400),
+            createdAt: Date().addingTimeInterval(-120 * 86400),
+            updatedAt: Date().addingTimeInterval(-10 * 86400),
             comments: [
                 ReviewComment(
                     id: "comm_2_1",
@@ -203,7 +443,20 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
                 )
             ],
             likesCount: 8,
-            isLikedByMe: false
+            isLikedByMe: false,
+            location: UserLocation(city: "Madrid", country: "España", countryCode: "ES", flagEmoji: "🇪🇸", isLocal: true),
+            isFriend: true,
+            helpfulCount: 9,
+            isHelpfulByMe: false,
+            history: [
+                ReviewHistoryEntry(
+                    id: "hist_rev_2_first",
+                    rating: 4.5,
+                    comment: "Excelente clásico, aunque el primer visionado se me hizo algo lento en su tramo medio.",
+                    createdAt: Date().addingTimeInterval(-120 * 86400),
+                    archivedAt: Date().addingTimeInterval(-10 * 86400)
+                )
+            ]
         ),
         Review(
             id: "rev_3",
@@ -219,7 +472,199 @@ public actor SocialRepositoryImpl: SocialRepositoryProtocol {
             createdAt: Date().addingTimeInterval(-172800),
             comments: [],
             likesCount: 3,
-            isLikedByMe: false
+            isLikedByMe: false,
+            location: UserLocation(city: "Madrid", country: "España", countryCode: "ES", flagEmoji: "🇪🇸", isLocal: true),
+            isFriend: true,
+            helpfulCount: 6,
+            isHelpfulByMe: false
+        )
+    ]
+    
+    public static let defaultCommunityReviews: [Review] = [
+        // MARK: - Dune: Parte Dos (693134) - Locales (No Amigos)
+        Review(
+            id: "comm_dune_loc_1",
+            userId: "user_nonfriend_carlos",
+            userName: "Carlos Navarro",
+            userAvatarURL: URL(string: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200"),
+            movieId: "693134",
+            movieTitle: "Dune: Parte Dos",
+            moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg"),
+            movieReleaseYear: 2024,
+            rating: 4.5,
+            comment: "Vista en Cines Callao en Madrid. El sonido es brutal con los ornitópteros y el gusano. Hacía tiempo que no sentía temblar las butacas en una sala. Una obra maestra moderna.",
+            createdAt: Date().addingTimeInterval(-10800),
+            comments: [],
+            likesCount: 19,
+            isLikedByMe: false,
+            location: UserLocation(city: "Madrid", country: "España", countryCode: "ES", flagEmoji: "🇪🇸", isLocal: true),
+            isFriend: false,
+            helpfulCount: 34,
+            isHelpfulByMe: false
+        ),
+        Review(
+            id: "comm_dune_loc_2",
+            userId: "user_nonfriend_valen",
+            userName: "Valentina Soto",
+            userAvatarURL: URL(string: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200"),
+            movieId: "693134",
+            movieTitle: "Dune: Parte Dos",
+            moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg"),
+            movieReleaseYear: 2024,
+            rating: 5.0,
+            comment: "La vi en la sala Phenomena de Barcelona en VOSE. La química entre Chalamet y Zendaya sostiene la tragedia política a la perfección.",
+            createdAt: Date().addingTimeInterval(-21600),
+            comments: [],
+            likesCount: 15,
+            isLikedByMe: false,
+            location: UserLocation(city: "Barcelona", country: "España", countryCode: "ES", flagEmoji: "🇪🇸", isLocal: true),
+            isFriend: false,
+            helpfulCount: 28,
+            isHelpfulByMe: false
+        ),
+        Review(
+            id: "comm_dune_loc_3",
+            userId: "user_nonfriend_diego",
+            userName: "Diego Álvarez",
+            userAvatarURL: URL(string: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200"),
+            movieId: "693134",
+            movieTitle: "Dune: Parte Dos",
+            moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg"),
+            movieReleaseYear: 2024,
+            rating: 4.0,
+            comment: "Sensación total de inmersión en Kinépolis Valencia. El tramo final acelera un poco los libros, pero la ambientación es impecable.",
+            createdAt: Date().addingTimeInterval(-45000),
+            comments: [],
+            likesCount: 11,
+            isLikedByMe: false,
+            location: UserLocation(city: "Valencia", country: "España", countryCode: "ES", flagEmoji: "🇪🇸", isLocal: true),
+            isFriend: false,
+            helpfulCount: 18,
+            isHelpfulByMe: false
+        ),
+        
+        // MARK: - Dune: Parte Dos (693134) - Internacionales (No Amigos)
+        Review(
+            id: "comm_dune_int_1",
+            userId: "user_nonfriend_kenji",
+            userName: "Kenji Sato",
+            userAvatarURL: URL(string: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200"),
+            movieId: "693134",
+            movieTitle: "Dune: Parte Dos",
+            moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg"),
+            movieReleaseYear: 2024,
+            rating: 5.0,
+            comment: "池袋グランドシネマサンシャインのIMAXレーザーGTで鑑賞。ハルコンネン母星のモノクロ赤外線シーンは映画史に残る美しさ。オースティン・バトラーの存在感に鳥肌が立った。",
+            createdAt: Date().addingTimeInterval(-32400),
+            comments: [],
+            likesCount: 42,
+            isLikedByMe: false,
+            location: UserLocation(city: "Tokio", country: "Japón", countryCode: "JP", flagEmoji: "🇯🇵", isLocal: false),
+            isFriend: false,
+            helpfulCount: 67,
+            isHelpfulByMe: false
+        ),
+        Review(
+            id: "comm_dune_int_2",
+            userId: "user_nonfriend_sarah",
+            userName: "Sarah Jenkins",
+            userAvatarURL: URL(string: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200"),
+            movieId: "693134",
+            movieTitle: "Dune: Parte Dos",
+            moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg"),
+            movieReleaseYear: 2024,
+            rating: 5.0,
+            comment: "Saw this on 70mm IMAX at AMC Lincoln Square in New York. The scale is staggering. Villeneuve took Herbert's warning on charismatic leaders and delivered cinema at its peak.",
+            createdAt: Date().addingTimeInterval(-50000),
+            comments: [],
+            likesCount: 38,
+            isLikedByMe: false,
+            location: UserLocation(city: "Nueva York", country: "EE. UU.", countryCode: "US", flagEmoji: "🇺🇸", isLocal: false),
+            isFriend: false,
+            helpfulCount: 54,
+            isHelpfulByMe: false
+        ),
+        Review(
+            id: "comm_dune_int_3",
+            userId: "user_nonfriend_jeanluc",
+            userName: "Jean-Luc Moreau",
+            userAvatarURL: URL(string: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200"),
+            movieId: "693134",
+            movieTitle: "Dune: Parte Dos",
+            moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg"),
+            movieReleaseYear: 2024,
+            rating: 4.5,
+            comment: "Au Grand Rex à Paris. Une œuvre épique d'une rare élégance visuelle. Greig Fraser signe une photographie magistrale.",
+            createdAt: Date().addingTimeInterval(-64000),
+            comments: [],
+            likesCount: 27,
+            isLikedByMe: false,
+            location: UserLocation(city: "París", country: "Francia", countryCode: "FR", flagEmoji: "🇫🇷", isLocal: false),
+            isFriend: false,
+            helpfulCount: 39,
+            isHelpfulByMe: false
+        ),
+        Review(
+            id: "comm_dune_int_4",
+            userId: "user_nonfriend_minjun",
+            userName: "Min-jun Kim",
+            userAvatarURL: URL(string: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200"),
+            movieId: "693134",
+            movieTitle: "Dune: Parte Dos",
+            moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg"),
+            movieReleaseYear: 2024,
+            rating: 5.0,
+            comment: "용산 아이맥스에서 관람. 한스 짐머의 사운드트랙과 모래벌레 시퀀스는 극장에서만 느낄 수 있는 압도적인 전율을 선사합니다.",
+            createdAt: Date().addingTimeInterval(-80000),
+            comments: [],
+            likesCount: 29,
+            isLikedByMe: false,
+            location: UserLocation(city: "Seúl", country: "Corea del Sur", countryCode: "KR", flagEmoji: "🇰🇷", isLocal: false),
+            isFriend: false,
+            helpfulCount: 41,
+            isHelpfulByMe: false
+        ),
+        
+        // MARK: - El Padrino (238) - Comunidad
+        Review(
+            id: "comm_godfather_loc_1",
+            userId: "user_nonfriend_alvaro",
+            userName: "Álvaro Gómez",
+            userAvatarURL: URL(string: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=200"),
+            movieId: "238",
+            movieTitle: "El Padrino",
+            moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg"),
+            movieReleaseYear: 1972,
+            rating: 5.0,
+            comment: "Proyección en 35mm en el Cine Doré de Madrid. Cada claroscuro de Gordon Willis y cada respiración de Marlon Brando recuerdan por qué amamos el cine.",
+            createdAt: Date().addingTimeInterval(-92000),
+            comments: [],
+            likesCount: 22,
+            isLikedByMe: false,
+            location: UserLocation(city: "Madrid", country: "España", countryCode: "ES", flagEmoji: "🇪🇸", isLocal: true),
+            isFriend: false,
+            helpfulCount: 30,
+            isHelpfulByMe: false
+        ),
+        Review(
+            id: "comm_godfather_int_1",
+            userId: "user_nonfriend_marco",
+            userName: "Marco Bertolini",
+            userAvatarURL: URL(string: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=200"),
+            movieId: "238",
+            movieTitle: "El Padrino",
+            moviePosterURL: URL(string: "https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg"),
+            movieReleaseYear: 1972,
+            rating: 5.0,
+            comment: "Capolavoro eterno visto al Cinema Farnese a Roma. La colonna sonora di Nino Rota è scolpita nella nostra anima.",
+            createdAt: Date().addingTimeInterval(-100000),
+            comments: [],
+            likesCount: 35,
+            isLikedByMe: false,
+            location: UserLocation(city: "Roma", country: "Italia", countryCode: "IT", flagEmoji: "🇮🇹", isLocal: false),
+            isFriend: false,
+            helpfulCount: 48,
+            isHelpfulByMe: false
         )
     ]
 }

@@ -5,6 +5,7 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
     private let tmdbApiKey: String?
     private let omdbApiKey: String?
     private let urlSession: URLSession
+    private let showtimesService: ShowtimesServiceProtocol
     
     // In-memory cache for movie details
     private var cache: [String: Movie] = [:]
@@ -12,11 +13,13 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
     public init(
         tmdbApiKey: String? = nil,
         omdbApiKey: String? = nil,
-        urlSession: URLSession = .shared
+        urlSession: URLSession = .shared,
+        showtimesService: ShowtimesServiceProtocol = ShowtimesServiceImpl()
     ) {
         self.tmdbApiKey = tmdbApiKey
         self.omdbApiKey = omdbApiKey
         self.urlSession = urlSession
+        self.showtimesService = showtimesService
         
         // Seed curated catalog
         for movie in Self.curatedMovies {
@@ -24,30 +27,95 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
         }
     }
     
-    public func getNowPlaying(page: Int = 1) async throws -> [Movie] {
-        if let tmdbApiKey, !tmdbApiKey.isEmpty {
-            do {
-                return try await fetchTMDBNowPlaying(apiKey: tmdbApiKey, page: page)
-            } catch {
-                // Fallback to curated catalog
-            }
-        }
-        
-        // Curated estrenos
-        return Self.curatedMovies.filter { $0.releaseYear >= 2024 }
+    nonisolated public func getAvailableCities() -> [UserLocation] {
+        showtimesService.getAvailableCities()
     }
     
-    public func getClassics(page: Int = 1) async throws -> [Movie] {
+    public func getNowPlaying(
+        city: String? = nil,
+        countryCode: String? = nil,
+        page: Int = 1
+    ) async throws -> [Movie] {
+        var baseMovies: [Movie] = []
         if let tmdbApiKey, !tmdbApiKey.isEmpty {
             do {
-                return try await fetchTMDBClassics(apiKey: tmdbApiKey, page: page)
+                baseMovies = try await fetchTMDBNowPlaying(apiKey: tmdbApiKey, page: page, countryCode: countryCode)
             } catch {
                 // Fallback to curated catalog
+                baseMovies = Self.curatedMovies.filter { $0.releaseYear >= 2024 }
+            }
+        } else {
+            baseMovies = Self.curatedMovies.filter { $0.releaseYear >= 2024 }
+        }
+        
+        // Si no se especifica ciudad, devolver base
+        guard let city, !city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return baseMovies
+        }
+        
+        // Enriquecer con cartelera local de la ciudad
+        let localTheatersMap = (try? await showtimesService.getMoviesInTheaters(
+            city: city,
+            countryCode: countryCode ?? ""
+        )) ?? [:]
+        
+        let enriched = baseMovies.map { movie -> Movie in
+            if let showtimes = localTheatersMap[movie.id], !showtimes.isEmpty {
+                var copy = movie
+                copy.isInTheatersLocally = true
+                copy.theatersPlaying = Array(Set(showtimes.map(\.cinemaName))).sorted()
+                copy.localShowtimes = showtimes
+                return copy
+            } else {
+                return movie
             }
         }
         
-        // Curated clásicos
-        return Self.curatedMovies.filter { $0.releaseYear < 2024 }
+        // Ordenar: primero las que están activas localmente en cines
+        return enriched.sorted { (m1, m2) -> Bool in
+            if m1.isInTheatersLocally != m2.isInTheatersLocally {
+                return m1.isInTheatersLocally && !m2.isInTheatersLocally
+            }
+            return (m1.ratings.compositeScore ?? 0.0) > (m2.ratings.compositeScore ?? 0.0)
+        }
+    }
+    
+    public func getClassics(
+        decade: Int? = nil,
+        sortByRating: Bool = true,
+        page: Int = 1
+    ) async throws -> [Movie] {
+        var baseClassics: [Movie] = []
+        if let tmdbApiKey, !tmdbApiKey.isEmpty {
+            do {
+                baseClassics = try await fetchTMDBClassics(apiKey: tmdbApiKey, page: page)
+            } catch {
+                baseClassics = Self.curatedMovies.filter { $0.releaseYear < 2024 }
+            }
+        } else {
+            baseClassics = Self.curatedMovies.filter { $0.releaseYear < 2024 }
+        }
+        
+        // Filtrar por década si se solicita
+        var filtered = baseClassics
+        if let decade {
+            if decade <= 1960 {
+                filtered = filtered.filter { $0.releaseYear <= 1969 }
+            } else {
+                filtered = filtered.filter { $0.releaseYear >= decade && $0.releaseYear < decade + 10 }
+            }
+        }
+        
+        // Ordenar por el cruce de calificaciones (compositeScore) si está activo
+        if sortByRating {
+            filtered.sort { (m1, m2) -> Bool in
+                let s1 = m1.ratings.compositeScore ?? (m1.ratings.imdbScore ?? 0.0)
+                let s2 = m2.ratings.compositeScore ?? (m2.ratings.imdbScore ?? 0.0)
+                return s1 > s2
+            }
+        }
+        
+        return filtered
     }
     
     public func searchMovies(query: String) async throws -> [Movie] {
@@ -87,10 +155,18 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
         throw NSError(domain: "MovieRepository", code: 404, userInfo: [NSLocalizedDescriptionKey: "Película no encontrada"])
     }
     
+    public func getAllMovies() async throws -> [Movie] {
+        return Self.curatedMovies
+    }
+    
     // MARK: - Private Remote API Integration
     
-    private func fetchTMDBNowPlaying(apiKey: String, page: Int) async throws -> [Movie] {
-        guard let url = URL(string: "https://api.themoviedb.org/3/movie/now_playing?api_key=\(apiKey)&page=\(page)&language=es-ES") else {
+    private func fetchTMDBNowPlaying(apiKey: String, page: Int, countryCode: String? = nil) async throws -> [Movie] {
+        var urlString = "https://api.themoviedb.org/3/movie/now_playing?api_key=\(apiKey)&page=\(page)&language=es-ES"
+        if let countryCode, !countryCode.isEmpty {
+            urlString += "&region=\(countryCode.uppercased())"
+        }
+        guard let url = URL(string: urlString) else {
             throw URLError(.badURL)
         }
         let (data, _) = try await urlSession.data(from: url)
@@ -329,6 +405,201 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
                 rottenTomatoesAudience: 96,
                 imdbScore: 8.6,
                 imdbVotes: "850K"
+            )
+        ),
+        Movie(
+            id: "157336",
+            title: "Interstellar",
+            overview: "Un equipo de exploradores viaja a través de un agujero de gusano en el espacio en un intento por asegurar la supervivencia de la humanidad ante una Tierra moribunda.",
+            releaseYear: 2014,
+            releaseDate: "2014-11-07",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg"),
+            backdropURL: URL(string: "https://image.tmdb.org/t/p/w1280/xJHokMbljvjADYdit5fK5VQsXEG.jpg"),
+            genres: ["Ciencia Ficción", "Drama", "Aventura"],
+            runtimeMinutes: 169,
+            imdbId: "tt0816692",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 73,
+                rottenTomatoesAudience: 86,
+                imdbScore: 8.7,
+                imdbVotes: "2.1M"
+            )
+        ),
+        Movie(
+            id: "569094",
+            title: "Spider-Man: Cruzando el Multiverso",
+            overview: "Miles Morales es catapultado a través del Multiverso, donde se encuentra con una Sociedad Araña encargada de proteger su existencia frente a una nueva amenaza.",
+            releaseYear: 2023,
+            releaseDate: "2023-06-02",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/8Vt6mWEReuy4Of61Lnj5Xj704m8.jpg"),
+            backdropURL: URL(string: "https://image.tmdb.org/t/p/w1280/4HodYYKEIsGOdinkGi2Ucz6X9i0.jpg"),
+            genres: ["Animación", "Acción", "Aventura", "Ciencia Ficción"],
+            runtimeMinutes: 140,
+            imdbId: "tt9362722",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 95,
+                rottenTomatoesAudience: 94,
+                imdbScore: 8.6,
+                imdbVotes: "400K"
+            )
+        ),
+        Movie(
+            id: "496243",
+            title: "Parásitos (Parasite)",
+            overview: "Tanto Gi Taek como su familia están sin trabajo. Cuando su hijo mayor empieza a dar clases particulares en la adinerada casa de los Park, las dos familias comienzan una interrelación de resultados imprevisibles.",
+            releaseYear: 2019,
+            releaseDate: "2019-05-30",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg"),
+            backdropURL: URL(string: "https://image.tmdb.org/t/p/w1280/hiKmpFcDHioyz4SVNvODmU2uvT2.jpg"),
+            genres: ["Suspense", "Drama", "Comedia"],
+            runtimeMinutes: 132,
+            imdbId: "tt6751668",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 99,
+                rottenTomatoesAudience: 95,
+                imdbScore: 8.5,
+                imdbVotes: "950K"
+            )
+        ),
+        Movie(
+            id: "155",
+            title: "El Caballero Oscuro (The Dark Knight)",
+            overview: "Batman se propone desmantelar las organizaciones criminales restantes que plagan las calles de Gotham, pero pronto se encuentra presa del reinado del caos desatado por el Joker.",
+            releaseYear: 2008,
+            releaseDate: "2008-07-18",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg"),
+            backdropURL: URL(string: "https://image.tmdb.org/t/p/w1280/nMKdUUepR0i5zn0y1T4CsSB5chy.jpg"),
+            genres: ["Acción", "Crimen", "Drama"],
+            runtimeMinutes: 152,
+            imdbId: "tt0468569",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 94,
+                rottenTomatoesAudience: 94,
+                imdbScore: 9.0,
+                imdbVotes: "2.9M"
+            )
+        ),
+        Movie(
+            id: "313369",
+            title: "La La Land (La Ciudad de las Estrellas)",
+            overview: "Una aspirante a actriz y un dedicado pianista de jazz luchan por llegar a fin de mes mientras persiguen sus sueños en Los Ángeles, enfrentándose a decisiones que pondrán a prueba su amor.",
+            releaseYear: 2016,
+            releaseDate: "2016-12-09",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/uDO8zWDhfWwoFdKS4fzkVJt0Rf0.jpg"),
+            backdropURL: URL(string: "https://image.tmdb.org/t/p/w1280/nadTmkT5EuNu2dmYsGrdLDFppLs.jpg"),
+            genres: ["Comedia", "Drama", "Romance", "Música"],
+            runtimeMinutes: 128,
+            imdbId: "tt3783958",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 91,
+                rottenTomatoesAudience: 81,
+                imdbScore: 8.0,
+                imdbVotes: "670K"
+            )
+        ),
+        Movie(
+            id: "945961",
+            title: "Alien: Romulus",
+            overview: "Mientras hurgan en las profundidades de una estación espacial abandonada, un grupo de jóvenes colonizadores se encuentra cara a cara con la forma de vida más aterradora del universo.",
+            releaseYear: 2024,
+            releaseDate: "2024-08-16",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/b33nnKl1GSFbao4l3fZDDqsMx0F.jpg"),
+            backdropURL: URL(string: "https://image.tmdb.org/t/p/w1280/9SSEUrSqhljBMzRe4aBTh17rUaC.jpg"),
+            genres: ["Terror", "Ciencia Ficción", "Suspense"],
+            runtimeMinutes: 119,
+            imdbId: "tt18412256",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 80,
+                rottenTomatoesAudience: 85,
+                imdbScore: 7.2,
+                imdbVotes: "190K"
+            )
+        ),
+        
+        // MÁS CLÁSICOS POR DÉCADAS
+        Movie(
+            id: "289",
+            title: "Casablanca",
+            overview: "Durante la Segunda Guerra Mundial, el hastiado propietario de un club nocturno en Casablanca se debate entre el amor y la virtud moral al ayudar a su antiguo amor y a su esposo refugiado.",
+            releaseYear: 1942,
+            releaseDate: "1942-11-26",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/5K7cOHoay2mZusSLezBOY0Qxh8a.jpg"),
+            genres: ["Drama", "Romance", "Guerra"],
+            runtimeMinutes: 102,
+            imdbId: "tt0034583",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 99,
+                rottenTomatoesAudience: 95,
+                imdbScore: 8.5,
+                imdbVotes: "610K"
+            )
+        ),
+        Movie(
+            id: "278",
+            title: "Cadena Perpetua (The Shawshank Redemption)",
+            overview: "Condenado a cadena perpetua por el asesinato de su esposa y su amante, un banquero inocente entabla amistad con otro recluso y encuentra esperanza a través de actos de decencia común.",
+            releaseYear: 1994,
+            releaseDate: "1994-09-23",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/9cqNxx0GxF0bflZmeSMuL5tnGzr.jpg"),
+            genres: ["Drama", "Crimen"],
+            runtimeMinutes: 142,
+            imdbId: "tt0111161",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 91,
+                rottenTomatoesAudience: 98,
+                imdbScore: 9.3,
+                imdbVotes: "2.9M"
+            )
+        ),
+        Movie(
+            id: "424",
+            title: "La Lista de Schindler",
+            overview: "En la Polonia ocupada por los alemanes durante la Segunda Guerra Mundial, Oskar Schindler gradualmente se preocupa por su fuerza laboral judía después de presenciar su persecución por los nazis.",
+            releaseYear: 1993,
+            releaseDate: "1993-12-15",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/sF1U4EUQS8YHUYjNlvt0xTWQ1Ac.jpg"),
+            genres: ["Drama", "Historia", "Guerra"],
+            runtimeMinutes: 195,
+            imdbId: "tt0108052",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 98,
+                rottenTomatoesAudience: 97,
+                imdbScore: 9.0,
+                imdbVotes: "1.4M"
+            )
+        ),
+        Movie(
+            id: "105",
+            title: "Regreso al Futuro (Back to the Future)",
+            overview: "Marty McFly, un estudiante de secundaria típico de los años 80, es enviado accidentalmente a 1955 en un automóvil DeLorean modificado para viajar en el tiempo por un excéntrico científico.",
+            releaseYear: 1985,
+            releaseDate: "1985-07-03",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/fNOH9f1aA7XRTzl1sAOx9iF553Q.jpg"),
+            genres: ["Aventura", "Comedia", "Ciencia Ficción"],
+            runtimeMinutes: 116,
+            imdbId: "tt0088763",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 93,
+                rottenTomatoesAudience: 94,
+                imdbScore: 8.5,
+                imdbVotes: "1.3M"
+            )
+        ),
+        Movie(
+            id: "244786",
+            title: "Whiplash",
+            overview: "Un joven y prometedor baterista de jazz se matricula en un conservatorio de música muy competitivo donde sus sueños de grandeza son guiados por un despiadado instructor.",
+            releaseYear: 2014,
+            releaseDate: "2014-10-10",
+            posterURL: URL(string: "https://image.tmdb.org/t/p/w500/7fn624j5lj3xTme2SgiLCeuedmO.jpg"),
+            genres: ["Drama", "Música"],
+            runtimeMinutes: 107,
+            imdbId: "tt2582802",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 94,
+                rottenTomatoesAudience: 94,
+                imdbScore: 8.5,
+                imdbVotes: "980K"
             )
         )
     ]

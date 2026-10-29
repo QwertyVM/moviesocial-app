@@ -21,6 +21,16 @@ public struct RatingBadgesView: View {
     
     public var body: some View {
         HStack(spacing: isCompact ? 8 : 14) {
+            // Score Cruce Ponderado (IMDb + RT)
+            if let composite = ratings.formattedCompositeScore {
+                badgeItem(
+                    icon: "✨",
+                    value: composite,
+                    label: isCompact ? nil : "MovieScore",
+                    accentColor: Theme.Colors.recommendationAccent
+                )
+            }
+            
             // Rotten Tomatoes Tomatometer (Críticos)
             if let tomatometer = ratings.rottenTomatoesCritics {
                 badgeItem(

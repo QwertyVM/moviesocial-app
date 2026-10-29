@@ -16,7 +16,7 @@ public struct MoviePosterCard: View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 6) {
                 // Poster
-                ZStack(alignment: .topTrailing) {
+                ZStack(alignment: .top) {
                     posterImage
                         .aspectRatio(2/3, contentMode: .fill)
                         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium))
@@ -25,21 +25,66 @@ public struct MoviePosterCard: View {
                                 .stroke(Theme.Colors.border, lineWidth: 1)
                         )
                     
-                    // Quick Rotten Tomatoes pill on top right
-                    if let tomatometer = movie.ratings.rottenTomatoesCritics {
-                        HStack(spacing: 2) {
-                            Text("🍅")
-                                .font(.system(size: 8))
-                            Text("\(tomatometer)%")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(Theme.Colors.textPrimary)
+                    // Badges on top of poster
+                    HStack {
+                        // Match score pill on top left OR In Theaters badge
+                        if movie.isInTheatersLocally {
+                            HStack(spacing: 3) {
+                                Image(systemName: "ticket.fill")
+                                    .font(.system(size: 8))
+                                Text("EN CINES")
+                                    .font(.system(size: 9, weight: .bold))
+                            }
+                            .foregroundColor(Color.green)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Color.black.opacity(0.85))
+                            .clipShape(Capsule())
+                        } else if let match = movie.matchScore {
+                            HStack(spacing: 2) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 8, weight: .bold))
+                                Text("\(match)%")
+                                    .font(.system(size: 10, weight: .bold))
+                            }
+                            .foregroundColor(Theme.Colors.recommendationAccent)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Color.black.opacity(0.85))
+                            .clipShape(Capsule())
                         }
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 3)
-                        .background(Color.black.opacity(0.75))
-                        .clipShape(Capsule())
-                        .padding(6)
+                        
+                        Spacer()
+                        
+                        // Cruce Ponderado (Score MovieSocial) o Tomatometer en la esquina derecha
+                        if let composite = movie.ratings.formattedCompositeScore {
+                            HStack(spacing: 2) {
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 8))
+                                    .foregroundColor(Theme.Colors.imdb)
+                                Text(composite)
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(Theme.Colors.textPrimary)
+                            }
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 3)
+                            .background(Color.black.opacity(0.80))
+                            .clipShape(Capsule())
+                        } else if let tomatometer = movie.ratings.rottenTomatoesCritics {
+                            HStack(spacing: 2) {
+                                Text("🍅")
+                                    .font(.system(size: 8))
+                                Text("\(tomatometer)%")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(Theme.Colors.textPrimary)
+                            }
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 3)
+                            .background(Color.black.opacity(0.75))
+                            .clipShape(Capsule())
+                        }
                     }
+                    .padding(6)
                 }
                 
                 // Title and year
@@ -48,6 +93,13 @@ public struct MoviePosterCard: View {
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(Theme.Colors.textPrimary)
                         .lineLimit(1)
+                    
+                    if let reason = movie.recommendationReason {
+                        Text(reason)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(Theme.Colors.recommendationAccent)
+                            .lineLimit(1)
+                    }
                     
                     HStack(spacing: 4) {
                         Text("\(movie.releaseYear)")

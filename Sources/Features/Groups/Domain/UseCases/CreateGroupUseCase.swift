@@ -11,6 +11,7 @@ public struct CreateGroupUseCase: Sendable {
         name: String,
         description: String,
         iconEmoji: String = "🎬",
+        initialMembers: [Friend] = [],
         currentMovieId: String? = nil,
         currentMovieTitle: String? = nil,
         currentMoviePosterURL: URL? = nil,
@@ -26,6 +27,7 @@ public struct CreateGroupUseCase: Sendable {
             name: trimmedName,
             description: description.trimmingCharacters(in: .whitespacesAndNewlines),
             iconEmoji: iconEmoji,
+            initialMembers: initialMembers,
             currentMovieId: currentMovieId,
             currentMovieTitle: currentMovieTitle,
             currentMoviePosterURL: currentMoviePosterURL,
@@ -34,4 +36,3 @@ public struct CreateGroupUseCase: Sendable {
         )
     }
 }
-

@@ -20,6 +20,28 @@ public enum Theme {
         
         // Social Accent
         public static let friendsAccent = Color(red: 99/255, green: 102/255, blue: 241/255) // Indigo/Violet
+        public static let recommendationAccent = Color(red: 232/255, green: 121/255, blue: 249/255) // Neon Fuchsia/Purple
+        
+        // WhatsApp Theme Tokens
+        public enum WhatsApp {
+            public static let chatBackground = Color(red: 11/255, green: 20/255, blue: 26/255) // #0B141A
+            public static let incomingBubble = Color(red: 32/255, green: 44/255, blue: 51/255) // #202C33
+            public static let outgoingBubble = Color(red: 0/255, green: 92/255, blue: 75/255) // #005C4B
+            public static let accentGreen = Color(red: 0/255, green: 168/255, blue: 132/255) // #00A884
+            public static let inputBarBackground = Color(red: 31/255, green: 44/255, blue: 52/255) // #1F2C34
+            public static let inputFieldBackground = Color(red: 42/255, green: 57/255, blue: 66/255) // #2A3942
+            public static let systemPillBackground = Color(red: 24/255, green: 34/255, blue: 41/255) // #182229
+            public static let blueTicks = Color(red: 83/255, green: 189/255, blue: 235/255) // #53BDEB
+            public static let messageTime = Color(red: 134/255, green: 150/255, blue: 160/255) // #8696A0
+            public static let memberColors: [Color] = [
+                Color(red: 83/255, green: 189/255, blue: 235/255), // Cyan
+                Color(red: 255/255, green: 173/255, blue: 71/255), // Amber
+                Color(red: 229/255, green: 66/255, blue: 163/255), // Pink
+                Color(red: 37/255, green: 211/255, blue: 102/255), // Green
+                Color(red: 186/255, green: 104/255, blue: 200/255), // Purple
+                Color(red: 255/255, green: 128/255, blue: 171/255)  // Coral
+            ]
+        }
     }
     
     public enum Spacing {

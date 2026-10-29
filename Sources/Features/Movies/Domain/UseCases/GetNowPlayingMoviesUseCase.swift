@@ -7,8 +7,12 @@ public struct GetNowPlayingMoviesUseCase: Sendable {
         self.repository = repository
     }
     
-    public func execute(page: Int = 1) async throws -> [Movie] {
-        return try await repository.getNowPlaying(page: page)
+    public func execute(
+        city: String? = nil,
+        countryCode: String? = nil,
+        page: Int = 1
+    ) async throws -> [Movie] {
+        return try await repository.getNowPlaying(city: city, countryCode: countryCode, page: page)
     }
 }
 

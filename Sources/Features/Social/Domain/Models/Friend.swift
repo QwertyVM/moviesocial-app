@@ -1,6 +1,6 @@
 import Foundation
 
-public struct Friend: Identifiable, Sendable, Codable, Equatable {
+public struct Friend: Identifiable, Sendable, Codable, Equatable, Hashable {
     public let id: String
     public let displayName: String
     public let username: String

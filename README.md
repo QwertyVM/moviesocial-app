@@ -10,10 +10,11 @@ Aplicación nativa para **iOS (iOS 17+)** construida con **Swift 6** y **SwiftUI
    - **Sign in with Apple** (utilizando `AuthenticationServices`, compatible con los estándares de la App Store Review Guideline 4.8).
    - **Sign in with Google** (integración lista para producción y mock para entorno de pruebas).
 2. **Catálogo Cinematográfico Completo:**
-   - **Estrenos:** Películas actualmente en cartelera (*Now Playing*).
-   - **Clásicos Inmortales:** Acceso a obras maestras históricas (*Top Rated / Classics*).
-   - **Búsqueda Instantánea:** Filtrado por título, género o año.
+   - **Cartelera Local por Ciudad:** Filtro y selector interactivo de ciudad activa (Madrid, Barcelona, CDMX, Bogotá, Buenos Aires, Santiago, Lima) con indicador de disponibilidad en cines físicos locales, salas y horarios.
+   - **Clásicos Históricos por Cruce de Ratings:** Obras maestras de toda la historia del cine ordenadas por cruce ponderado de puntuaciones y filtro por décadas (`≤ 60s`, `70s`, `80s`, `90s`, `2000s`, `2010s`, `Todas`).
+   - **Búsqueda Instantánea:** Filtrado ágil por título, género o año.
 3. **Puntuaciones Críticas Unificadas:**
+   - ✨ **MovieScore (Score Cruce Ponderado):** Cruce normalizado en base 10 (50% IMDb + 30% Rotten Tomatoes Críticos + 20% Audiencia).
    - 🍅 **Rotten Tomatoes:** Puntuación de críticos (*Tomatometer %*) y de audiencia (*Popcorn %*).
    - ⭐ **IMDb:** Calificación numérica sobre 10 (ej. `9.2/10`) y volumen de votos.
    - 👥 **Círculo de Amigos:** Promedio ponderado exclusivo de las personas que sigues.
@@ -22,7 +23,12 @@ Aplicación nativa para **iOS (iOS 17+)** construida con **Swift 6** y **SwiftUI
    - Detalle de película con sección destacada *"Qué opinan tus amigos"*.
    - Modal minimalista para registrar puntuación (1 a 5 estrellas con medios puntos) y opinión personal.
    - Búsqueda y adición de amigos mediante nombre de usuario (`@usuario`).
-5. **Diseño Visual Minimalista (Cinema Dark):**
+5. **Mensajería y Chats Directos (One-to-One) & Cineclubs:**
+   - Sección dedicada de **Chats 1 a 1** entre cinéfilos al estilo WhatsApp Dark.
+   - Selector segmentado unificado para alternar entre **Chats 1 a 1** y **Cineclubs (Grupos)**.
+   - Recomendación y compartición de películas en directo dentro del chat privado con póster, sinopsis, año y acceso a ficha.
+   - Botón directo para iniciar chat 1 a 1 desde el perfil y lista de amigos.
+6. **Diseño Visual Minimalista (Cinema Dark):**
    - Paleta monocromática OLED (`#0B0C0E`), tipografía limpia y foco absoluto en los pósters y opiniones.
    - Cero secciones de noticias, publicidad o algoritmos invasivos.
 
@@ -60,7 +66,15 @@ MovieSocialApp/
 │       ├── Social/
 │       │   ├── Domain/ (Friend, Review, SocialRepositoryProtocol, UseCases)
 │       │   ├── Data/ (SocialRepositoryImpl actor)
-│       │   └── Presentation/ (FriendsFeedView, AddReviewSheetView, SocialViewModel)
+│       │   └── Presentation/ (FriendsFeedView, FriendsListView, AddReviewSheetView, SocialViewModel)
+│       ├── DirectChat/
+│       │   ├── Domain/ (DirectConversation, DirectMessage, DirectChatRepositoryProtocol, UseCases)
+│       │   ├── Data/ (DirectChatRepositoryImpl actor)
+│       │   └── Presentation/ (ChatsMainView, DirectChatListView, DirectChatDetailView, DirectChatViewModel)
+│       ├── Groups/
+│       │   ├── Domain/ (MovieGroup, GroupMessage, GroupRepositoryProtocol, UseCases)
+│       │   ├── Data/ (GroupRepositoryImpl actor)
+│       │   └── Presentation/ (GroupsListView, GroupDetailView, GroupsViewModel)
 │       └── Profile/
 │           └── Presentation/ (ProfileView, ProfileViewModel)
 └── Tests/

@@ -13,6 +13,11 @@ public struct Movie: Identifiable, Sendable, Codable, Equatable {
     public let runtimeMinutes: Int?
     public let imdbId: String?
     public var ratings: ExternalRatings
+    public var matchScore: Int?
+    public var recommendationReason: String?
+    public var isInTheatersLocally: Bool
+    public var theatersPlaying: [String]
+    public var localShowtimes: [CinemaShowtime]
     
     public init(
         id: String,
@@ -25,7 +30,12 @@ public struct Movie: Identifiable, Sendable, Codable, Equatable {
         genres: [String] = [],
         runtimeMinutes: Int? = nil,
         imdbId: String? = nil,
-        ratings: ExternalRatings = ExternalRatings()
+        ratings: ExternalRatings = ExternalRatings(),
+        matchScore: Int? = nil,
+        recommendationReason: String? = nil,
+        isInTheatersLocally: Bool = false,
+        theatersPlaying: [String] = [],
+        localShowtimes: [CinemaShowtime] = []
     ) {
         self.id = id
         self.title = title
@@ -38,10 +48,16 @@ public struct Movie: Identifiable, Sendable, Codable, Equatable {
         self.runtimeMinutes = runtimeMinutes
         self.imdbId = imdbId
         self.ratings = ratings
+        self.matchScore = matchScore
+        self.recommendationReason = recommendationReason
+        self.isInTheatersLocally = isInTheatersLocally
+        self.theatersPlaying = theatersPlaying
+        self.localShowtimes = localShowtimes
     }
 }
 
 public enum MovieCatalogSection: String, CaseIterable, Identifiable, Sendable {
+    case recommended = "Para Ti"
     case nowPlaying = "Estrenos"
     case classics = "Clásicos"
     

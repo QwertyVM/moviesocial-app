@@ -1,17 +1,25 @@
 import SwiftUI
 
-/// Modal minimalista para registrar calificación y opinión
+/// Modal minimalista para registrar o editar calificación y opinión
 public struct AddReviewSheetView: View {
     public let movie: Movie
+    public let existingReview: Review?
     public let onSubmit: (Double, String) async -> Bool
     @Environment(\.dismiss) private var dismiss
     
-    @State private var rating: Double = 4.0
-    @State private var comment: String = ""
+    @State private var rating: Double
+    @State private var comment: String
     @State private var isSubmitting: Bool = false
     
-    public init(movie: Movie, onSubmit: @escaping (Double, String) async -> Bool) {
+    public init(
+        movie: Movie,
+        existingReview: Review? = nil,
+        onSubmit: @escaping (Double, String) async -> Bool
+    ) {
         self.movie = movie
+        self.existingReview = existingReview
+        self._rating = State(initialValue: existingReview?.rating ?? 4.0)
+        self._comment = State(initialValue: existingReview?.comment ?? "")
         self.onSubmit = onSubmit
     }
     
@@ -47,12 +55,53 @@ public struct AddReviewSheetView: View {
                     .padding(.horizontal)
                     .padding(.top, Theme.Spacing.m)
                     
+                    // Aviso de política de edición / histórico
+                    if let existing = existingReview {
+                        let hasPassed3Months = Review.hasPassedMoreThanThreeMonths(from: existing.createdAt)
+                        if hasPassed3Months {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "clock.arrow.circlepath")
+                                        .foregroundColor(Theme.Colors.friendsAccent)
+                                    Text("Han pasado más de 3 meses")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(Theme.Colors.friendsAccent)
+                                }
+                                Text("Tu primera reseña (\(existing.createdAt.formatted(date: .abbreviated, time: .omitted))) se conservará en el histórico.")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(Theme.Colors.textSecondary)
+                            }
+                            .padding(10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Theme.Colors.friendsAccent.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.small))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: Theme.Radius.small)
+                                    .stroke(Theme.Colors.friendsAccent.opacity(0.3), lineWidth: 1)
+                            )
+                            .padding(.horizontal)
+                        } else {
+                            HStack(spacing: 6) {
+                                Image(systemName: "info.circle")
+                                    .foregroundColor(Theme.Colors.textTertiary)
+                                Text("Publicada hace menos de 3 meses. Tu reseña se actualizará directamente.")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(Theme.Colors.textTertiary)
+                            }
+                            .padding(10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Theme.Colors.surfaceElevated)
+                            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.small))
+                            .padding(.horizontal)
+                        }
+                    }
+                    
                     Divider()
                         .background(Theme.Colors.border)
                     
                     // Rating picker
                     VStack(spacing: 8) {
-                        Text("TU PUNTUACIÓN")
+                        Text(existingReview != nil ? "MODIFICAR TU PUNTUACIÓN" : "TU PUNTUACIÓN")
                             .font(.system(size: 11, weight: .bold, design: .monospaced))
                             .tracking(2)
                             .foregroundColor(Theme.Colors.textSecondary)
@@ -63,7 +112,7 @@ public struct AddReviewSheetView: View {
                     
                     // Review text
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("OPINIÓN PARA TUS AMIGOS")
+                        Text(existingReview != nil ? "EDITAR OPINIÓN" : "OPINIÓN PARA TUS AMIGOS")
                             .font(.system(size: 11, weight: .bold, design: .monospaced))
                             .tracking(2)
                             .foregroundColor(Theme.Colors.textSecondary)
@@ -86,7 +135,7 @@ public struct AddReviewSheetView: View {
                     Spacer()
                 }
             }
-            .navigationTitle("Calificar Película")
+            .navigationTitle(existingReview != nil ? "Editar Reseña" : "Calificar Película")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -113,7 +162,7 @@ public struct AddReviewSheetView: View {
                             ProgressView()
                                 .tint(Theme.Colors.textPrimary)
                         } else {
-                            Text("Guardar")
+                            Text(existingReview != nil ? "Actualizar" : "Guardar")
                                 .fontWeight(.semibold)
                                 .foregroundColor(Theme.Colors.textPrimary)
                         }
@@ -124,4 +173,3 @@ public struct AddReviewSheetView: View {
         }
     }
 }
-

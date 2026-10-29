@@ -6,6 +6,11 @@ public enum SocialFeedFilter: String, CaseIterable, Sendable {
     case withComments = "Con Comentarios"
 }
 
+public enum SocialTabSection: String, CaseIterable, Sendable {
+    case feed = "Actividad"
+    case friends = "Mis Amigos"
+}
+
 @Observable
 public final class SocialViewModel: @unchecked Sendable {
     public var feedReviews: [Review] = []
@@ -15,11 +20,16 @@ public final class SocialViewModel: @unchecked Sendable {
     public var isAddingFriend: Bool = false
     public var newFriendUsername: String = ""
     public var selectedFilter: SocialFeedFilter = .all
+    public var selectedSection: SocialTabSection = .feed
+    public var friendSearchText: String = ""
+    public var filterFriendId: String? = nil
+    public var selectedFriendForDetail: Friend? = nil
     public var activeCommentReview: Review?
     
     private let getFriendsActivityUseCase: GetFriendsActivityUseCase
     private let getFriendsListUseCase: GetFriendsListUseCase
     private let addFriendUseCase: AddFriendUseCase
+    private let removeFriendUseCase: RemoveFriendUseCase?
     private let addCommentToReviewUseCase: AddCommentToReviewUseCase
     private let toggleLikeReviewUseCase: ToggleLikeReviewUseCase
     
@@ -27,23 +37,55 @@ public final class SocialViewModel: @unchecked Sendable {
         getFriendsActivityUseCase: GetFriendsActivityUseCase,
         getFriendsListUseCase: GetFriendsListUseCase,
         addFriendUseCase: AddFriendUseCase,
+        removeFriendUseCase: RemoveFriendUseCase? = nil,
         addCommentToReviewUseCase: AddCommentToReviewUseCase? = nil,
         toggleLikeReviewUseCase: ToggleLikeReviewUseCase? = nil
     ) {
         self.getFriendsActivityUseCase = getFriendsActivityUseCase
         self.getFriendsListUseCase = getFriendsListUseCase
         self.addFriendUseCase = addFriendUseCase
+        self.removeFriendUseCase = removeFriendUseCase
         self.addCommentToReviewUseCase = addCommentToReviewUseCase ?? AddCommentToReviewUseCase(repository: SocialRepositoryImpl())
         self.toggleLikeReviewUseCase = toggleLikeReviewUseCase ?? ToggleLikeReviewUseCase(repository: SocialRepositoryImpl())
     }
     
+    public var filteredFriends: [Friend] {
+        let query = friendSearchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !query.isEmpty else { return friends }
+        return friends.filter {
+            $0.displayName.lowercased().contains(query) ||
+            $0.username.lowercased().contains(query)
+        }
+    }
+    
+    public var totalMutualMoviesCount: Int {
+        friends.reduce(0) { $0 + $1.mutualMoviesCount }
+    }
+    
+    public var activeFilteredFriend: Friend? {
+        guard let id = filterFriendId else { return nil }
+        return friends.first(where: { $0.id == id })
+    }
+    
     public var filteredReviews: [Review] {
+        var base = feedReviews
+        if let filterFriendId = filterFriendId {
+            base = base.filter { $0.userId == filterFriendId }
+        }
         switch selectedFilter {
         case .all:
-            return feedReviews
+            return base
         case .withComments:
-            return feedReviews.filter { !$0.comments.isEmpty }
+            return base.filter { !$0.comments.isEmpty }
         }
+    }
+    
+    public func reviewsForFriend(friendId: String) -> [Review] {
+        feedReviews.filter { $0.userId == friendId }
+    }
+    
+    public func clearFriendFilter() {
+        filterFriendId = nil
     }
     
     @MainActor
@@ -80,6 +122,24 @@ public final class SocialViewModel: @unchecked Sendable {
             self.errorMessage = error.localizedDescription
         }
         isLoading = false
+    }
+    
+    @MainActor
+    public func removeFriend(friendId: String) async {
+        friends.removeAll { $0.id == friendId }
+        if filterFriendId == friendId {
+            filterFriendId = nil
+        }
+        if selectedFriendForDetail?.id == friendId {
+            selectedFriendForDetail = nil
+        }
+        if let removeFriendUseCase = removeFriendUseCase {
+            do {
+                try await removeFriendUseCase.execute(friendId: friendId)
+            } catch {
+                self.errorMessage = error.localizedDescription
+            }
+        }
     }
     
     @MainActor

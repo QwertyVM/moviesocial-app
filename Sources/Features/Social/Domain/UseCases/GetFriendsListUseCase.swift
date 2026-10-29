@@ -24,3 +24,16 @@ public struct AddFriendUseCase: Sendable {
     }
 }
 
+public struct RemoveFriendUseCase: Sendable {
+    private let repository: SocialRepositoryProtocol
+    
+    public init(repository: SocialRepositoryProtocol) {
+        self.repository = repository
+    }
+    
+    public func execute(friendId: String) async throws {
+        try await repository.removeFriend(friendId: friendId)
+    }
+}
+
+
