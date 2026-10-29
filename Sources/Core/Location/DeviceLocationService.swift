@@ -34,15 +34,25 @@ public final class DeviceLocationService: NSObject, @unchecked Sendable, CLLocat
         let currentStatus = locationManager.authorizationStatus
         
         if currentStatus == .notDetermined {
+            #if os(iOS)
             locationManager.requestWhenInUseAuthorization()
+            #else
+            locationManager.requestAlwaysAuthorization()
+            #endif
             // Breve espera para respuesta de permisos
             try? await Task.sleep(nanoseconds: 400_000_000)
         }
         
         let updatedStatus = locationManager.authorizationStatus
+        #if os(iOS)
         guard updatedStatus == .authorizedWhenInUse || updatedStatus == .authorizedAlways else {
             return nil
         }
+        #else
+        guard updatedStatus == .authorizedAlways else {
+            return nil
+        }
+        #endif
         
         return await withCheckedContinuation { continuation in
             lock.lock()

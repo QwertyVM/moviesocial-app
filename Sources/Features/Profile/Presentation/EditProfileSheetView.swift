@@ -482,11 +482,18 @@ public struct EditProfileSheetView: View {
                     .foregroundColor(Theme.Colors.friendsAccent)
                 }
             ) {
+                #if os(iOS)
                 TextField("@usuario", text: $username)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(Theme.Colors.textPrimary)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                #else
+                TextField("@usuario", text: $username)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(Theme.Colors.textPrimary)
+                    .autocorrectionDisabled()
+                #endif
             }
             
             // Biografía con sugerencias inteligentes
