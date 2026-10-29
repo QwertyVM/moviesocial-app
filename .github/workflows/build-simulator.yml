@@ -17,15 +17,12 @@ jobs:
 
       - name: Select Xcode 16 (Swift 6.0)
         run: |
-          echo "🔍 Searching for installed Xcode 16 versions..."
+          echo "🔍 Selecting Xcode 16..."
           XCODE_16=$(find /Applications -maxdepth 1 -name "Xcode_16*.app" | sort -V | tail -n 1)
           if [ -n "$XCODE_16" ]; then
             echo "Selecting: $XCODE_16"
             sudo xcode-select -s "$XCODE_16"
-          else
-            echo "Xcode 16 not found by pattern, checking default /Applications/Xcode.app"
           fi
-          echo "Active Swift Version:"
           swift --version
 
       - name: Run Automated Tests
@@ -35,11 +32,9 @@ jobs:
       - name: Compile App for iOS Simulator
         run: |
           set -e
-          echo "📱 Resolving iPhoneSimulator SDK..."
           SIM_SDK_PATH=$(xcrun --sdk iphonesimulator --show-sdk-path)
           echo "SDK Path: $SIM_SDK_PATH"
           
-          echo "⚙️ Compiling with Swift Package Manager..."
           swift build -c release \
             --triple arm64-apple-ios17.0-simulator \
             --sdk "$SIM_SDK_PATH" \
@@ -48,7 +43,6 @@ jobs:
           echo "📦 Assembling iOS .app bundle..."
           mkdir -p build/MovieSocialApp.app
           
-          # Locate the compiled simulator binary
           COMPILED_BIN=$(find .build -name "MovieSocialApp" -type f -perm +111 | grep -i "simulator" | head -n 1)
           if [ -z "$COMPILED_BIN" ]; then
             COMPILED_BIN=$(find .build -name "MovieSocialApp" -type f -perm +111 | head -n 1)
@@ -58,17 +52,9 @@ jobs:
           cp "$COMPILED_BIN" build/MovieSocialApp.app/MovieSocialApp
           cp Info-iOS.plist build/MovieSocialApp.app/Info.plist
 
-          echo "🗜️ Creating Appetize.io archives (.tar.gz and .zip)..."
-          cd build
-          tar -czvf MovieSocialApp-Simulator.tar.gz MovieSocialApp.app
-          zip -r MovieSocialApp-Simulator.zip MovieSocialApp.app
-          cd ..
-
-      - name: Upload Appetize Artifacts
+      - name: Upload .app Directly for Appetize
         uses: actions/upload-artifact@v4
         with:
-          name: MovieSocialApp-Appetize-Simulator
-          path: |
-            build/MovieSocialApp-Simulator.tar.gz
-            build/MovieSocialApp-Simulator.zip
+          name: MovieSocialApp.app
+          path: build/MovieSocialApp.app
           retention-days: 7
