@@ -10,3 +10,7 @@ public struct MovieSocialAppView: View {
             .preferredColorScheme(.dark)
     }
 }
+
+#Preview {
+    MovieSocialAppView()
+}
