@@ -108,6 +108,85 @@ public struct UpdateUserRequest: Encodable, Sendable {
     }
 }
 
+// MARK: - DTOs para Cartelera y Horarios de Cines desde Neon DB
+
+public struct CinemaShowtimeDTO: Codable, Sendable {
+    public let id: String
+    public let movieId: String
+    public let cinemaChain: String
+    public let cinemaName: String
+    public let city: String
+    public let countryCode: String
+    public let address: String?
+    public let screenType: String
+    public let languageVersion: String
+    public let showtimes: String
+    public let ticketBookingUrl: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case movieId = "movie_id"
+        case cinemaChain = "cinema_chain"
+        case cinemaName = "cinema_name"
+        case city
+        case countryCode = "country_code"
+        case address
+        case screenType = "screen_type"
+        case languageVersion = "language_version"
+        case showtimes
+        case ticketBookingUrl = "ticket_booking_url"
+    }
+    
+    /// Convierte el string JSON de horarios a un array de strings ["16:30", "19:15"]
+    public var parsedTimes: [String] {
+        guard let data = showtimes.data(using: .utf8),
+              let list = try? JSONDecoder().decode([String].self, from: data) else {
+            return [showtimes]
+        }
+        return list
+    }
+}
+
+public struct TheatricalMovieDTO: Codable, Sendable {
+    public let id: String
+    public let title: String
+    public let synopsis: String?
+    public let posterUrl: String
+    public let backdropUrl: String?
+    public let releaseDate: String
+    public let originCountry: String
+    public let originCountryName: String?
+    public let genres: String?
+    public let director: String?
+    public let castMembers: String?
+    public let durationMinutes: Int?
+    public let ageRating: String?
+    public let rottenCritics: Int?
+    public let rottenAudience: Int?
+    public let imdbRating: String?
+    public let compositeScore: String?
+    public let showtimes: [CinemaShowtimeDTO]?
+    
+    enum CodingKeys: String, CodingKey {
+        case id, title, synopsis
+        case posterUrl = "poster_url"
+        case backdropUrl = "backdrop_url"
+        case releaseDate = "release_date"
+        case originCountry = "origin_country"
+        case originCountryName = "origin_country_name"
+        case genres, director
+        case castMembers = "cast_members"
+        case durationMinutes = "duration_minutes"
+        case ageRating = "age_rating"
+        case rottenCritics = "rotten_critics"
+        case rottenAudience = "rotten_audience"
+        case imdbRating = "imdb_rating"
+        case compositeScore = "composite_score"
+        case showtimes
+    }
+}
+
+
 public struct GenericAPIResponse: Decodable, Sendable {
     public let message: String?
     public let id: String?

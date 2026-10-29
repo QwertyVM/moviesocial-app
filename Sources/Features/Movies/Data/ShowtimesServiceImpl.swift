@@ -493,6 +493,30 @@ public actor ShowtimesServiceImpl: ShowtimesServiceProtocol {
     }
     
     public func getShowtimes(forMovieId movieId: String, city: String) async throws -> [CinemaShowtime] {
+        // 1. Intentar consultar en vivo la API REST conectada a Neon DB
+        do {
+            struct ShowtimesResponse: Codable {
+                let showtimes: [CinemaShowtimeDTO]
+            }
+            let res: ShowtimesResponse = try await MovieSocialAPIClient.shared.sendRequest(
+                endpoint: "movies/\(movieId)/showtimes",
+                method: .get,
+                queryParams: ["city": city]
+            )
+            if !res.showtimes.isEmpty {
+                return res.showtimes.map { dto in
+                    CinemaShowtime(
+                        cinemaName: dto.cinemaName,
+                        city: dto.city,
+                        roomFormat: "\(dto.screenType) • \(dto.languageVersion)",
+                        times: dto.parsedTimes
+                    )
+                }
+            }
+        } catch {
+            // Fallback a catálogo curado offline
+        }
+        
         let cityMovies = try await getMoviesInTheaters(city: city, countryCode: "")
         return cityMovies[movieId] ?? []
     }
