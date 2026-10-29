@@ -238,6 +238,17 @@ class MovieSocialAPIHandler(BaseHTTPRequestHandler):
 
                 self._respond_json({"movies": movies, "count": len(movies)})
 
+            elif path.startswith("/api/movies/theatrical/"):
+                movie_id = path.strip("/").split("/")[3]
+                db.execute("SELECT * FROM theatrical_movies WHERE id = ? LIMIT 1", (movie_id,))
+                m = db.fetchone()
+                if m:
+                    db.execute("SELECT * FROM cinema_showtimes WHERE movie_id = ? ORDER BY cinema_name ASC", (movie_id,))
+                    m["showtimes"] = db.fetchall()
+                    self._respond_json({"movie": m})
+                else:
+                    self._respond_json({"error": "Película no encontrada"}, status=404)
+
             elif path.startswith("/api/movies/") and path.endswith("/showtimes"):
                 movie_id = path.strip("/").split("/")[2]
                 city = query.get('city', [None])[0]

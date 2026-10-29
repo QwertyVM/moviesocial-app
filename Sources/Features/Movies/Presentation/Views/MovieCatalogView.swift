@@ -86,12 +86,10 @@ public struct MovieCatalogView: View {
                 )
             }
             .task {
-                if viewModel.nowPlayingMovies.isEmpty {
-                    await viewModel.loadCatalog(
-                        userId: currentUser?.id,
-                        userLocation: currentUser?.location
-                    )
-                }
+                await viewModel.loadCatalog(
+                    userId: currentUser?.id,
+                    userLocation: currentUser?.location
+                )
             }
         }
     }

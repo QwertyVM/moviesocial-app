@@ -41,15 +41,53 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
         page: Int = 1
     ) async throws -> [Movie] {
         var baseMovies: [Movie] = []
-        if let tmdbApiKey, !tmdbApiKey.isEmpty {
-            do {
-                baseMovies = try await fetchTMDBNowPlaying(apiKey: tmdbApiKey, page: page, countryCode: countryCode)
-            } catch {
-                // Fallback to curated catalog
+        
+        // 1. Intentar cargar películas de cartelera en vivo desde Neon DB (API REST)
+        do {
+            struct TheatricalResponse: Codable {
+                let movies: [TheatricalMovieDTO]
+                let count: Int
+            }
+            var queryParams: [String: String] = [:]
+            if let city, !city.isEmpty { queryParams["city"] = city }
+            if let countryCode, !countryCode.isEmpty { queryParams["country"] = countryCode }
+            
+            let response: TheatricalResponse = try await MovieSocialAPIClient.shared.sendRequest(
+                endpoint: "movies/theatrical",
+                method: .get,
+                queryParams: queryParams.isEmpty ? nil : queryParams
+            )
+            
+            if !response.movies.isEmpty {
+                let dbMovies = response.movies.map { $0.toDomain() }
+                for m in dbMovies {
+                    cache[m.id] = m
+                }
+                baseMovies = dbMovies
+            }
+        } catch {
+            // Continuar con TMDB o fallback curado si la red no está disponible
+        }
+
+        // 2. Si la BD no devolvió películas o no hay conexión, usar TMDB o fallback curado
+        if baseMovies.isEmpty {
+            if let tmdbApiKey, !tmdbApiKey.isEmpty {
+                do {
+                    baseMovies = try await fetchTMDBNowPlaying(apiKey: tmdbApiKey, page: page, countryCode: countryCode)
+                } catch {
+                    // Fallback to curated catalog
+                    baseMovies = Self.curatedMovies.filter { $0.releaseYear >= 2024 }
+                }
+            } else {
                 baseMovies = Self.curatedMovies.filter { $0.releaseYear >= 2024 }
             }
         } else {
-            baseMovies = Self.curatedMovies.filter { $0.releaseYear >= 2024 }
+            // Agregar también las películas curadas para tener un catálogo completo
+            for cur in Self.curatedMovies.filter({ $0.releaseYear >= 2024 }) {
+                if !baseMovies.contains(where: { $0.id == cur.id || $0.title.lowercased() == cur.title.lowercased() }) {
+                    baseMovies.append(cur)
+                }
+            }
         }
         
         // Si no se especifica ciudad, devolver base
@@ -79,6 +117,11 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
                 copy.isInTheatersLocally = true
                 copy.theatersPlaying = Array(Set(showtimes.map(\.cinemaName))).sorted()
                 copy.localShowtimes = showtimes
+                return copy
+            } else if !movie.localShowtimes.isEmpty {
+                var copy = movie
+                copy.isInTheatersLocally = true
+                copy.theatersPlaying = Array(Set(movie.localShowtimes.map(\.cinemaName))).sorted()
                 return copy
             } else {
                 return movie
@@ -159,6 +202,22 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
     public func getMovieDetail(id: String) async throws -> Movie {
         if let cached = cache[id] {
             return cached
+        }
+        
+        // Consultar la API REST de Neon DB si no está en caché
+        do {
+            struct TheatricalDetailResponse: Codable {
+                let movie: TheatricalMovieDTO
+            }
+            let response: TheatricalDetailResponse = try await MovieSocialAPIClient.shared.sendRequest(
+                endpoint: "movies/theatrical/\(id)",
+                method: .get
+            )
+            let movie = response.movie.toDomain()
+            cache[id] = movie
+            return movie
+        } catch {
+            // Continuar con búsqueda estándar
         }
         
         if let tmdbApiKey, !tmdbApiKey.isEmpty, let intId = Int(id) {

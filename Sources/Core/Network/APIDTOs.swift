@@ -186,6 +186,60 @@ public struct TheatricalMovieDTO: Codable, Sendable {
     }
 }
 
+extension TheatricalMovieDTO {
+    public func toDomain() -> Movie {
+        let year: Int = {
+            if let first4 = releaseDate.split(separator: "-").first, let y = Int(first4) {
+                return y
+            }
+            return 2026
+        }()
+        
+        let splitGenres = genres?.split(separator: "•").map { $0.trimmingCharacters(in: .whitespaces) } ?? ["Cine"]
+        let imdbDouble = imdbRating.flatMap { Double($0) } ?? 8.0
+        let critics = rottenCritics ?? 85
+        let audience = rottenAudience ?? 88
+        let ratings = ExternalRatings(
+            rottenTomatoesCritics: critics,
+            rottenTomatoesAudience: audience,
+            imdbScore: imdbDouble,
+            imdbVotes: "150K"
+        )
+        
+        let parsedLocalShowtimes: [CinemaShowtime] = (showtimes ?? []).map { dto in
+            CinemaShowtime(
+                cinemaName: dto.cinemaName,
+                city: dto.city,
+                roomFormat: "\(dto.screenType) • \(dto.languageVersion)",
+                times: dto.parsedTimes
+            )
+        }
+        
+        let isLoc = !parsedLocalShowtimes.isEmpty
+        let theaters = Array(Set(parsedLocalShowtimes.map(\.cinemaName))).sorted()
+        
+        return Movie(
+            id: id,
+            title: title,
+            overview: synopsis ?? "",
+            releaseYear: year,
+            releaseDate: releaseDate,
+            posterURL: URL(string: posterUrl),
+            backdropURL: backdropUrl.flatMap { URL(string: $0) },
+            genres: splitGenres,
+            runtimeMinutes: durationMinutes ?? 120,
+            imdbId: id,
+            ratings: ratings,
+            matchScore: 95,
+            recommendationReason: "Estreno en Cartelera",
+            isInTheatersLocally: isLoc,
+            theatersPlaying: theaters,
+            localShowtimes: parsedLocalShowtimes,
+            countryOfOrigin: originCountry
+        )
+    }
+}
+
 
 public struct GenericAPIResponse: Decodable, Sendable {
     public let message: String?
