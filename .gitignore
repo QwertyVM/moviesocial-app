@@ -1,0 +1,17 @@
+# Swift / SPM
+.build/
+.swiftpm/
+DerivedData/
+build/
+build-sim/
+
+# macOS
+.DS_Store
+*.swp
+*~
+
+# Archives and binaries
+*.tar.gz
+*.zip
+*.ipa
+MovieSocialApp.app

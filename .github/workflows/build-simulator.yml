@@ -1,0 +1,61 @@
+name: Build iOS Simulator App for Appetize
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-simulator:
+    name: Compile iOS Simulator Build
+    runs-on: macos-14
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Automated Tests
+        run: |
+          swift test
+
+      - name: Compile App for iOS Simulator
+        run: |
+          set -e
+          echo "📱 Resolving iPhoneSimulator SDK..."
+          SIM_SDK_PATH=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          echo "SDK Path: $SIM_SDK_PATH"
+          
+          echo "⚙️ Compiling with Swift Package Manager..."
+          swift build -c release \
+            --triple arm64-apple-ios17.0-simulator \
+            --sdk "$SIM_SDK_PATH" \
+            --product MovieSocialApp
+
+          echo "📦 Assembling iOS .app bundle..."
+          mkdir -p build/MovieSocialApp.app
+          
+          # Locate the compiled simulator binary
+          COMPILED_BIN=$(find .build -name "MovieSocialApp" -type f -perm +111 | grep -i "simulator" | head -n 1)
+          if [ -z "$COMPILED_BIN" ]; then
+            COMPILED_BIN=$(find .build -name "MovieSocialApp" -type f -perm +111 | head -n 1)
+          fi
+          echo "Using binary: $COMPILED_BIN"
+          
+          cp "$COMPILED_BIN" build/MovieSocialApp.app/MovieSocialApp
+          cp Info-iOS.plist build/MovieSocialApp.app/Info.plist
+
+          echo "🗜️ Creating Appetize.io archives (.tar.gz and .zip)..."
+          cd build
+          tar -czvf MovieSocialApp-Simulator.tar.gz MovieSocialApp.app
+          zip -r MovieSocialApp-Simulator.zip MovieSocialApp.app
+          cd ..
+
+      - name: Upload Appetize Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MovieSocialApp-Appetize-Simulator
+          path: |
+            build/MovieSocialApp-Simulator.tar.gz
+            build/MovieSocialApp-Simulator.zip
+          retention-days: 7
