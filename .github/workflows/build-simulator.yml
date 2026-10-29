@@ -15,6 +15,19 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Select Xcode 16 (Swift 6.0)
+        run: |
+          echo "🔍 Searching for installed Xcode 16 versions..."
+          XCODE_16=$(find /Applications -maxdepth 1 -name "Xcode_16*.app" | sort -V | tail -n 1)
+          if [ -n "$XCODE_16" ]; then
+            echo "Selecting: $XCODE_16"
+            sudo xcode-select -s "$XCODE_16"
+          else
+            echo "Xcode 16 not found by pattern, checking default /Applications/Xcode.app"
+          fi
+          echo "Active Swift Version:"
+          swift --version
+
       - name: Run Automated Tests
         run: |
           swift test
