@@ -163,6 +163,26 @@ public final class MovieCatalogViewModel: @unchecked Sendable {
     }
     
     @MainActor
+    public func syncLatestWeekPremieres() async {
+        isLoading = true
+        do {
+            struct SyncResponse: Codable {
+                let status: String
+                let message: String
+            }
+            let _: SyncResponse? = try? await MovieSocialAPIClient.shared.sendRequest(
+                endpoint: "movies/theatrical/sync",
+                method: .post,
+                body: [
+                    "city": selectedCity.city,
+                    "country": selectedCity.countryCode
+                ]
+            )
+            await loadCatalog()
+        }
+    }
+    
+    @MainActor
     public func toggleClassicsSort() async {
         self.classicsSortByRating.toggle()
         do {

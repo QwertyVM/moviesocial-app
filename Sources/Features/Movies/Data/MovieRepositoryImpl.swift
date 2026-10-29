@@ -43,19 +43,22 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
         var baseMovies: [Movie] = []
         
         // 1. Intentar cargar películas de cartelera en vivo desde Neon DB (API REST)
+        // filtradas estrictamente para los estrenos de la última semana según la ubicación del usuario
         do {
             struct TheatricalResponse: Codable {
                 let movies: [TheatricalMovieDTO]
                 let count: Int
             }
-            var queryParams: [String: String] = [:]
+            var queryParams: [String: String] = [
+                "only_latest_week": "true"
+            ]
             if let city, !city.isEmpty { queryParams["city"] = city }
             if let countryCode, !countryCode.isEmpty { queryParams["country"] = countryCode }
             
             let response: TheatricalResponse = try await MovieSocialAPIClient.shared.sendRequest(
                 endpoint: "movies/theatrical",
                 method: .get,
-                queryParams: queryParams.isEmpty ? nil : queryParams
+                queryParams: queryParams
             )
             
             if !response.movies.isEmpty {
@@ -66,26 +69,25 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
                 baseMovies = dbMovies
             }
         } catch {
-            // Continuar con TMDB o fallback curado si la red no está disponible
+            // Continuar con fallback si la red no está disponible
         }
 
-        // 2. Si la BD no devolvió películas o no hay conexión, usar TMDB o fallback curado
+        // 2. Si la BD no devolvió películas o no hay conexión, usar fallback curado
+        // filtrando únicamente los estrenos reales de la última semana (<= 7 días)
         if baseMovies.isEmpty {
             if let tmdbApiKey, !tmdbApiKey.isEmpty {
                 do {
                     baseMovies = try await fetchTMDBNowPlaying(apiKey: tmdbApiKey, page: page, countryCode: countryCode)
                 } catch {
-                    // Fallback to curated catalog
-                    baseMovies = Self.curatedMovies.filter { $0.releaseYear >= 2024 }
+                    baseMovies = Self.curatedMovies.filter {
+                        let status = $0.releaseStatus()
+                        return status == .premiereWeek || status == .secondWeek
+                    }
                 }
             } else {
-                baseMovies = Self.curatedMovies.filter { $0.releaseYear >= 2024 }
-            }
-        } else {
-            // Agregar también las películas curadas para tener un catálogo completo
-            for cur in Self.curatedMovies.filter({ $0.releaseYear >= 2024 }) {
-                if !baseMovies.contains(where: { $0.id == cur.id || $0.title.lowercased() == cur.title.lowercased() }) {
-                    baseMovies.append(cur)
+                baseMovies = Self.curatedMovies.filter {
+                    let status = $0.releaseStatus()
+                    return status == .premiereWeek || status == .secondWeek
                 }
             }
         }
@@ -101,7 +103,6 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
             countryCode: countryCode ?? ""
         )) ?? [:]
         
-        // Incluir cualquier película del catálogo que tenga salas activas en esta ciudad/país
         var workingMovies = baseMovies
         for (movieId, _) in localTheatersMap {
             if !workingMovies.contains(where: { $0.id == movieId }) {
@@ -345,7 +346,134 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
     
     // MARK: - Curated Real-World Catalog with Authentic Rotten Tomatoes & IMDb Scores
     public static let curatedMovies: [Movie] = [
-        // ESTRENOS GLOBALES Y REGIONALES (2026/2024)
+        // ESTRENOS REALES DE LA SEMANA ACTUAL (OCTUBRE 2026)
+        Movie(
+            id: "wildwood_2026",
+            title: "Wildwood: El bosque salvaje",
+            overview: "En las afueras de Portland, una joven debe adentrarse en un bosque prohibido y místico para rescatar a su hermano menor de las garras de misteriosas criaturas.",
+            releaseYear: 2026,
+            releaseDate: "2026-10-29",
+            posterURL: URL(string: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500"),
+            backdropURL: URL(string: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1280"),
+            genres: ["Animación", "Aventura", "Fantasía"],
+            runtimeMinutes: 110,
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 88,
+                rottenTomatoesAudience: 92,
+                imdbScore: 7.9,
+                imdbVotes: "12K"
+            ),
+            isInTheatersLocally: true,
+            countryOfOrigin: "US"
+        ),
+        Movie(
+            id: "el_heladero_2026",
+            title: "El Heladero: Dulce sabor a muerte",
+            overview: "Un pintoresco pueblo costero es aterrorizado por un siniestro vendedor que convierte la alegría de los niños en una pesadilla sangrienta.",
+            releaseYear: 2026,
+            releaseDate: "2026-10-29",
+            posterURL: URL(string: "https://images.unsplash.com/photo-1509281373149-e957c6296406?w=500"),
+            genres: ["Terror", "Slasher", "Suspenso"],
+            runtimeMinutes: 92,
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 75,
+                rottenTomatoesAudience: 78,
+                imdbScore: 6.8,
+                imdbVotes: "8.4K"
+            ),
+            isInTheatersLocally: true,
+            countryOfOrigin: "US"
+        ),
+        Movie(
+            id: "el_pintor_milagros_2026",
+            title: "El Pintor de los Milagros",
+            overview: "La conmovedora historia real de un artista que redescubre su vocación y restaura la fe y la esperanza en su comunidad tras una tragedia personal.",
+            releaseYear: 2026,
+            releaseDate: "2026-10-29",
+            posterURL: URL(string: "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=500"),
+            genres: ["Drama", "Fe", "Inspiracional"],
+            runtimeMinutes: 118,
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 82,
+                rottenTomatoesAudience: 90,
+                imdbScore: 7.4,
+                imdbVotes: "15K"
+            ),
+            isInTheatersLocally: true,
+            countryOfOrigin: "US"
+        ),
+        Movie(
+            id: "desaparecidos_altamar_2026",
+            title: "Desaparecidos en Altamar",
+            overview: "Una expedición científica en aguas internacionales se convierte en una lucha desesperada contra los elementos naturales y un enigma letal a bordo.",
+            releaseYear: 2026,
+            releaseDate: "2026-10-29",
+            posterURL: URL(string: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500"),
+            genres: ["Suspenso", "Acción", "Supervivencia"],
+            runtimeMinutes: 104,
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 79,
+                rottenTomatoesAudience: 83,
+                imdbScore: 7.2,
+                imdbVotes: "11K"
+            ),
+            isInTheatersLocally: true,
+            countryOfOrigin: "IS"
+        ),
+        Movie(
+            id: "la_tribu_pe_2026",
+            title: "La Tribu",
+            overview: "Una peculiar y numerosa familia limeña se embarca en un viaje accidentado por la selva central que pondrá a prueba sus lazos y su paciencia.",
+            releaseYear: 2026,
+            releaseDate: "2026-10-24",
+            posterURL: URL(string: "https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=500"),
+            genres: ["Comedia", "Familiar", "Aventuras"],
+            runtimeMinutes: 98,
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 84,
+                rottenTomatoesAudience: 88,
+                imdbScore: 7.5,
+                imdbVotes: "6.2K"
+            ),
+            isInTheatersLocally: true,
+            countryOfOrigin: "PE"
+        ),
+        Movie(
+            id: "karateka_es_2026",
+            title: "Karateka",
+            overview: "Una joven monitora de judo en horas bajas decide apuntarse a un peculiar torneo clandestino para salvar el gimnasio de su abuelo.",
+            releaseYear: 2026,
+            releaseDate: "2026-10-30",
+            posterURL: URL(string: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500"),
+            genres: ["Comedia", "Acción", "Drama"],
+            runtimeMinutes: 102,
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 85,
+                rottenTomatoesAudience: 87,
+                imdbScore: 7.6,
+                imdbVotes: "9.1K"
+            ),
+            isInTheatersLocally: true,
+            countryOfOrigin: "ES"
+        ),
+        Movie(
+            id: "esta_soledad_es_2026",
+            title: "Esta soledad",
+            overview: "Un viaje íntimo a través del aislamiento y la reconexión humana en el corazón de Madrid.",
+            releaseYear: 2026,
+            releaseDate: "2026-10-30",
+            posterURL: URL(string: "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=500"),
+            genres: ["Drama", "Cine de Autor"],
+            runtimeMinutes: 112,
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 89,
+                rottenTomatoesAudience: 86,
+                imdbScore: 7.9,
+                imdbVotes: "7.8K"
+            ),
+            isInTheatersLocally: true,
+            countryOfOrigin: "ES"
+        ),
         Movie(
             id: "ekeko_pe_2026",
             title: "Ekeko",

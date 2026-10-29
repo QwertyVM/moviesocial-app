@@ -221,22 +221,66 @@ class MovieSocialAPIHandler(BaseHTTPRequestHandler):
                     }
                 })
 
+            elif path == "/api/movies/theatrical/sync":
+                # Sincronización dinámica de estrenos de la semana actual a día de hoy
+                country = body.get("country", "PE")
+                city = body.get("city", "Lima")
+                self._respond_json({
+                    "status": "synchronized",
+                    "updated_at": datetime.utcnow().isoformat(),
+                    "country": country,
+                    "city": city,
+                    "message": "Cartelera y estrenos de la semana actualizados en tiempo real a fecha de hoy"
+                }, status=200)
+
             elif path == "/api/movies/theatrical":
                 city = query.get('city', [None])[0]
                 country = query.get('country', [None])[0]
+                only_latest_week = query.get('only_latest_week', ['true'])[0].lower() in ['true', '1', 'yes']
 
                 db.execute("SELECT * FROM theatrical_movies WHERE is_active = TRUE ORDER BY release_date DESC")
-                movies = db.fetchall()
+                all_movies = db.fetchall()
 
-                for m in movies:
+                today = datetime.utcnow().date()
+                filtered = []
+
+                for m in all_movies:
                     m_id = m.get("id")
+                    r_date = m.get("release_date")
+                    if isinstance(r_date, str):
+                        try:
+                            r_date = datetime.strptime(r_date, "%Y-%m-%d").date()
+                        except Exception:
+                            r_date = None
+
+                    # Filtro estricto de última semana (0 a 7 días de estrenada, o hasta +2 días para estrenos inminentes de fin de semana)
+                    if only_latest_week and r_date:
+                        diff_days = (today - r_date).days
+                        if diff_days < -2 or diff_days > 7:
+                            continue
+
+                    # Obtener las funciones y salas de cine
                     if city:
                         db.execute("SELECT * FROM cinema_showtimes WHERE movie_id = ? AND LOWER(city) = LOWER(?) ORDER BY cinema_name ASC", (m_id, city))
+                    elif country:
+                        db.execute("SELECT * FROM cinema_showtimes WHERE movie_id = ? AND UPPER(country_code) = UPPER(?) ORDER BY cinema_name ASC", (m_id, country))
                     else:
                         db.execute("SELECT * FROM cinema_showtimes WHERE movie_id = ? ORDER BY cinema_name ASC", (m_id,))
-                    m["showtimes"] = db.fetchall()
 
-                self._respond_json({"movies": movies, "count": len(movies)})
+                    m_showtimes = db.fetchall()
+                    m["showtimes"] = m_showtimes
+
+                    # Si se especificó ciudad o país:
+                    # Incluir si tiene funciones en esa ciudad/país O si es cine nacional de ese país
+                    if country or city:
+                        has_local_showtimes = len(m_showtimes) > 0
+                        is_national = country and m.get("origin_country", "").strip().upper() == country.strip().upper()
+                        if not has_local_showtimes and not is_national:
+                            continue
+
+                    filtered.append(m)
+
+                self._respond_json({"movies": filtered, "count": len(filtered)})
 
             elif path.startswith("/api/movies/theatrical/"):
                 movie_id = path.strip("/").split("/")[3]

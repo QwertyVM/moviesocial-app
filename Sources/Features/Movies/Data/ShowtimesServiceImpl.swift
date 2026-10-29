@@ -156,23 +156,29 @@ public actor ShowtimesServiceImpl: ShowtimesServiceProtocol {
         // 1. ESPAÑA
         if normalizedCity == "madrid" {
             return [
+                "karateka_es_2026": [
+                    CinemaShowtime(cinemaName: "Cine Yelmo Ideal", city: "Madrid", roomFormat: "Sala 1 Atmos", times: ["17:30", "20:00", "22:30"]),
+                    CinemaShowtime(cinemaName: "Renoir Plaza de España", city: "Madrid", roomFormat: "Sala 2", times: ["16:45", "19:15", "21:45"])
+                ],
+                "esta_soledad_es_2026": [
+                    CinemaShowtime(cinemaName: "Cines Callao", city: "Madrid", roomFormat: "Gran Sala", times: ["18:00", "20:30"]),
+                    CinemaShowtime(cinemaName: "Renoir Plaza de España", city: "Madrid", roomFormat: "Sala 1", times: ["17:00", "19:30", "22:00"])
+                ],
+                "wicker_2026": [
+                    CinemaShowtime(cinemaName: "Kinépolis Madrid Ciudad de la Imagen", city: "Madrid", roomFormat: "Laser Ultra", times: ["17:00", "19:45", "22:15"]),
+                    CinemaShowtime(cinemaName: "Cine Yelmo Ideal", city: "Madrid", roomFormat: "Sala 3 (VOSE)", times: ["18:15", "20:45"])
+                ],
+                "oveja_shaun_calabaza_2026": [
+                    CinemaShowtime(cinemaName: "Cinesa Proyecciones", city: "Madrid", roomFormat: "Digital 2D", times: ["16:00", "18:15"]),
+                    CinemaShowtime(cinemaName: "Kinépolis Madrid Ciudad de la Imagen", city: "Madrid", roomFormat: "Digital 2D", times: ["15:45", "17:50"])
+                ],
                 "939335": [ // La Sociedad de la Nieve
                     CinemaShowtime(cinemaName: "Cines Verdi", city: "Madrid", roomFormat: "Sala 1 4K Atmos", times: ["17:00", "19:45", "22:15"]),
-                    CinemaShowtime(cinemaName: "Cineteca Madrid", city: "Madrid", roomFormat: "Sala Azcona", times: ["18:30", "21:00"]),
-                    CinemaShowtime(cinemaName: "Cines Callao", city: "Madrid", roomFormat: "Gran Sala", times: ["20:00", "22:45"])
+                    CinemaShowtime(cinemaName: "Cineteca Madrid", city: "Madrid", roomFormat: "Sala Azcona", times: ["18:30", "21:00"])
                 ],
                 "693134": [ // Dune 2
                     CinemaShowtime(cinemaName: "Kinépolis Madrid Ciudad de la Imagen", city: "Madrid", roomFormat: "IMAX Laser 3D", times: ["16:30", "19:45", "22:30"]),
-                    CinemaShowtime(cinemaName: "Yelmo Cines Ideal", city: "Madrid", roomFormat: "Sala 2 (VOSE)", times: ["17:00", "20:15"]),
-                    CinemaShowtime(cinemaName: "Cinesa Proyecciones", city: "Madrid", roomFormat: "iSense Dolby Atmos", times: ["18:15", "21:30"])
-                ],
-                "1022789": [ // Del Revés 2
-                    CinemaShowtime(cinemaName: "Cinesa Proyecciones", city: "Madrid", roomFormat: "Digital 2D", times: ["16:00", "18:00", "20:00"]),
-                    CinemaShowtime(cinemaName: "Cines Verdi", city: "Madrid", roomFormat: "VOSE", times: ["17:15", "19:30"])
-                ],
-                "945961": [ // Alien: Romulus
-                    CinemaShowtime(cinemaName: "Yelmo Cines Ideal", city: "Madrid", roomFormat: "VOSE Dolby Atmos", times: ["18:30", "21:00", "23:20"]),
-                    CinemaShowtime(cinemaName: "Cinesa Méndez Álvaro", city: "Madrid", roomFormat: "iSense", times: ["19:15", "22:00"])
+                    CinemaShowtime(cinemaName: "Yelmo Cines Ideal", city: "Madrid", roomFormat: "Sala 2 (VOSE)", times: ["17:00", "20:15"])
                 ]
             ]
         } else if normalizedCity == "barcelona" {
@@ -404,27 +410,35 @@ public actor ShowtimesServiceImpl: ShowtimesServiceProtocol {
         // 9. PERÚ
         if normalizedCode == "PE" || ["lima", "arequipa", "cusco"].contains(normalizedCity) {
             return [
+                "wildwood_2026": [
+                    CinemaShowtime(cinemaName: "Cineplanet Alcázar", city: city, roomFormat: "2D Digital", times: ["15:00", "17:30", "20:00"]),
+                    CinemaShowtime(cinemaName: "Cinemark Jockey Plaza", city: city, roomFormat: "XD Dolby Atmos", times: ["16:00", "18:30", "21:00"]),
+                    CinemaShowtime(cinemaName: "Cinépolis Larcomar", city: city, roomFormat: "MacroXE", times: ["14:30", "19:15"])
+                ],
+                "el_heladero_2026": [
+                    CinemaShowtime(cinemaName: "Cineplanet San Miguel", city: city, roomFormat: "2D Digital", times: ["18:15", "20:45", "22:50"]),
+                    CinemaShowtime(cinemaName: "Cinemark Jockey Plaza", city: city, roomFormat: "2D XD", times: ["19:30", "22:15"])
+                ],
+                "el_pintor_milagros_2026": [
+                    CinemaShowtime(cinemaName: "Cineplanet Alcázar", city: city, roomFormat: "2D Prime", times: ["16:15", "19:00"]),
+                    CinemaShowtime(cinemaName: "UVK Platino Basadre", city: city, roomFormat: "2D VIP", times: ["17:00", "20:15"])
+                ],
+                "desaparecidos_altamar_2026": [
+                    CinemaShowtime(cinemaName: "Cineplanet Primavera", city: city, roomFormat: "2D Digital", times: ["17:45", "20:30", "22:45"]),
+                    CinemaShowtime(cinemaName: "Cinemark Jockey Plaza", city: city, roomFormat: "XD Atmos", times: ["18:00", "21:15"])
+                ],
                 "ekeko_pe_2026": [ // EKEKO - Película Peruana (Semana de Estreno)
-                    CinemaShowtime(cinemaName: "Cineplanet Alcázar", city: city, roomFormat: "Sala 2D Digital", times: ["17:15", "19:45", "22:15"]),
-                    CinemaShowtime(cinemaName: "Cinemark Jockey Plaza", city: city, roomFormat: "XD Dolby Atmos", times: ["18:00", "20:30", "23:00"]),
-                    CinemaShowtime(cinemaName: "Cineplanet San Miguel", city: city, roomFormat: "Sala 2D", times: ["16:30", "19:00", "21:30"])
+                    CinemaShowtime(cinemaName: "Cineplanet Alcázar", city: city, roomFormat: "Sala 2D Digital", times: ["16:30", "19:15", "21:45"]),
+                    CinemaShowtime(cinemaName: "Cinemark Jockey Plaza", city: city, roomFormat: "XD Dolby Atmos", times: ["17:00", "19:40", "22:10"]),
+                    CinemaShowtime(cinemaName: "UVK Platino Basadre", city: city, roomFormat: "2D Platino", times: ["18:00", "20:30"])
+                ],
+                "la_tribu_pe_2026": [ // La Tribu - Película Peruana (Semana de Estreno)
+                    CinemaShowtime(cinemaName: "Cineplanet San Miguel", city: city, roomFormat: "2D Digital", times: ["15:30", "18:00", "20:30"]),
+                    CinemaShowtime(cinemaName: "Cineplanet Alcázar", city: city, roomFormat: "2D Digital", times: ["16:00", "18:30"])
                 ],
                 "smile_2_2026": [ // Sonríe 2 - 2ª Semana en cines
                     CinemaShowtime(cinemaName: "Cinemark Jockey Plaza", city: city, roomFormat: "XD 2D", times: ["17:30", "20:15", "22:45"]),
                     CinemaShowtime(cinemaName: "Cineplanet Alcázar", city: city, roomFormat: "Prime 2D (Sub)", times: ["18:20", "21:10"])
-                ],
-                "693134": [
-                    CinemaShowtime(cinemaName: "Cineplanet Alcázar", city: city, roomFormat: "Prime 2D (Sub)", times: ["16:40", "20:10"]),
-                    CinemaShowtime(cinemaName: "Cinemark Jockey Plaza", city: city, roomFormat: "XD Dolby Atmos", times: ["17:00", "20:30", "23:15"])
-                ],
-                "1022789": [
-                    CinemaShowtime(cinemaName: "Cineplanet San Miguel", city: city, roomFormat: "2D Doblada", times: ["14:30", "16:45", "19:00"])
-                ],
-                "533535": [
-                    CinemaShowtime(cinemaName: "Cinemark Jockey Plaza", city: city, roomFormat: "XD 3D", times: ["16:30", "19:30", "22:20"])
-                ],
-                "945961": [
-                    CinemaShowtime(cinemaName: "Cineplanet Alcázar", city: city, roomFormat: "Prime (Sub)", times: ["18:50", "21:40"])
                 ]
             ]
         }

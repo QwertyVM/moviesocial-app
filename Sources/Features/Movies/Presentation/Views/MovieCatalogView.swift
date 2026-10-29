@@ -174,20 +174,36 @@ public struct MovieCatalogView: View {
                 
                 Spacer()
                 
-                // Contador inteligente de cartelera en cines
+                // Contador inteligente de cartelera en cines y botón de actualización a hoy
                 let inTheatersCount = viewModel.nowPlayingMovies.filter(\.isInTheatersLocally).count
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(inTheatersCount > 0 ? Color.green : Theme.Colors.textTertiary)
-                        .frame(width: 6, height: 6)
-                    Text("\(inTheatersCount) en cartelera")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(inTheatersCount > 0 ? Color.green : Theme.Colors.textSecondary)
+                HStack(spacing: 6) {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(inTheatersCount > 0 ? Color.green : Theme.Colors.textTertiary)
+                            .frame(width: 6, height: 6)
+                        Text("\(inTheatersCount) en cartelera")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(inTheatersCount > 0 ? Color.green : Theme.Colors.textSecondary)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(Theme.Colors.surface.opacity(0.6))
+                    .clipShape(Capsule())
+
+                    Button {
+                        Task {
+                            await viewModel.syncLatestWeekPremieres()
+                        }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(Theme.Colors.textSecondary)
+                            .padding(6)
+                            .background(Theme.Colors.surfaceElevated)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .background(Theme.Colors.surface.opacity(0.6))
-                .clipShape(Capsule())
             }
             
             // Sub-filtros dinámicos de cartelera: Todos, Estrenos de la semana, 2ª Semana y Cine Local/Nacional
