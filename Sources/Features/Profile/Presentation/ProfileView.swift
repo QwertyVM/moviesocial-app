@@ -537,10 +537,10 @@ public struct ProfileView: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("Servicios HTTP Conectados a BD")
+                        Text("Servicios HTTP Conectados a Neon DB")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(Theme.Colors.textPrimary)
-                        Text("database.sqlite • GET, POST, PUT, DELETE")
+                        Text("https://moviesocial-app.onrender.com • Neon PostgreSQL")
                             .font(.system(size: 11))
                             .foregroundColor(Theme.Colors.textTertiary)
                     }

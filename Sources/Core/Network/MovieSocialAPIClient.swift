@@ -68,6 +68,7 @@ public enum APIError: LocalizedError, Sendable {
 /// Cliente de Red para consumo de servicios REST conectados a la Base de Datos
 public final class MovieSocialAPIClient: @unchecked Sendable {
     public static let shared = MovieSocialAPIClient()
+    public static let renderCloudDefaultURL = URL(string: "https://moviesocial-app.onrender.com/api")!
     
     public var baseURL: URL
     public private(set) var environment: APIEnvironment
@@ -76,7 +77,7 @@ public final class MovieSocialAPIClient: @unchecked Sendable {
     private static let userDefaultsKey = "moviesocial_api_base_url"
     
     public init(
-        environment: APIEnvironment = .local,
+        environment: APIEnvironment = .renderCloud(url: MovieSocialAPIClient.renderCloudDefaultURL),
         session: URLSession = .shared
     ) {
         if let savedURLString = UserDefaults.standard.string(forKey: Self.userDefaultsKey),
