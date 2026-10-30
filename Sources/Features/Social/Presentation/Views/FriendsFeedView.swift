@@ -27,13 +27,13 @@ public struct FriendsFeedView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Selector segmentado: Actividad vs Mis Amigos
+                    // Selector segmentado minimalista
                     sectionPickerView
                     
                     if viewModel.selectedSection == .feed {
                         if viewModel.isLoading && viewModel.feedReviews.isEmpty {
                             ProgressView()
-                                .tint(Theme.Colors.textPrimary)
+                                .tint(Theme.Colors.textTertiary)
                                 .frame(maxHeight: .infinity)
                         } else if viewModel.feedReviews.isEmpty {
                             emptyFeedView
@@ -55,10 +55,10 @@ public struct FriendsFeedView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text(viewModel.selectedSection == .feed ? "ACTIVIDAD DE AMIGOS" : "LISTADO DE AMIGOS")
-                        .font(.system(size: 13, weight: .bold))
+                    Text(viewModel.selectedSection == .feed ? "ACTIVIDAD" : "AMIGOS")
+                        .font(.system(size: 12, weight: .bold))
                         .tracking(3)
-                        .foregroundColor(Theme.Colors.textPrimary)
+                        .foregroundColor(Theme.Colors.textTertiary)
                 }
                 
                 #if os(iOS)
@@ -67,7 +67,7 @@ public struct FriendsFeedView: View {
                         viewModel.isAddingFriend = true
                     } label: {
                         Image(systemName: "person.badge.plus")
-                            .font(.system(size: 15))
+                            .font(.system(size: 14))
                             .foregroundColor(Theme.Colors.textPrimary)
                     }
                 }
@@ -77,7 +77,7 @@ public struct FriendsFeedView: View {
                         viewModel.isAddingFriend = true
                     } label: {
                         Image(systemName: "person.badge.plus")
-                            .font(.system(size: 15))
+                            .font(.system(size: 14))
                             .foregroundColor(Theme.Colors.textPrimary)
                     }
                 }
@@ -126,20 +126,43 @@ public struct FriendsFeedView: View {
     // MARK: - Subviews
     
     private var sectionPickerView: some View {
-        Picker("Sección", selection: $viewModel.selectedSection) {
-            Text("Actividad").tag(SocialTabSection.feed)
-            Text("Mis Amigos (\(viewModel.friends.count))").tag(SocialTabSection.friends)
+        HStack(spacing: 0) {
+            sectionPickerButton(title: "Actividad", section: .feed)
+            sectionPickerButton(title: "Mis Amigos (\(viewModel.friends.count))", section: .friends)
         }
-        .pickerStyle(.segmented)
+        .padding(2)
+        .background(Theme.Colors.surface)
+        .clipShape(Capsule())
+        .overlay(
+            Capsule().stroke(Theme.Colors.border, lineWidth: 0.8)
+        )
         .padding(.horizontal, Theme.Spacing.m)
-        .padding(.top, 8)
-        .padding(.bottom, 4)
+        .padding(.top, 6)
+        .padding(.bottom, 6)
+    }
+    
+    private func sectionPickerButton(title: String, section: SocialTabSection) -> some View {
+        let isSelected = (viewModel.selectedSection == section)
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                viewModel.selectedSection = section
+            }
+        } label: {
+            Text(title)
+                .font(.system(size: 12.5, weight: isSelected ? .semibold : .regular))
+                .foregroundColor(isSelected ? Theme.Colors.textPrimary : Theme.Colors.textTertiary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 7)
+                .background(isSelected ? Theme.Colors.surfaceElevated : Color.clear)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
     
     private var feedContentView: some View {
         ScrollView {
-            VStack(spacing: 16) {
-                // Carrusel de Amigos
+            VStack(spacing: 14) {
+                // Carrusel de Amigos Minimalista
                 friendsCarouselView
                 
                 // Banner si se está filtrando por un amigo específico
@@ -153,7 +176,7 @@ public struct FriendsFeedView: View {
                 if viewModel.filteredReviews.isEmpty {
                     emptyFilteredFeedView
                 } else {
-                    LazyVStack(spacing: 16) {
+                    LazyVStack(spacing: 12) {
                         ForEach(viewModel.filteredReviews) { review in
                             feedItemView(review)
                         }
@@ -161,7 +184,7 @@ public struct FriendsFeedView: View {
                 }
             }
             .padding(.horizontal, Theme.Spacing.m)
-            .padding(.vertical, Theme.Spacing.m)
+            .padding(.vertical, Theme.Spacing.s)
         }
         .refreshable {
             await viewModel.loadSocialFeed()
@@ -169,7 +192,7 @@ public struct FriendsFeedView: View {
     }
     
     private var friendsCarouselView: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text("AMIGOS")
                     .font(.system(size: 10, weight: .bold))
@@ -182,36 +205,38 @@ public struct FriendsFeedView: View {
                     viewModel.selectedSection = .friends
                 } label: {
                     HStack(spacing: 3) {
-                        Text("Ver listado completo (\(viewModel.friends.count))")
+                        Text("Ver listado (\(viewModel.friends.count))")
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 9))
+                            .font(.system(size: 8))
                     }
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(Theme.Colors.friendsAccent)
+                    .foregroundColor(Theme.Colors.textSecondary)
                 }
                 .buttonStyle(.plain)
             }
             
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
+                HStack(spacing: 12) {
                     // Botón directo para añadir amigo
                     Button {
                         viewModel.isAddingFriend = true
                     } label: {
-                        VStack(spacing: 5) {
+                        VStack(spacing: 4) {
                             Circle()
-                                .strokeBorder(Theme.Colors.border, style: StrokeStyle(lineWidth: 1.5, dash: [4]))
-                                .background(Circle().fill(Theme.Colors.surface))
-                                .frame(width: 50, height: 50)
+                                .fill(Theme.Colors.surface)
+                                .frame(width: 46, height: 46)
                                 .overlay(
                                     Image(systemName: "plus")
-                                        .font(.system(size: 16, weight: .semibold))
+                                        .font(.system(size: 15, weight: .medium))
                                         .foregroundColor(Theme.Colors.textPrimary)
+                                )
+                                .overlay(
+                                    Circle().stroke(Theme.Colors.border, lineWidth: 0.8)
                                 )
                             
                             Text("Añadir")
-                                .font(.system(size: 11))
-                                .foregroundColor(Theme.Colors.textSecondary)
+                                .font(.system(size: 10.5))
+                                .foregroundColor(Theme.Colors.textTertiary)
                         }
                     }
                     .buttonStyle(.plain)
@@ -226,28 +251,28 @@ public struct FriendsFeedView: View {
                                 viewModel.filterFriendId = friend.id
                             }
                         } label: {
-                            VStack(spacing: 5) {
+                            VStack(spacing: 4) {
                                 Circle()
                                     .fill(Theme.Colors.surfaceElevated)
-                                    .frame(width: 50, height: 50)
+                                    .frame(width: 46, height: 46)
                                     .overlay(
                                         Text(String(friend.displayName.prefix(1)))
-                                            .font(.system(size: 17, weight: .bold))
+                                            .font(.system(size: 15, weight: .semibold))
                                             .foregroundColor(Theme.Colors.textPrimary)
                                     )
                                     .overlay(
                                         Circle()
                                             .stroke(
                                                 isSelected ? Theme.Colors.friendsAccent : Theme.Colors.border,
-                                                lineWidth: isSelected ? 2.5 : 1
+                                                lineWidth: isSelected ? 2 : 0.8
                                             )
                                     )
                                 
                                 Text(friend.displayName.components(separatedBy: " ").first ?? friend.displayName)
-                                    .font(.system(size: 11, weight: isSelected ? .bold : .regular))
+                                    .font(.system(size: 10.5, weight: isSelected ? .bold : .regular))
                                     .foregroundColor(isSelected ? Theme.Colors.friendsAccent : Theme.Colors.textSecondary)
                                     .lineLimit(1)
-                                    .frame(maxWidth: 56)
+                                    .frame(maxWidth: 54)
                             }
                         }
                         .buttonStyle(.plain)
@@ -273,24 +298,24 @@ public struct FriendsFeedView: View {
                         }
                     }
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, 2)
             }
         }
     }
     
     private func activeFriendFilterBanner(_ friend: Friend) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Circle()
-                .fill(Theme.Colors.friendsAccent.opacity(0.2))
-                .frame(width: 28, height: 28)
+                .fill(Theme.Colors.friendsAccent.opacity(0.15))
+                .frame(width: 24, height: 24)
                 .overlay(
                     Text(String(friend.displayName.prefix(1)))
-                        .font(.caption.bold())
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundColor(Theme.Colors.friendsAccent)
                 )
             
-            Text("Viendo reseñas de **\(friend.displayName)**")
-                .font(.system(size: 12))
+            Text("Filtrando por **\(friend.displayName)**")
+                .font(.system(size: 11.5))
                 .foregroundColor(Theme.Colors.textPrimary)
             
             Spacer()
@@ -298,78 +323,69 @@ public struct FriendsFeedView: View {
             Button {
                 viewModel.clearFriendFilter()
             } label: {
-                HStack(spacing: 4) {
-                    Text("Ver todas")
-                        .font(.system(size: 11, weight: .semibold))
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 12))
-                }
-                .foregroundColor(Theme.Colors.friendsAccent)
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 13))
+                    .foregroundColor(Theme.Colors.textTertiary)
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
         .background(Theme.Colors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.small))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(
-            RoundedRectangle(cornerRadius: Theme.Radius.small)
-                .stroke(Theme.Colors.friendsAccent.opacity(0.35), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 8).stroke(Theme.Colors.border, lineWidth: 0.8)
         )
     }
     
     private var emptyFilteredFeedView: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "film.stack")
-                .font(.system(size: 32))
+        VStack(spacing: 8) {
+            Image(systemName: "film")
+                .font(.system(size: 24, weight: .light))
                 .foregroundColor(Theme.Colors.textTertiary)
-                .padding(.top, 20)
+                .padding(.top, 16)
             
             Text("No hay reseñas con este filtro")
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 13, weight: .medium))
                 .foregroundColor(Theme.Colors.textSecondary)
             
             if viewModel.filterFriendId != nil {
                 Button("Mostrar todas las reseñas") {
                     viewModel.clearFriendFilter()
                 }
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 11.5, weight: .semibold))
                 .foregroundColor(Theme.Colors.friendsAccent)
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
+        .padding(.vertical, 20)
     }
     
     private var filterSelectorView: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             ForEach(SocialFeedFilter.allCases, id: \.self) { filter in
+                let isSelected = viewModel.selectedFilter == filter
                 Button {
                     viewModel.selectedFilter = filter
                 } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 4) {
                         Text(filter.rawValue)
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.system(size: 11.5, weight: isSelected ? .semibold : .regular))
                         if filter == .withComments {
                             let count = viewModel.feedReviews.filter { !$0.comments.isEmpty }.count
                             Text("(\(count))")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(viewModel.selectedFilter == filter ? Theme.Colors.background : Theme.Colors.textTertiary)
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(isSelected ? .white : Theme.Colors.textTertiary)
                         }
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        viewModel.selectedFilter == filter
-                            ? Theme.Colors.textPrimary
-                            : Theme.Colors.surfaceElevated
-                    )
-                    .foregroundColor(
-                        viewModel.selectedFilter == filter
-                            ? Theme.Colors.background
-                            : Theme.Colors.textSecondary
-                    )
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(isSelected ? Theme.Colors.surfaceElevated : Theme.Colors.surface)
+                    .foregroundColor(isSelected ? Theme.Colors.textPrimary : Theme.Colors.textSecondary)
                     .clipShape(Capsule())
+                    .overlay(
+                        Capsule().stroke(isSelected ? Theme.Colors.borderFocused : Theme.Colors.border, lineWidth: 0.8)
+                    )
                 }
                 .buttonStyle(.plain)
             }
@@ -379,56 +395,59 @@ public struct FriendsFeedView: View {
     }
     
     private func feedItemView(_ review: Review) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             // Friend Header
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 Circle()
                     .fill(Theme.Colors.surfaceElevated)
-                    .frame(width: 36, height: 36)
+                    .frame(width: 32, height: 32)
                     .overlay(
                         Text(String(review.userName.prefix(1)))
-                            .font(.caption.bold())
+                            .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(Theme.Colors.textPrimary)
                     )
                 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 1) {
                     Text(review.userName)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(Theme.Colors.textPrimary)
                     
                     Text(review.createdAt.formatted(date: .abbreviated, time: .shortened))
-                        .font(.system(size: 11))
+                        .font(.system(size: 10.5))
                         .foregroundColor(Theme.Colors.textTertiary)
                 }
                 
                 Spacer()
                 
-                // Rating Pill
-                HStack(spacing: 3) {
-                    Text("★")
-                        .font(.caption)
+                // Rating Pill Minimalista
+                HStack(spacing: 2) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 8))
                         .foregroundColor(Theme.Colors.imdb)
                     Text(review.formattedRating)
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: 12, weight: .bold))
                         .foregroundColor(Theme.Colors.textPrimary)
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
                 .background(Theme.Colors.surfaceElevated)
                 .clipShape(Capsule())
+                .overlay(
+                    Capsule().stroke(Theme.Colors.border, lineWidth: 0.8)
+                )
             }
             
             // Comment
             if !review.comment.isEmpty {
                 Text(review.comment)
-                    .font(.subheadline)
-                    .lineSpacing(3)
+                    .font(.system(size: 13))
+                    .lineSpacing(2.5)
                     .foregroundColor(Theme.Colors.textPrimary.opacity(0.9))
             }
             
             // Histórico de primera reseña si fue editada tras > 3 meses
             if review.hasHistoricalRecord {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
                     Button {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             if expandedHistoryReviewIds.contains(review.id) {
@@ -438,13 +457,13 @@ public struct FriendsFeedView: View {
                             }
                         }
                     } label: {
-                        HStack(spacing: 5) {
+                        HStack(spacing: 4) {
                             Image(systemName: "clock.arrow.circlepath")
-                                .font(.system(size: 10))
-                            Text(expandedHistoryReviewIds.contains(review.id) ? "Ocultar histórico" : "Ver primera reseña (Histórico)")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(.system(size: 9))
+                            Text(expandedHistoryReviewIds.contains(review.id) ? "Ocultar histórico" : "Ver primera reseña")
+                                .font(.system(size: 10.5, weight: .medium))
                             Image(systemName: expandedHistoryReviewIds.contains(review.id) ? "chevron.up" : "chevron.down")
-                                .font(.system(size: 8))
+                                .font(.system(size: 7))
                         }
                         .foregroundColor(Theme.Colors.friendsAccent)
                     }
@@ -452,67 +471,55 @@ public struct FriendsFeedView: View {
                     
                     if expandedHistoryReviewIds.contains(review.id) {
                         ForEach(review.history) { hist in
-                            VStack(alignment: .leading, spacing: 3) {
+                            VStack(alignment: .leading, spacing: 2) {
                                 HStack {
-                                    Text("PRIMERA RESEÑA (HISTÓRICO)")
-                                        .font(.system(size: 9, weight: .bold))
-                                        .foregroundColor(Theme.Colors.friendsAccent)
+                                    Text("PRIMERA RESEÑA")
+                                        .font(.system(size: 8, weight: .bold))
+                                        .foregroundColor(Theme.Colors.textTertiary)
                                     Spacer()
-                                    HStack(spacing: 2) {
-                                        Text("★")
-                                            .foregroundColor(Theme.Colors.imdb)
-                                        Text(hist.formattedRating)
-                                            .font(.system(size: 11, weight: .bold))
-                                            .foregroundColor(Theme.Colors.textPrimary)
-                                    }
+                                    Text("★ \(hist.formattedRating)")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundColor(Theme.Colors.imdb)
                                 }
                                 if !hist.comment.isEmpty {
                                     Text("\"\(hist.comment)\"")
-                                        .font(.system(size: 11))
+                                        .font(.system(size: 10.5))
                                         .italic()
                                         .foregroundColor(Theme.Colors.textSecondary)
                                 }
-                                Text("Publicada el \(hist.createdAt.formatted(date: .abbreviated, time: .omitted)) • Archivada el \(hist.archivedAt.formatted(date: .abbreviated, time: .omitted))")
-                                    .font(.system(size: 9))
-                                    .foregroundColor(Theme.Colors.textTertiary)
                             }
-                            .padding(8)
+                            .padding(6)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Theme.Colors.surfaceElevated.opacity(0.7))
-                            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.small))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: Theme.Radius.small)
-                                    .stroke(Theme.Colors.border, lineWidth: 0.5)
-                            )
+                            .background(Theme.Colors.surfaceElevated.opacity(0.5))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
                         }
                     }
                 }
-                .padding(.top, 2)
             }
             
             // Movie link card
             Button {
                 onSelectMovie(review.movieId)
             } label: {
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
                     if let poster = review.moviePosterURL {
                         AsyncImage(url: poster) { img in
                             img.resizable().aspectRatio(contentMode: .fill)
                         } placeholder: {
                             Rectangle().fill(Theme.Colors.surfaceElevated)
                         }
-                        .frame(width: 38, height: 56)
-                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.small))
+                        .frame(width: 32, height: 48)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
                     }
                     
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 1) {
                         Text(review.movieTitle)
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 12.5, weight: .semibold))
                             .foregroundColor(Theme.Colors.textPrimary)
                         
                         if let year = review.movieReleaseYear {
                             Text("\(year)")
-                                .font(.system(size: 11))
+                                .font(.system(size: 10.5))
                                 .foregroundColor(Theme.Colors.textTertiary)
                         }
                     }
@@ -520,69 +527,43 @@ public struct FriendsFeedView: View {
                     Spacer()
                     
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 11))
+                        .font(.system(size: 10))
                         .foregroundColor(Theme.Colors.textTertiary)
                 }
-                .padding(8)
-                .background(Theme.Colors.surfaceElevated)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.small))
+                .padding(6)
+                .background(Theme.Colors.surfaceElevated.opacity(0.6))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
             }
             .buttonStyle(.plain)
             
-            // Mini Preview of latest friend comment (si existe)
-            if let latestComment = review.comments.last {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "bubble.left.fill")
-                            .font(.system(size: 10))
-                            .foregroundColor(Theme.Colors.friendsAccent)
-                        Text(latestComment.userName)
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(Theme.Colors.textPrimary)
-                        Text("comentó:")
-                            .font(.system(size: 11))
-                            .foregroundColor(Theme.Colors.textTertiary)
-                    }
-                    Text(latestComment.text)
-                        .font(.system(size: 12))
-                        .foregroundColor(Theme.Colors.textSecondary)
-                        .lineLimit(2)
-                }
-                .padding(10)
-                .background(Theme.Colors.surfaceElevated.opacity(0.6))
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.small))
-            }
-            
             // Action bar: Me gusta y Comentarios
-            HStack(spacing: 16) {
-                // Like Button
+            HStack(spacing: 14) {
                 Button {
                     guard let user = currentUser else { return }
                     Task {
                         await viewModel.toggleLike(reviewId: review.id, user: user)
                     }
                 } label: {
-                    HStack(spacing: 5) {
+                    HStack(spacing: 4) {
                         Image(systemName: review.isLikedByMe ? "heart.fill" : "heart")
-                            .font(.system(size: 14))
+                            .font(.system(size: 13))
                             .foregroundColor(review.isLikedByMe ? .red : Theme.Colors.textTertiary)
                         Text("\(review.likesCount)")
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.system(size: 11.5, weight: .medium))
                             .foregroundColor(Theme.Colors.textSecondary)
                     }
                 }
                 .buttonStyle(.plain)
                 
-                // Comments Button
                 Button {
                     viewModel.activeCommentReview = review
                 } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "bubble.left.and.bubble.right")
-                            .font(.system(size: 13))
-                            .foregroundColor(review.comments.isEmpty ? Theme.Colors.textTertiary : Theme.Colors.friendsAccent)
-                        Text(review.comments.isEmpty ? "Comentar" : "\(review.comments.count) comentarios")
-                            .font(.system(size: 12, weight: .medium))
+                    HStack(spacing: 4) {
+                        Image(systemName: "bubble.left")
+                            .font(.system(size: 12))
+                            .foregroundColor(Theme.Colors.textTertiary)
+                        Text(review.comments.isEmpty ? "Comentar" : "\(review.comments.count)")
+                            .font(.system(size: 11.5, weight: .medium))
                             .foregroundColor(Theme.Colors.textSecondary)
                     }
                 }
@@ -590,65 +571,46 @@ public struct FriendsFeedView: View {
                 
                 Spacer()
             }
-            .padding(.top, 4)
+            .padding(.top, 2)
         }
-        .padding(14)
+        .padding(12)
         .background(Theme.Colors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(
-            RoundedRectangle(cornerRadius: Theme.Radius.medium)
-                .stroke(Theme.Colors.border, lineWidth: 1)
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Theme.Colors.border, lineWidth: 0.8)
         )
     }
     
     private var emptyFeedView: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 12) {
             Image(systemName: "person.2")
-                .font(.system(size: 40))
+                .font(.system(size: 32, weight: .light))
                 .foregroundColor(Theme.Colors.textTertiary)
                 .padding(.top, 40)
             
-            Text("Aún no hay actividad de amigos")
-                .font(.system(size: 16, weight: .semibold))
+            Text("Aún no hay actividad")
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundColor(Theme.Colors.textPrimary)
             
-            Text("Conecta con tus amigos o revisa tu lista para empezar a ver sus valoraciones.")
-                .font(.system(size: 13))
+            Text("Conecta con amigos para ver sus valoraciones y debatir de cine.")
+                .font(.system(size: 12.5))
                 .foregroundColor(Theme.Colors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
             
-            HStack(spacing: 12) {
-                Button {
-                    viewModel.isAddingFriend = true
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "person.badge.plus")
-                        Text("Añadir amigo")
-                    }
-                    .font(.caption.bold())
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Theme.Colors.friendsAccent)
+            Button {
+                viewModel.isAddingFriend = true
+            } label: {
+                Text("Añadir amigo")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .background(Theme.Colors.textPrimary)
                     .clipShape(Capsule())
-                }
-                
-                Button {
-                    viewModel.selectedSection = .friends
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "person.2.fill")
-                        Text("Ver mis amigos (\(viewModel.friends.count))")
-                    }
-                    .font(.caption.bold())
-                    .foregroundColor(Theme.Colors.textPrimary)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Theme.Colors.surfaceElevated)
-                    .clipShape(Capsule())
-                }
             }
+            .buttonStyle(.plain)
             .padding(.top, 4)
             
             Spacer()
@@ -662,9 +624,9 @@ public struct FriendsFeedView: View {
                 Theme.Colors.background
                     .ignoresSafeArea()
                 
-                VStack(spacing: 16) {
+                VStack(spacing: 14) {
                     Text("Conecta con tus amigos para ver sus notas y opiniones sobre cualquier película.")
-                        .font(.subheadline)
+                        .font(.system(size: 13))
                         .foregroundColor(Theme.Colors.textSecondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
@@ -684,12 +646,12 @@ public struct FriendsFeedView: View {
                             .autocorrectionDisabled()
                         #endif
                     }
-                    .padding(12)
+                    .padding(10)
                     .background(Theme.Colors.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
                     .overlay(
-                        RoundedRectangle(cornerRadius: Theme.Radius.medium)
-                            .stroke(Theme.Colors.border, lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Theme.Colors.border, lineWidth: 0.8)
                     )
                     .padding(.horizontal)
                     
@@ -699,12 +661,12 @@ public struct FriendsFeedView: View {
                         }
                     } label: {
                         Text("Añadir Amigo")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.white)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.black)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 48)
-                            .background(Theme.Colors.friendsAccent)
-                            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium))
+                            .frame(height: 44)
+                            .background(Theme.Colors.textPrimary)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                     .padding(.horizontal)
                     .disabled(viewModel.newFriendUsername.isEmpty)

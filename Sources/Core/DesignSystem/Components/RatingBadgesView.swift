@@ -20,23 +20,21 @@ public struct RatingBadgesView: View {
     }
     
     public var body: some View {
-        HStack(spacing: isCompact ? 8 : 14) {
+        HStack(spacing: isCompact ? 6 : 8) {
             // Score Cruce Ponderado (IMDb + RT)
             if let composite = ratings.formattedCompositeScore {
                 badgeItem(
-                    icon: "✨",
+                    label: "SCORE",
                     value: composite,
-                    label: isCompact ? nil : "MovieScore",
-                    accentColor: Theme.Colors.recommendationAccent
+                    accentColor: Theme.Colors.imdb
                 )
             }
             
-            // Rotten Tomatoes Tomatometer (Críticos)
+            // Rotten Tomatoes Tomatometer
             if let tomatometer = ratings.rottenTomatoesCritics {
                 badgeItem(
-                    icon: "🍅",
+                    label: "RT",
                     value: "\(tomatometer)%",
-                    label: isCompact ? nil : "Tomatometer",
                     accentColor: Theme.Colors.rottenTomatoesCritics
                 )
             }
@@ -44,9 +42,8 @@ public struct RatingBadgesView: View {
             // Rotten Tomatoes Audience (Popcorn)
             if let audience = ratings.rottenTomatoesAudience {
                 badgeItem(
-                    icon: "🍿",
+                    label: "POPCORN",
                     value: "\(audience)%",
-                    label: isCompact ? nil : "Audiencia",
                     accentColor: Theme.Colors.rottenTomatoesAudience
                 )
             }
@@ -54,19 +51,17 @@ public struct RatingBadgesView: View {
             // IMDb Score
             if let imdb = ratings.imdbScore {
                 badgeItem(
-                    icon: "★",
+                    label: "IMDb",
                     value: String(format: "%.1f", imdb),
-                    label: isCompact ? nil : "IMDb",
                     accentColor: Theme.Colors.imdb
                 )
             }
             
-            // Friends Average (si existen reseñas de amigos)
+            // Friends Average
             if let friendsAvg = friendsAverage, friendsCount > 0 {
                 badgeItem(
-                    icon: "👥",
+                    label: "AMIGOS",
                     value: String(format: "%.1f", friendsAvg),
-                    label: isCompact ? nil : "Amigos (\(friendsCount))",
                     accentColor: Theme.Colors.friendsAccent
                 )
             }
@@ -75,35 +70,27 @@ public struct RatingBadgesView: View {
     
     @ViewBuilder
     private func badgeItem(
-        icon: String,
+        label: String,
         value: String,
-        label: String?,
         accentColor: Color
     ) -> some View {
         HStack(spacing: 4) {
-            Text(icon)
-                .font(isCompact ? .caption2 : .caption)
+            Text(label)
+                .font(.system(size: isCompact ? 8 : 9, weight: .bold))
+                .tracking(0.5)
+                .foregroundColor(accentColor)
             
-            VStack(alignment: .leading, spacing: 1) {
-                Text(value)
-                    .font(isCompact ? .caption.bold() : .subheadline.bold())
-                    .foregroundColor(Theme.Colors.textPrimary)
-                
-                if let label {
-                    Text(label)
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundColor(Theme.Colors.textSecondary)
-                }
-            }
+            Text(value)
+                .font(.system(size: isCompact ? 10.5 : 12, weight: .bold))
+                .foregroundColor(Theme.Colors.textPrimary)
         }
         .padding(.horizontal, isCompact ? 6 : 8)
         .padding(.vertical, isCompact ? 3 : 5)
-        .background(Theme.Colors.surfaceElevated)
+        .background(Theme.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
         .overlay(
-            RoundedRectangle(cornerRadius: Theme.Radius.small)
-                .stroke(accentColor.opacity(0.3), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(Theme.Colors.border, lineWidth: 0.8)
         )
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.small))
     }
 }
-

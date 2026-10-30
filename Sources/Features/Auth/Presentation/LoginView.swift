@@ -17,39 +17,35 @@ public struct LoginView: View {
                 Spacer()
                 
                 // Minimalist Branding
-                VStack(spacing: 12) {
-                    Image(systemName: "film.stack")
-                        .font(.system(size: 54, weight: .light))
+                VStack(spacing: 14) {
+                    Image(systemName: "film")
+                        .font(.system(size: 48, weight: .ultraLight))
                         .foregroundColor(Theme.Colors.textPrimary)
                     
-                    Text("CINEPHILE")
-                        .font(.system(size: 28, weight: .bold))
-                        .tracking(4)
+                    Text("MOVIESOCIAL")
+                        .font(.system(size: 24, weight: .bold))
+                        .tracking(6)
                         .foregroundColor(Theme.Colors.textPrimary)
                     
-                    Text("Comparte cine con tus amigos sin ruido ni noticias.")
-                        .font(.subheadline)
+                    Text("Cine con amigos, sin ruido ni algoritmos publicitarios.")
+                        .font(.system(size: 13.5))
                         .multilineTextAlignment(.center)
                         .foregroundColor(Theme.Colors.textSecondary)
                         .padding(.horizontal, 40)
                     
-                    // Rating badges preview
-                    HStack(spacing: 8) {
-                        Text("🍅 Rotten Tomatoes")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(Theme.Colors.rottenTomatoesCritics)
+                    // Rating badges preview minimalista
+                    HStack(spacing: 12) {
+                        metricTag(label: "RT", color: Theme.Colors.rottenTomatoesCritics)
                         Text("•")
+                            .font(.system(size: 8))
                             .foregroundColor(Theme.Colors.textTertiary)
-                        Text("★ IMDb")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(Theme.Colors.imdb)
+                        metricTag(label: "IMDb", color: Theme.Colors.imdb)
                         Text("•")
+                            .font(.system(size: 8))
                             .foregroundColor(Theme.Colors.textTertiary)
-                        Text("👥 Amigos")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(Theme.Colors.friendsAccent)
+                        metricTag(label: "Amigos", color: Theme.Colors.friendsAccent)
                     }
-                    .padding(.top, 6)
+                    .padding(.top, 4)
                 }
                 
                 Spacer()
@@ -70,17 +66,17 @@ public struct LoginView: View {
                             await viewModel.signInWithApple()
                         }
                     } label: {
-                        HStack(spacing: 10) {
+                        HStack(spacing: 8) {
                             Image(systemName: "applelogo")
-                                .font(.body.bold())
+                                .font(.system(size: 15, weight: .semibold))
                             Text("Continuar con Apple")
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.system(size: 15, weight: .semibold))
                         }
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 52)
+                        .frame(height: 48)
                         .background(Color.white)
-                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
                     .disabled(viewModel.isLoading)
                     
@@ -90,29 +86,29 @@ public struct LoginView: View {
                             await viewModel.signInWithGoogle()
                         }
                     } label: {
-                        HStack(spacing: 10) {
+                        HStack(spacing: 8) {
                             Text("G")
-                                .font(.system(size: 18, weight: .black))
+                                .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(.white)
                             Text("Continuar con Google")
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(Theme.Colors.textPrimary)
                         }
                         .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(Theme.Colors.surfaceElevated)
+                        .frame(height: 48)
+                        .background(Theme.Colors.surface)
                         .overlay(
-                            RoundedRectangle(cornerRadius: Theme.Radius.medium)
-                                .stroke(Theme.Colors.border, lineWidth: 1)
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Theme.Colors.border, lineWidth: 0.8)
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
                     .disabled(viewModel.isLoading)
                     
                     if viewModel.isLoading {
                         ProgressView()
-                            .tint(Theme.Colors.textPrimary)
-                            .padding(.top, 8)
+                            .tint(Theme.Colors.textTertiary)
+                            .padding(.top, 6)
                     }
                 }
                 .padding(.horizontal, Theme.Spacing.l)
@@ -120,5 +116,10 @@ public struct LoginView: View {
             }
         }
     }
+    
+    private func metricTag(label: String, color: Color) -> some View {
+        Text(label)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundColor(color)
+    }
 }
-

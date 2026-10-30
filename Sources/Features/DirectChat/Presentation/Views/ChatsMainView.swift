@@ -37,7 +37,7 @@ public struct ChatsMainView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Segmented control superior
+                    // Segmented control superior minimalista
                     sectionPickerView
                     
                     // Contenido según la pestaña seleccionada
@@ -62,10 +62,10 @@ public struct ChatsMainView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text(selectedSection == .direct ? "CHATS DIRECTOS (1 A 1)" : "CINECLUBS Y GRUPOS")
-                        .font(.system(size: 13, weight: .bold))
-                        .tracking(2)
-                        .foregroundColor(.white)
+                    Text(selectedSection == .direct ? "CHATS DIRECTOS" : "CINECLUBS")
+                        .font(.system(size: 12, weight: .bold))
+                        .tracking(3)
+                        .foregroundColor(Theme.Colors.textTertiary)
                 }
                 
                 ToolbarItemGroup(placement: .primaryAction) {
@@ -73,25 +73,25 @@ public struct ChatsMainView: View {
                         Button {
                             directChatViewModel.isStartingNewChat = true
                         } label: {
-                            Image(systemName: "plus.bubble.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(Theme.Colors.WhatsApp.accentGreen)
+                            Image(systemName: "plus.bubble")
+                                .font(.system(size: 15))
+                                .foregroundColor(Theme.Colors.textPrimary)
                         }
                     } else {
                         Button {
                             groupsViewModel.isJoiningViaLink = true
                         } label: {
-                            Image(systemName: "link.badge.plus")
-                                .font(.system(size: 15))
-                                .foregroundColor(Theme.Colors.WhatsApp.accentGreen)
+                            Image(systemName: "link")
+                                .font(.system(size: 14))
+                                .foregroundColor(Theme.Colors.textSecondary)
                         }
                         
                         Button {
                             groupsViewModel.startGroupCreation()
                         } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 17))
-                                .foregroundColor(Theme.Colors.WhatsApp.accentGreen)
+                            Image(systemName: "plus")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(Theme.Colors.textPrimary)
                         }
                     }
                 }
@@ -113,20 +113,38 @@ public struct ChatsMainView: View {
     // MARK: - Subviews
     
     private var sectionPickerView: some View {
-        Picker("Sección", selection: $selectedSection) {
+        HStack(spacing: 0) {
             let unread = directChatViewModel.totalUnreadCount
-            if unread > 0 {
-                Text("Chats 1 a 1 (\(unread))").tag(ChatSection.direct)
-            } else {
-                Text("Chats 1 a 1").tag(ChatSection.direct)
-            }
-            
-            Text("Cineclubs (\(groupsViewModel.groups.count))").tag(ChatSection.groups)
+            let directTitle = unread > 0 ? "Directos (\(unread))" : "Directos"
+            chatSectionButton(title: directTitle, section: .direct)
+            chatSectionButton(title: "Cineclubs (\(groupsViewModel.groups.count))", section: .groups)
         }
-        .pickerStyle(.segmented)
+        .padding(2)
+        .background(Theme.Colors.surface)
+        .clipShape(Capsule())
+        .overlay(
+            Capsule().stroke(Theme.Colors.border, lineWidth: 0.8)
+        )
         .padding(.horizontal, 14)
-        .padding(.top, 8)
+        .padding(.top, 6)
         .padding(.bottom, 6)
     }
+    
+    private func chatSectionButton(title: String, section: ChatSection) -> some View {
+        let isSelected = (selectedSection == section)
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                selectedSection = section
+            }
+        } label: {
+            Text(title)
+                .font(.system(size: 12.5, weight: isSelected ? .semibold : .regular))
+                .foregroundColor(isSelected ? Theme.Colors.textPrimary : Theme.Colors.textTertiary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 7)
+                .background(isSelected ? Theme.Colors.surfaceElevated : Color.clear)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
 }
-
