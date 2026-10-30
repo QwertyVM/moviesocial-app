@@ -42,6 +42,9 @@ public final class MovieCatalogViewModel: @unchecked Sendable {
     private let searchMoviesUseCase: SearchMoviesUseCase
     private let getRecommendedMoviesUseCase: GetRecommendedMoviesUseCase
     
+    @ObservationIgnored
+    private var searchDebounceTask: Task<Void, Never>?
+    
     public init(
         getNowPlayingUseCase: GetNowPlayingMoviesUseCase,
         getClassicsUseCase: GetClassicsMoviesUseCase,
@@ -206,6 +209,21 @@ public final class MovieCatalogViewModel: @unchecked Sendable {
         } catch {
             // Silently fall back to empty recommendations
             self.recommendedMovies = []
+        }
+    }
+    
+    @MainActor
+    public func onSearchQueryChanged() {
+        searchDebounceTask?.cancel()
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else {
+            searchResults = []
+            return
+        }
+        searchDebounceTask = Task {
+            try? await Task.sleep(nanoseconds: 150_000_000) // 150ms debounce
+            guard !Task.isCancelled else { return }
+            await performSearch()
         }
     }
     

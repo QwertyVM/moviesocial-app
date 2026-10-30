@@ -96,6 +96,9 @@ public struct MovieCatalogView: View {
                     userLocation: currentUser?.location
                 )
             }
+            .onChange(of: viewModel.searchQuery) { _, _ in
+                viewModel.onSearchQueryChanged()
+            }
         }
     }
     
@@ -377,8 +380,8 @@ public struct MovieCatalogView: View {
                 .font(.system(size: 12))
                 .foregroundColor(Theme.Colors.recommendationAccent)
             
-            Text(viewModel.userRatedCount > 0 ?
-                 "Recomendaciones personalizadas basadas en tus calificaciones" :
+            Text(viewModel.userRatedCount > 0 ? 
+                 "Recomendaciones personalizadas basadas en tus calificaciones" : 
                  "Puntúa películas para personalizar tus recomendaciones")
                 .font(.system(size: 11, weight: .regular))
                 .foregroundColor(Theme.Colors.textSecondary)

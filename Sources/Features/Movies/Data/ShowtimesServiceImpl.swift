@@ -156,6 +156,11 @@ public actor ShowtimesServiceImpl: ShowtimesServiceProtocol {
         // 1. ESPAÑA
         if normalizedCity == "madrid" {
             return [
+                "obsesion_2026": [
+                    CinemaShowtime(cinemaName: "Cine Yelmo Ideal", city: "Madrid", roomFormat: "Sala 3 (VOSE)", times: ["18:15", "20:45", "22:50"]),
+                    CinemaShowtime(cinemaName: "Kinépolis Madrid Ciudad de la Imagen", city: "Madrid", roomFormat: "Sala Dolby Atmos", times: ["17:30", "20:15", "23:00"]),
+                    CinemaShowtime(cinemaName: "Cinesa Proyecciones", city: "Madrid", roomFormat: "Digital 2D", times: ["19:00", "21:30"])
+                ],
                 "karateka_es_2026": [
                     CinemaShowtime(cinemaName: "Cine Yelmo Ideal", city: "Madrid", roomFormat: "Sala 1 Atmos", times: ["17:30", "20:00", "22:30"]),
                     CinemaShowtime(cinemaName: "Renoir Plaza de España", city: "Madrid", roomFormat: "Sala 2", times: ["16:45", "19:15", "21:45"])
@@ -183,6 +188,10 @@ public actor ShowtimesServiceImpl: ShowtimesServiceProtocol {
             ]
         } else if normalizedCity == "barcelona" {
             return [
+                "obsesion_2026": [
+                    CinemaShowtime(cinemaName: "Phenomena Experience", city: "Barcelona", roomFormat: "Gran Pantalla 4K", times: ["20:00", "22:30"]),
+                    CinemaShowtime(cinemaName: "Cinesa Diagonal Mar", city: "Barcelona", roomFormat: "iSense", times: ["18:30", "21:15"])
+                ],
                 "939335": [ // La Sociedad de la Nieve
                     CinemaShowtime(cinemaName: "Phenomena Experience", city: "Barcelona", roomFormat: "Gran Pantalla 4K", times: ["17:30", "20:45"]),
                     CinemaShowtime(cinemaName: "Renoir Floridablanca", city: "Barcelona", roomFormat: "VOSE", times: ["18:15", "21:00"])
@@ -205,6 +214,10 @@ public actor ShowtimesServiceImpl: ShowtimesServiceProtocol {
                                normalizedCity == "sevilla" ? ["Cinesur Nervión Plaza", "Cine Cervantes"] :
                                normalizedCity == "bilbao" ? ["Golem Alhóndiga", "Cinesa Zubiarte"] : ["Cinesa Local", "Yelmo Cines"]
             return [
+                "obsesion_2026": [
+                    CinemaShowtime(cinemaName: mainTheaters[0], city: city, roomFormat: "Sala Digital Atmos", times: ["18:30", "21:15"]),
+                    CinemaShowtime(cinemaName: mainTheaters[1], city: city, roomFormat: "VOSE 2D", times: ["19:45", "22:20"])
+                ],
                 "939335": [
                     CinemaShowtime(cinemaName: mainTheaters[0], city: city, roomFormat: "Digital 4K", times: ["17:30", "20:15"])
                 ],
@@ -224,6 +237,10 @@ public actor ShowtimesServiceImpl: ShowtimesServiceProtocol {
         // 2. MÉXICO
         if ["ciudad de méxico", "cdmx", "mexico", "m\u{e9}xico"].contains(normalizedCity) {
             return [
+                "obsesion_2026": [
+                    CinemaShowtime(cinemaName: "Cinépolis Diana", city: "Ciudad de México", roomFormat: "Sala Tradicional (Sub)", times: ["18:00", "20:45", "23:00"]),
+                    CinemaShowtime(cinemaName: "Cinemex Reforma 222", city: "Ciudad de México", roomFormat: "Platino Atmos", times: ["19:15", "21:45"])
+                ],
                 "1032823": [ // Radical
                     CinemaShowtime(cinemaName: "Cineteca Nacional", city: "Ciudad de México", roomFormat: "Sala 1 Jorge Stahl", times: ["16:30", "19:00", "21:30"]),
                     CinemaShowtime(cinemaName: "Cine Tonalá", city: "Ciudad de México", roomFormat: "Sala Cineclub", times: ["18:00", "20:30"]),
@@ -238,12 +255,10 @@ public actor ShowtimesServiceImpl: ShowtimesServiceProtocol {
                     CinemaShowtime(cinemaName: "Cineteca Nacional", city: "Ciudad de México", roomFormat: "Sala 3 Gabriel Figueroa", times: ["17:30", "20:30"])
                 ],
                 "1022789": [ // Del Revés 2
-                    CinemaShowtime(cinemaName: "Cinépolis Universidad", city: "Ciudad de México", roomFormat: "Sala Junior / 2D", times: ["14:00", "16:20", "18:40"]),
-                    CinemaShowtime(cinemaName: "Cinemex Reforma 222", city: "Ciudad de México", roomFormat: "Platino 2D", times: ["17:00", "19:20"])
+                    CinemaShowtime(cinemaName: "Cinemex Reforma 222", city: "Ciudad de México", roomFormat: "Digital 2D", times: ["15:00", "17:15", "19:30"])
                 ],
                 "945961": [ // Alien: Romulus
-                    CinemaShowtime(cinemaName: "Cinépolis Diana", city: "Ciudad de México", roomFormat: "Macro XE Atmos", times: ["18:00", "20:45", "23:15"]),
-                    CinemaShowtime(cinemaName: "Cinemex Reforma 222", city: "Ciudad de México", roomFormat: "Platino (Sub)", times: ["19:15", "22:00"])
+                    CinemaShowtime(cinemaName: "Cinépolis Diana", city: "Ciudad de México", roomFormat: "Macro XE", times: ["19:00", "21:45"])
                 ]
             ]
         } else if normalizedCode == "MX" || ["guadalajara", "monterrey", "cancún", "cancun"].contains(normalizedCity) {
@@ -252,6 +267,10 @@ public actor ShowtimesServiceImpl: ShowtimesServiceProtocol {
             let secondary = normalizedCity == "guadalajara" ? "Cineteca FICG" :
                             normalizedCity == "monterrey" ? "Cinemex Paseo San Pedro" : "Cinemex Malecón"
             return [
+                "obsesion_2026": [
+                    CinemaShowtime(cinemaName: primary, city: city, roomFormat: "VIP 2D Sub", times: ["18:30", "21:15"]),
+                    CinemaShowtime(cinemaName: secondary, city: city, roomFormat: "Digital 2D", times: ["19:45", "22:30"])
+                ],
                 "1032823": [
                     CinemaShowtime(cinemaName: secondary, city: city, roomFormat: "Sala de Autor", times: ["17:00", "19:30"])
                 ],
@@ -282,6 +301,10 @@ public actor ShowtimesServiceImpl: ShowtimesServiceProtocol {
                      normalizedCity.contains("chicago") ? "AMC River East 21" : "AMC Aventura 24"
             
             return [
+                "obsesion_2026": [
+                    CinemaShowtime(cinemaName: c1, city: city, roomFormat: "Standard 2D", times: ["18:00", "20:30", "22:45"]),
+                    CinemaShowtime(cinemaName: c2, city: city, roomFormat: "Dolby Cinema", times: ["19:15", "21:50"])
+                ],
                 "929590": [ // Civil War
                     CinemaShowtime(cinemaName: c1, city: city, roomFormat: "IMAX Laser", times: ["16:15", "19:00", "21:45"]),
                     CinemaShowtime(cinemaName: c2, city: city, roomFormat: "Dolby Cinema", times: ["18:30", "21:15"])
@@ -310,6 +333,9 @@ public actor ShowtimesServiceImpl: ShowtimesServiceProtocol {
             let main2 = normalizedCity.contains("aires") ? "Hoyts Abasto" :
                         normalizedCity.contains("cordoba") ? "Hoyts Patio Olmos" : "Showcase Cines Rosario"
             return [
+                "obsesion_2026": [
+                    CinemaShowtime(cinemaName: main2, city: city, roomFormat: "Sala 2D Sub", times: ["18:45", "21:15", "23:30"])
+                ],
                 "1058694": [ // Puan
                     CinemaShowtime(cinemaName: main1, city: city, roomFormat: "Sala 1 Espacio INCAA", times: ["17:00", "19:30", "21:45"]),
                     CinemaShowtime(cinemaName: main2, city: city, roomFormat: "Sala 2D Nacional", times: ["18:15", "20:30"])
@@ -372,6 +398,10 @@ public actor ShowtimesServiceImpl: ShowtimesServiceProtocol {
             let alt = normalizedCity.contains("medellin") ? "Colombo Americano" :
                       normalizedCity.contains("cali") ? "Cinemark Mallplaza Cali" : "Cinemateca de Bogotá"
             return [
+                "obsesion_2026": [
+                    CinemaShowtime(cinemaName: cCol, city: city, roomFormat: "MegaSala 2D", times: ["18:30", "21:00"]),
+                    CinemaShowtime(cinemaName: alt, city: city, roomFormat: "Sala Prime", times: ["19:15", "21:45"])
+                ],
                 "693134": [
                     CinemaShowtime(cinemaName: cCol, city: city, roomFormat: "MegaSala IMAX", times: ["16:00", "19:30", "22:15"]),
                     CinemaShowtime(cinemaName: alt, city: city, roomFormat: "Sala de Cine", times: ["18:00", "21:00"])
@@ -391,6 +421,10 @@ public actor ShowtimesServiceImpl: ShowtimesServiceProtocol {
         // 8. CHILE
         if normalizedCode == "CL" || ["santiago", "valparaíso", "valparaiso", "concepción", "concepcion"].contains(normalizedCity) {
             return [
+                "obsesion_2026": [
+                    CinemaShowtime(cinemaName: "Cineplanet Costanera Center", city: city, roomFormat: "Sala Xtreme (Sub)", times: ["19:00", "21:30"]),
+                    CinemaShowtime(cinemaName: "Cine Hoyts Parque Arauco", city: city, roomFormat: "Sala 2D", times: ["18:15", "20:45"])
+                ],
                 "693134": [
                     CinemaShowtime(cinemaName: "Cine Hoyts Parque Arauco", city: city, roomFormat: "IMAX Laser", times: ["16:30", "20:00", "22:45"]),
                     CinemaShowtime(cinemaName: "Cineteca Nacional de Chile", city: city, roomFormat: "Sala de Cine", times: ["18:00", "20:45"])
@@ -410,6 +444,11 @@ public actor ShowtimesServiceImpl: ShowtimesServiceProtocol {
         // 9. PERÚ
         if normalizedCode == "PE" || ["lima", "arequipa", "cusco"].contains(normalizedCity) {
             return [
+                "obsesion_2026": [
+                    CinemaShowtime(cinemaName: "Cineplanet Alcázar Prime", city: city, roomFormat: "2D Prime Sub", times: ["19:15", "21:45"]),
+                    CinemaShowtime(cinemaName: "Cinemark Jockey Plaza", city: city, roomFormat: "XD Dolby Atmos", times: ["18:00", "20:30", "22:50"]),
+                    CinemaShowtime(cinemaName: "Cinépolis Larcomar", city: city, roomFormat: "Sala VIP", times: ["20:00", "22:30"])
+                ],
                 "wildwood_2026": [
                     CinemaShowtime(cinemaName: "Cineplanet Alcázar", city: city, roomFormat: "2D Digital", times: ["15:00", "17:30", "20:00"]),
                     CinemaShowtime(cinemaName: "Cinemark Jockey Plaza", city: city, roomFormat: "XD Dolby Atmos", times: ["16:00", "18:30", "21:00"]),
@@ -446,6 +485,10 @@ public actor ShowtimesServiceImpl: ShowtimesServiceProtocol {
         // 10. REINO UNIDO
         if normalizedCode == "GB" || normalizedCode == "UK" || ["londres", "london", "mánchester", "manchester"].contains(normalizedCity) {
             return [
+                "obsesion_2026": [
+                    CinemaShowtime(cinemaName: "Curzon Soho", city: city, roomFormat: "Screen 2", times: ["18:30", "21:15"]),
+                    CinemaShowtime(cinemaName: "Odeon Luxe Leicester Square", city: city, roomFormat: "Dolby Cinema", times: ["19:45", "22:30"])
+                ],
                 "693134": [
                     CinemaShowtime(cinemaName: "BFI IMAX Waterloo", city: city, roomFormat: "70mm IMAX", times: ["17:00", "20:30"]),
                     CinemaShowtime(cinemaName: "Odeon Luxe", city: city, roomFormat: "Dolby Cinema", times: ["18:15", "21:15"])
@@ -462,6 +505,9 @@ public actor ShowtimesServiceImpl: ShowtimesServiceProtocol {
         // 11. ALEMANIA
         if normalizedCode == "DE" || ["berlín", "berlin", "múnich", "munich"].contains(normalizedCity) {
             return [
+                "obsesion_2026": [
+                    CinemaShowtime(cinemaName: "Zoo Palast", city: city, roomFormat: "Clubkino Atmos", times: ["19:00", "21:30"])
+                ],
                 "693134": [
                     CinemaShowtime(cinemaName: "Zoo Palast", city: city, roomFormat: "Dolby Atmos", times: ["17:30", "20:45"])
                 ],
@@ -477,6 +523,9 @@ public actor ShowtimesServiceImpl: ShowtimesServiceProtocol {
         // 12. ITALIA
         if normalizedCode == "IT" || ["roma", "rome", "milán", "milan"].contains(normalizedCity) {
             return [
+                "obsesion_2026": [
+                    CinemaShowtime(cinemaName: "Cinema Barberini 4K", city: city, roomFormat: "Sala 2", times: ["19:30", "22:00"])
+                ],
                 "693134": [
                     CinemaShowtime(cinemaName: "Cinema Barberini 4K", city: city, roomFormat: "Dolby Atmos", times: ["17:30", "20:45"])
                 ],
@@ -491,6 +540,9 @@ public actor ShowtimesServiceImpl: ShowtimesServiceProtocol {
         
         // Fallback genérico inteligente para cualquier otra ubicación
         return [
+            "obsesion_2026": [
+                CinemaShowtime(cinemaName: "Cine Central", city: city, roomFormat: "Digital 2D", times: ["18:30", "21:15"])
+            ],
             "693134": [
                 CinemaShowtime(cinemaName: "Cine Central", city: city, roomFormat: "Digital 2D", times: ["17:00", "20:30"])
             ],

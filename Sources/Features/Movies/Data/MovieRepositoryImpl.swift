@@ -182,21 +182,36 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
     }
     
     public func searchMovies(query: String) async throws -> [Movie] {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
+        
+        // Normalización para búsqueda insensible a diacríticos (tildes) y mayúsculas
+        let normalizedQuery = trimmed.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "es_ES"))
         
         if let tmdbApiKey, !tmdbApiKey.isEmpty {
             do {
-                return try await fetchTMDBSearch(apiKey: tmdbApiKey, query: trimmed)
+                let remote = try await fetchTMDBSearch(apiKey: tmdbApiKey, query: trimmed)
+                if !remote.isEmpty {
+                    return remote
+                }
             } catch {
                 // Fallback to searching curated
             }
         }
         
-        return Self.curatedMovies.filter {
-            $0.title.lowercased().contains(trimmed) ||
-            $0.genres.contains { $0.lowercased().contains(trimmed) } ||
-            String($0.releaseYear).contains(trimmed)
+        return Self.curatedMovies.filter { movie in
+            let normalizedTitle = movie.title.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "es_ES"))
+            let normalizedOverview = movie.overview.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "es_ES"))
+            let yearStr = String(movie.releaseYear)
+            
+            if normalizedTitle.contains(normalizedQuery) { return true }
+            if normalizedOverview.contains(normalizedQuery) { return true }
+            if yearStr.contains(normalizedQuery) { return true }
+            if movie.genres.contains(where: {
+                $0.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "es_ES")).contains(normalizedQuery)
+            }) { return true }
+            
+            return false
         }
     }
     
@@ -347,6 +362,26 @@ public actor MovieRepositoryImpl: MovieRepositoryProtocol {
     // MARK: - Curated Real-World Catalog with Authentic Rotten Tomatoes & IMDb Scores
     public static let curatedMovies: [Movie] = [
         // ESTRENOS REALES DE LA SEMANA ACTUAL (OCTUBRE 2026)
+        Movie(
+            id: "obsesion_2026",
+            title: "Obsesión (Obsession)",
+            overview: "Bear, un joven que trabaja en una tienda de discos, pide un deseo al misterioso Sauce de los Deseos para que Nikki, su amor platónico de la infancia, se enamore de él. Pronto, su afecto se transforma en una asfixiante, violenta y aterradora pesadilla de posesión, terror psicológico y horror sobrenatural en el aclamado nuevo estreno de terror dirigido por Curry Barker.",
+            releaseYear: 2026,
+            releaseDate: "2026-10-24",
+            posterURL: URL(string: "https://images.unsplash.com/photo-1509281373149-e957c6296406?w=500"),
+            backdropURL: URL(string: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=1280"),
+            genres: ["Terror", "Misterio", "Suspenso", "Terror Psicológico"],
+            runtimeMinutes: 98,
+            imdbId: "tt34891142",
+            ratings: ExternalRatings(
+                rottenTomatoesCritics: 86,
+                rottenTomatoesAudience: 82,
+                imdbScore: 7.1,
+                imdbVotes: "28K"
+            ),
+            isInTheatersLocally: true,
+            countryOfOrigin: "US"
+        ),
         Movie(
             id: "wildwood_2026",
             title: "Wildwood: El bosque salvaje",
