@@ -63,7 +63,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       bio,
       location: loc,
     });
-    onUpdateUser(updated);
+    if (updated) onUpdateUser(updated);
     setIsEditModalOpen(false);
   };
 
@@ -71,7 +71,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const updated = api.updateUser({
       isPremium: !currentUser.isPremium,
     });
-    onUpdateUser(updated);
+    if (updated) onUpdateUser(updated);
   };
 
   const favoriteMovies = CURATED_MOVIES.slice(0, 4);

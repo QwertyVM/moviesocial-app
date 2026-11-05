@@ -25,9 +25,10 @@ interface MovieDetailModalProps {
   movie: Movie | null;
   isOpen: boolean;
   onClose: () => void;
-  currentUser: User;
+  currentUser: User | null;
   onShareInChat?: (movie: Movie) => void;
   onOpenSubscriptionModal?: (reason?: string) => void;
+  onRequireLogin?: (reason?: string) => void;
 }
 
 export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
@@ -37,6 +38,7 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
   currentUser,
   onShareInChat,
   onOpenSubscriptionModal,
+  onRequireLogin,
 }) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -49,8 +51,12 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
 
   if (!isOpen || !movie) return null;
 
-  const friendsReviews = reviews.filter((r) => !r.isCommunity && r.userId !== currentUser.id);
-  const communityReviews = reviews.filter((r) => r.isCommunity || r.userId === currentUser.id);
+  const friendsReviews = reviews.filter(
+    (r) => !r.isCommunity && (!currentUser || r.userId !== currentUser.id)
+  );
+  const communityReviews = reviews.filter(
+    (r) => r.isCommunity || (currentUser && r.userId === currentUser.id)
+  );
 
   const friendsAvg =
     friendsReviews.length > 0
@@ -58,6 +64,11 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
       : undefined;
 
   const showtimes = movie.showtimes || [];
+
+  const targetCountry = currentUser?.location.country || 'Perú';
+  const targetCity = currentUser?.location.city || 'Lima';
+  const targetCountryCode = currentUser?.location.countryCode || 'PE';
+  const targetFlagEmoji = currentUser?.location.flagEmoji || '🇵🇪';
 
   const handleReviewSubmitted = async (data: any) => {
     const newRev = await api.submitReview(data);
@@ -94,7 +105,13 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
             <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2">
               {onShareInChat && (
                 <button
-                  onClick={() => onShareInChat(movie)}
+                  onClick={() => {
+                    if (!currentUser) {
+                      onRequireLogin?.('Inicia sesión para compartir películas en tus chats y cineclubs.');
+                      return;
+                    }
+                    onShareInChat(movie);
+                  }}
                   className="px-3.5 py-2 rounded-xl bg-cinema-surface/90 hover:bg-cinema-card border border-cinema-border text-white text-xs font-semibold flex items-center gap-2 backdrop-blur-md transition-colors"
                 >
                   <Share2 className="w-3.5 h-3.5 text-cinema-gold" />
@@ -102,7 +119,13 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
                 </button>
               )}
               <button
-                onClick={() => setIsReviewModalOpen(true)}
+                onClick={() => {
+                  if (!currentUser) {
+                    onRequireLogin?.('Inicia sesión para calificar esta película y registrar tu opinión en la comunidad.');
+                    return;
+                  }
+                  setIsReviewModalOpen(true);
+                }}
                 className="px-4 py-2 rounded-xl bg-cinema-gold hover:bg-amber-400 text-black text-xs font-bold flex items-center gap-2 shadow-lg shadow-amber-900/40 transition-transform hover:scale-105"
               >
                 <Edit3 className="w-3.5 h-3.5" />
@@ -208,11 +231,11 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
                 <div className="flex items-center gap-2">
                   <Film className="w-4 h-4 text-cinema-gold" />
                   <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-                    Estado de Estreno en {currentUser.location.country || currentUser.location.city}
+                    Estado de Estreno en {targetCountry || targetCity}
                   </h2>
                 </div>
                 <span className="text-xs text-cinema-textMuted font-mono">
-                  {currentUser.location.flagEmoji} {currentUser.location.city} ({currentUser.location.countryCode})
+                  {targetFlagEmoji} {targetCity} ({targetCountryCode})
                 </span>
               </div>
 
@@ -246,14 +269,14 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
                     </div>
                     <p className="text-xs text-cinema-textSecondary max-w-xl">
                       {movie.isInTheatersLocally
-                        ? `Esta película se encuentra en sus primeras 2 semanas de estreno en salas de cine de ${currentUser.location.country || currentUser.location.city}.`
+                        ? `Esta película se encuentra en sus primeras 2 semanas de estreno en salas de cine de ${targetCountry || targetCity}.`
                         : `Esta película ya superó su ventana de estreno inicial (más de 2 semanas en salas) y forma parte del catálogo general.`}
                     </p>
 
                     {movie.isInTheatersLocally && movie.theatersPlaying && movie.theatersPlaying.length > 0 && (
                       <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
                         <span className="text-[10px] text-cinema-textMuted uppercase font-mono mr-1">
-                          Cadenas ({currentUser.location.countryCode}):
+                          Cadenas ({targetCountryCode}):
                         </span>
                         {movie.theatersPlaying.map((chain) => (
                           <span
@@ -335,14 +358,14 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
                     Críticas de la Comunidad ({communityReviews.length})
                   </h2>
                 </div>
-                {!currentUser.isPremium && (
+                {!currentUser?.isPremium && (
                   <span className="text-[10px] text-cinema-gold font-medium bg-cinema-gold/10 px-2 py-0.5 rounded-full border border-cinema-gold/30">
                     Solo lectura (Plan Base)
                   </span>
                 )}
               </div>
 
-              {!currentUser.isPremium && (
+              {!currentUser?.isPremium && (
                 <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/40 via-cinema-card to-cinema-card border border-cinema-gold/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
                   <div className="flex items-center gap-2.5">
                     <div className="p-2 rounded-xl bg-amber-900/40 border border-cinema-gold/30 text-cinema-gold flex-shrink-0">
@@ -410,14 +433,16 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
       </div>
 
       {/* Add Review Sub-modal */}
-      <AddReviewModal
-        movie={movie}
-        isOpen={isReviewModalOpen}
-        onClose={() => setIsReviewModalOpen(false)}
-        onSubmit={handleReviewSubmitted}
-        currentUser={currentUser}
-        onOpenSubscriptionModal={onOpenSubscriptionModal}
-      />
+      {currentUser && (
+        <AddReviewModal
+          movie={movie}
+          isOpen={isReviewModalOpen}
+          onClose={() => setIsReviewModalOpen(false)}
+          onSubmit={handleReviewSubmitted}
+          currentUser={currentUser}
+          onOpenSubscriptionModal={onOpenSubscriptionModal}
+        />
+      )}
     </>
   );
 };

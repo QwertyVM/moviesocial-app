@@ -10,25 +10,22 @@ export async function getGroups(): Promise<MovieGroup[]> {
       orderBy: { createdAt: "desc" },
     });
 
-    if (dbGroups.length > 0) {
-      return dbGroups.map((g) => ({
-        id: g.id,
-        name: g.name,
-        description: g.description || "",
-        iconEmoji: g.iconEmoji || "🎬",
-        creatorId: g.creatorId,
-        creatorName: g.creatorName,
-        inviteCode: g.inviteCode || `CINE-${g.id.slice(-6).toUpperCase()}`,
-        messagesCount: g.messagesCount,
-        membersCount: 4,
-        createdAt: g.createdAt ? g.createdAt.toISOString() : new Date().toISOString(),
-      }));
-    }
+    return dbGroups.map((g) => ({
+      id: g.id,
+      name: g.name,
+      description: g.description || "",
+      iconEmoji: g.iconEmoji || "🎬",
+      creatorId: g.creatorId,
+      creatorName: g.creatorName,
+      inviteCode: g.inviteCode || `CINE-${g.id.slice(-6).toUpperCase()}`,
+      messagesCount: g.messagesCount,
+      membersCount: 1,
+      createdAt: g.createdAt ? g.createdAt.toISOString() : new Date().toISOString(),
+    }));
   } catch (err) {
     console.warn("Neon DB getGroups fallback:", err);
+    return [];
   }
-
-  return INITIAL_GROUPS;
 }
 
 export async function createGroup(data: {

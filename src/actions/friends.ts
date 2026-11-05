@@ -2,7 +2,6 @@
 
 import prisma from "@/lib/prisma";
 import { Friend } from "@/types";
-import { INITIAL_FRIENDS } from "@/data/curatedMovies";
 
 export async function getFriends(): Promise<Friend[]> {
   try {
@@ -10,21 +9,20 @@ export async function getFriends(): Promise<Friend[]> {
       orderBy: { displayName: "asc" },
     });
 
-    if (dbFriends.length > 0) {
-      return dbFriends.map((f) => ({
-        id: f.id,
-        displayName: f.displayName,
-        username: f.username,
-        avatarUrl: f.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200",
-        isMutual: f.isMutual,
-        mutualMoviesCount: f.mutualMoviesCount,
-      }));
-    }
+    return dbFriends.map((f) => ({
+      id: f.id,
+      displayName: f.displayName,
+      username: f.username,
+      avatarUrl:
+        f.avatarUrl ||
+        `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(f.username)}`,
+      isMutual: f.isMutual,
+      mutualMoviesCount: f.mutualMoviesCount,
+    }));
   } catch (err) {
     console.warn("Neon DB getFriends fallback:", err);
+    return [];
   }
-
-  return INITIAL_FRIENDS;
 }
 
 export async function addFriend(username: string): Promise<Friend> {
@@ -34,9 +32,9 @@ export async function addFriend(username: string): Promise<Friend> {
     id: friendId,
     displayName: cleanUser.replace("@", ""),
     username: cleanUser,
-    avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200`,
+    avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanUser)}`,
     isMutual: true,
-    mutualMoviesCount: 1,
+    mutualMoviesCount: 0,
   };
 
   try {
@@ -47,7 +45,7 @@ export async function addFriend(username: string): Promise<Friend> {
         username: newFriend.username,
         avatarUrl: newFriend.avatarUrl,
         isMutual: true,
-        mutualMoviesCount: 1,
+        mutualMoviesCount: 0,
       },
     });
   } catch (err) {
@@ -56,4 +54,3 @@ export async function addFriend(username: string): Promise<Friend> {
 
   return newFriend;
 }
-

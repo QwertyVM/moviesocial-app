@@ -2,28 +2,45 @@
 
 import React, { useState } from 'react';
 import { User, UserLocation } from '../../types';
-import { Film, Users, MessageSquare, User as UserIcon, MapPin, ChevronDown, Check, Sparkles, Database, Navigation } from 'lucide-react';
+import { Film, Users, MessageSquare, User as UserIcon, MapPin, ChevronDown, Check, Sparkles, Database, Navigation, Lock, LogIn, LogOut, UserPlus } from 'lucide-react';
 import { AVAILABLE_CITIES } from '../../data/curatedMovies';
 
 interface NavbarProps {
   activeTab: 'catalog' | 'feed' | 'chats' | 'profile';
   onSelectTab: (tab: 'catalog' | 'feed' | 'chats' | 'profile') => void;
-  currentUser: User;
+  currentUser: User | null;
+  currentLocation?: UserLocation;
   onSelectCity: (city: UserLocation) => void;
   dbStatus?: { online: boolean; database?: string };
   onOpenSubscriptionModal?: (reason?: string) => void;
+  onOpenAuthModal?: (mode: 'login' | 'register') => void;
+  onLogout?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onSelectTab,
   currentUser,
+  currentLocation,
   onSelectCity,
   dbStatus,
   onOpenSubscriptionModal,
+  onOpenAuthModal,
+  onLogout,
 }) => {
   const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
+
+  const activeLocation =
+    currentLocation ||
+    currentUser?.location || {
+      city: 'Lima',
+      country: 'Perú',
+      countryCode: 'PE',
+      flagEmoji: '🇵🇪',
+      isLocal: true,
+      area: 'Lima',
+    };
 
   const handleDetectGPS = () => {
     if (typeof window === 'undefined' || !navigator.geolocation) {
@@ -113,8 +130,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 suppressHydrationWarning
               >
                 <MapPin className="w-3.5 h-3.5 text-cinema-gold" />
-                <span className="mr-0.5" suppressHydrationWarning>{currentUser.location.flagEmoji}</span>
-                <span suppressHydrationWarning>{currentUser.location.city}</span>
+                <span className="mr-0.5" suppressHydrationWarning>{activeLocation.flagEmoji}</span>
+                <span suppressHydrationWarning>{activeLocation.city}</span>
                 <ChevronDown className="w-3.5 h-3.5 text-cinema-textMuted" />
               </button>
 
@@ -134,7 +151,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     O selecciona tu país / ciudad:
                   </div>
                   {AVAILABLE_CITIES.map((loc) => {
-                    const isSelected = loc.city === currentUser.location.city;
+                    const isSelected = loc.city === activeLocation.city;
                     return (
                       <button
                         key={loc.city}
@@ -186,6 +203,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Users className="w-4 h-4 text-indigo-400" />
               <span>Amigos</span>
+              {!currentUser && <Lock className="w-3 h-3 text-cinema-textMuted/70" />}
             </button>
 
             <button
@@ -198,6 +216,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <MessageSquare className="w-4 h-4 text-emerald-400" />
               <span>Chats & Cineclubs</span>
+              {!currentUser && <Lock className="w-3 h-3 text-cinema-textMuted/70" />}
             </button>
 
             <button
@@ -210,14 +229,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <UserIcon className="w-4 h-4 text-amber-400" />
               <span>Mi Perfil</span>
+              {!currentUser && <Lock className="w-3 h-3 text-cinema-textMuted/70" />}
             </button>
           </nav>
 
-          {/* Right Side: DB indicator & User Pill */}
-          <div className="flex items-center gap-3">
+          {/* Right Side: Auth / User Pill */}
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Database indicator */}
             <div
-              className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cinema-surface border border-cinema-border text-[11px] text-cinema-textSecondary"
+              className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cinema-surface border border-cinema-border text-[11px] text-cinema-textSecondary"
               title={dbStatus?.online ? `Base de Datos: ${dbStatus.database}` : 'Modo Offline con caché reactivo'}
             >
               <span className={`w-2 h-2 rounded-full ${dbStatus?.online ? 'bg-emerald-500 animate-pulse' : 'bg-cinema-gold'}`} />
@@ -225,52 +245,86 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>{dbStatus?.online ? 'REST API Online' : 'Caché Activo'}</span>
             </div>
 
-            {/* Subscription status pill */}
-            <button
-              onClick={() => onOpenSubscriptionModal?.()}
-              className={`hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all shadow-sm ${
-                currentUser.isPremium
-                  ? 'bg-cinema-gold/15 hover:bg-cinema-gold/25 text-cinema-gold border border-cinema-gold/40'
-                  : 'bg-cinema-surface hover:bg-cinema-card text-cinema-textSecondary border border-cinema-border'
-              }`}
-              title={
-                currentUser.isPremium
-                  ? 'Suscripción Mensual Activa: Tus comentarios son visibles al mundo'
-                  : 'Plan Base: Solo interacción con amigos. Clic para activar suscripción global'
-              }
-            >
-              {currentUser.isPremium ? (
-                <>
-                  <Sparkles className="w-3.5 h-3.5 text-cinema-gold fill-cinema-gold" />
-                  <span>Cinéfilo Pro</span>
-                </>
-              ) : (
-                <>
-                  <Users className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Plan Base</span>
-                  <span className="text-[10px] text-cinema-gold font-bold ml-0.5">Mejorar</span>
-                </>
-              )}
-            </button>
+            {currentUser ? (
+              <>
+                {/* Subscription status pill */}
+                <button
+                  onClick={() => onOpenSubscriptionModal?.()}
+                  className={`hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all shadow-sm ${
+                    currentUser.isPremium
+                      ? 'bg-cinema-gold/15 hover:bg-cinema-gold/25 text-cinema-gold border border-cinema-gold/40'
+                      : 'bg-cinema-surface hover:bg-cinema-card text-cinema-textSecondary border border-cinema-border'
+                  }`}
+                  title={
+                    currentUser.isPremium
+                      ? 'Suscripción Mensual Activa: Tus comentarios son visibles al mundo'
+                      : 'Plan Base: Solo interacción con amigos. Clic para activar suscripción global'
+                  }
+                >
+                  {currentUser.isPremium ? (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5 text-cinema-gold fill-cinema-gold" />
+                      <span>Cinéfilo Pro</span>
+                    </>
+                  ) : (
+                    <>
+                      <Users className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Plan Base</span>
+                      <span className="text-[10px] text-cinema-gold font-bold ml-0.5">Mejorar</span>
+                    </>
+                  )}
+                </button>
 
-            {/* User Profile Pill */}
-            <button
-              onClick={() => onSelectTab('profile')}
-              className="flex items-center gap-2.5 p-1 sm:pr-3 rounded-full bg-cinema-surface hover:bg-cinema-card border border-cinema-border transition-colors group"
-            >
-              <img
-                src={currentUser.avatarUrl}
-                alt={currentUser.displayName}
-                className="w-8 h-8 rounded-full object-cover border border-cinema-gold/40"
-              />
-              <div className="hidden sm:flex flex-col text-left">
-                <span className="text-xs font-semibold text-white group-hover:text-cinema-gold transition-colors flex items-center gap-1">
-                  {currentUser.displayName}
-                  {currentUser.isPremium && <Sparkles className="w-3 h-3 text-cinema-gold fill-cinema-gold" />}
-                </span>
-                <span className="text-[10px] text-cinema-textMuted">{currentUser.username}</span>
+                {/* User Profile Pill */}
+                <button
+                  onClick={() => onSelectTab('profile')}
+                  className="flex items-center gap-2.5 p-1 sm:pr-3 rounded-full bg-cinema-surface hover:bg-cinema-card border border-cinema-border transition-colors group"
+                >
+                  <img
+                    src={currentUser.avatarUrl}
+                    alt={currentUser.displayName}
+                    className="w-8 h-8 rounded-full object-cover border border-cinema-gold/40"
+                  />
+                  <div className="hidden sm:flex flex-col text-left">
+                    <span className="text-xs font-semibold text-white group-hover:text-cinema-gold transition-colors flex items-center gap-1">
+                      {currentUser.displayName}
+                      {currentUser.isPremium && <Sparkles className="w-3 h-3 text-cinema-gold fill-cinema-gold" />}
+                    </span>
+                    <span className="text-[10px] text-cinema-textMuted">{currentUser.username}</span>
+                  </div>
+                </button>
+
+                {/* Logout Button */}
+                {onLogout && (
+                  <button
+                    onClick={onLogout}
+                    className="p-2 rounded-xl bg-cinema-surface hover:bg-red-500/15 text-cinema-textMuted hover:text-red-400 border border-cinema-border hover:border-red-500/30 transition-colors"
+                    title="Cerrar Sesión"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                )}
+              </>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onOpenAuthModal?.('login')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cinema-surface hover:bg-cinema-card border border-cinema-border text-xs font-medium text-cinema-textPrimary hover:text-white transition-colors"
+                >
+                  <LogIn className="w-3.5 h-3.5 text-cinema-gold" />
+                  <span>Iniciar Sesión</span>
+                </button>
+
+                <button
+                  onClick={() => onOpenAuthModal?.('register')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cinema-gold hover:bg-amber-400 text-black text-xs font-bold shadow-md shadow-amber-900/30 transition-transform hover:scale-105"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Crear Cuenta</span>
+                  <span className="sm:hidden">Registro</span>
+                </button>
               </div>
-            </button>
+            )}
           </div>
         </div>
       </header>
@@ -289,32 +343,35 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         <button
           onClick={() => onSelectTab('feed')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-medium transition-colors ${
+          className={`relative flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-medium transition-colors ${
             activeTab === 'feed' ? 'text-indigo-400' : 'text-cinema-textMuted'
           }`}
         >
           <Users className="w-5 h-5" />
           <span>Amigos</span>
+          {!currentUser && <Lock className="w-2.5 h-2.5 absolute top-1 right-2 text-cinema-gold" />}
         </button>
 
         <button
           onClick={() => onSelectTab('chats')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-medium transition-colors ${
+          className={`relative flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-medium transition-colors ${
             activeTab === 'chats' ? 'text-emerald-400' : 'text-cinema-textMuted'
           }`}
         >
           <MessageSquare className="w-5 h-5" />
           <span>Chats</span>
+          {!currentUser && <Lock className="w-2.5 h-2.5 absolute top-1 right-2 text-cinema-gold" />}
         </button>
 
         <button
           onClick={() => onSelectTab('profile')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-medium transition-colors ${
+          className={`relative flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-medium transition-colors ${
             activeTab === 'profile' ? 'text-amber-400' : 'text-cinema-textMuted'
           }`}
         >
           <UserIcon className="w-5 h-5" />
           <span>Perfil</span>
+          {!currentUser && <Lock className="w-2.5 h-2.5 absolute top-1 right-2 text-cinema-gold" />}
         </button>
       </div>
     </>

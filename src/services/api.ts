@@ -13,10 +13,6 @@ import {
   CURATED_MOVIES,
   CITY_SHOWTIMES,
   AVAILABLE_CITIES,
-  DEFAULT_USER,
-  INITIAL_FRIENDS,
-  INITIAL_REVIEWS,
-  INITIAL_GROUPS,
 } from '../data/curatedMovies';
 import { getTheatricalMovies, getCatalogMovies, getMovieByIdAction } from '@/actions/movies';
 
@@ -41,7 +37,7 @@ function setLocalItem<T>(key: string, val: T): void {
 }
 
 class MovieSocialAPI {
-  private user: User;
+  private user: User | null;
   private friends: Friend[];
   private reviews: Review[];
   private groups: MovieGroup[];
@@ -50,109 +46,35 @@ class MovieSocialAPI {
   private directMessages: Record<string, ChatMessage[]>;
 
   constructor() {
-    this.user = getLocalItem<User>('user', DEFAULT_USER);
-    this.friends = getLocalItem<Friend[]>('friends', INITIAL_FRIENDS);
-    this.reviews = getLocalItem<Review[]>('reviews', INITIAL_REVIEWS);
-    this.groups = getLocalItem<MovieGroup[]>('groups', INITIAL_GROUPS);
-    this.groupMessages = getLocalItem<Record<string, ChatMessage[]>>('group_messages', {
-      grp_cine_peruano: [
-        {
-          id: 'gm1',
-          groupId: 'grp_cine_peruano',
-          senderId: 'friend_valeria',
-          senderName: 'Valeria Gómez',
-          text: '¿Alguien vio ya Ekeko en salas? Las funciones nocturnas en Alcázar se están llenando.',
-          messageType: 'text',
-          createdAt: '2026-10-28T18:00:00Z',
-        },
-        {
-          id: 'gm2',
-          groupId: 'grp_cine_peruano',
-          senderId: 'user_alex_101',
-          senderName: 'Alex Rivera',
-          text: '¡Sí! Totalmente recomendada. Miren la ficha completa:',
-          messageType: 'movie',
-          sharedMovieId: 'ekeko_pe_2026',
-          sharedMovieTitle: 'Ekeko: El Dios de la Abundancia',
-          sharedMoviePosterUrl: 'https://images.unsplash.com/photo-1509281373149-e957c6296406?w=500',
-          sharedMovieScore: 8.7,
-          createdAt: '2026-10-28T18:05:00Z',
-        },
-      ],
-    });
-    this.directConversations = getLocalItem<DirectConversation[]>('direct_convos', [
-      {
-        id: 'conv_valeria',
-        participant: INITIAL_FRIENDS[0],
-        unreadCount: 0,
-        updatedAt: '2026-10-28T19:30:00Z',
-        lastMessage: {
-          id: 'm1',
-          conversationId: 'conv_valeria',
-          senderId: 'friend_valeria',
-          senderName: 'Valeria Gómez',
-          text: '¿Vamos este sábado a ver el reestreno en VOSE?',
-          messageType: 'text',
-          createdAt: '2026-10-28T19:30:00Z',
-        },
-      },
-      {
-        id: 'conv_lucas',
-        participant: INITIAL_FRIENDS[1],
-        unreadCount: 0,
-        updatedAt: '2026-10-26T15:00:00Z',
-        lastMessage: {
-          id: 'm2',
-          conversationId: 'conv_lucas',
-          senderId: 'friend_lucas',
-          senderName: 'Lucas Romero',
-          text: 'Te pasé mi reseña de Dune 2, ¡mira lo que opiné del audio!',
-          messageType: 'movie',
-          sharedMovieId: 'dune_part_two',
-          sharedMovieTitle: 'Dune: Parte Dos',
-          sharedMoviePosterUrl: 'https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg',
-          sharedMovieScore: 8.8,
-          createdAt: '2026-10-26T15:00:00Z',
-        },
-      },
-    ]);
-    this.directMessages = getLocalItem<Record<string, ChatMessage[]>>('direct_messages', {
-      conv_valeria: [
-        {
-          id: 'm0',
-          conversationId: 'conv_valeria',
-          senderId: 'user_alex_101',
-          senderName: 'Alex Rivera',
-          text: '¡Hola Valeria! Qué buena crítica escribiste de Ekeko.',
-          messageType: 'text',
-          createdAt: '2026-10-28T19:20:00Z',
-        },
-        {
-          id: 'm1',
-          conversationId: 'conv_valeria',
-          senderId: 'friend_valeria',
-          senderName: 'Valeria Gómez',
-          text: '¿Vamos este sábado a ver el reestreno en VOSE?',
-          messageType: 'text',
-          createdAt: '2026-10-28T19:30:00Z',
-        },
-      ],
-      conv_lucas: [
-        {
-          id: 'm2',
-          conversationId: 'conv_lucas',
-          senderId: 'friend_lucas',
-          senderName: 'Lucas Romero',
-          text: 'Te pasé mi reseña de Dune 2, ¡mira lo que opiné del audio!',
-          messageType: 'movie',
-          sharedMovieId: 'dune_part_two',
-          sharedMovieTitle: 'Dune: Parte Dos',
-          sharedMoviePosterUrl: 'https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg',
-          sharedMovieScore: 8.8,
-          createdAt: '2026-10-26T15:00:00Z',
-        },
-      ],
-    });
+    const storedUser = getLocalItem<User | null>('user', null);
+    // Purgar mock heredado si existe para asegurar datos reales
+    if (storedUser && (storedUser.id === 'user_alex_101' || storedUser.username === '@alex_rivera')) {
+      this.user = null;
+      try {
+        localStorage.removeItem('moviesocial_user');
+      } catch {}
+    } else {
+      this.user = storedUser;
+    }
+
+    const storedFriends = getLocalItem<Friend[]>('friends', []);
+    this.friends = storedFriends.filter(
+      (f) => !f.id.startsWith('friend_valeria') && !f.id.startsWith('friend_lucas')
+    );
+
+    const storedReviews = getLocalItem<Review[]>('reviews', []);
+    this.reviews = storedReviews.filter(
+      (r) => !['rev_01', 'rev_02', 'rev_03', 'rev_04'].includes(r.id)
+    );
+
+    const storedGroups = getLocalItem<MovieGroup[]>('groups', []);
+    this.groups = storedGroups.filter(
+      (g) => !['grp_cine_peruano', 'grp_nolan_fans'].includes(g.id)
+    );
+
+    this.groupMessages = getLocalItem<Record<string, ChatMessage[]>>('group_messages', {});
+    this.directConversations = getLocalItem<DirectConversation[]>('direct_convos', []);
+    this.directMessages = getLocalItem<Record<string, ChatMessage[]>>('direct_messages', {});
   }
 
   // --- Backend Check ---
@@ -182,8 +104,8 @@ class MovieSocialAPI {
   }): Promise<Movie[]> {
     const {
       category = 'nowPlaying',
-      city = this.user.location.city,
-      countryCode = this.user.location.countryCode || 'PE',
+      city = this.user?.location.city || 'Lima',
+      countryCode = this.user?.location.countryCode || 'PE',
       decade = 'all',
       minRating = null,
       genre = 'all',
@@ -201,7 +123,7 @@ class MovieSocialAPI {
       return {
         ...m,
         isInTheatersLocally: isTheatrical,
-        theatersPlaying: isTheatrical ? ['Cines comerciales en ' + (this.user.location.country || city)] : [],
+        theatersPlaying: isTheatrical ? ['Cines comerciales en ' + (this.user?.location.country || city)] : [],
       };
     });
 
@@ -324,7 +246,7 @@ class MovieSocialAPI {
     const found = CURATED_MOVIES.find((m) => m.id === id);
     if (!found) return null;
 
-    const countryCode = this.user.location.countryCode || 'PE';
+    const countryCode = this.user?.location.countryCode || 'PE';
     const isTheatrical = Boolean(
       found.theatricalCountries && found.theatricalCountries.includes(countryCode)
     );
@@ -332,7 +254,7 @@ class MovieSocialAPI {
     return {
       ...found,
       isInTheatersLocally: isTheatrical,
-      theatersPlaying: isTheatrical ? ['Cines de ' + (this.user.location.country || this.user.location.city)] : [],
+      theatersPlaying: isTheatrical ? ['Cines de ' + (this.user?.location.country || this.user?.location.city || 'Perú')] : [],
     };
   }
 
@@ -360,6 +282,9 @@ class MovieSocialAPI {
     comment: string;
     isCommunity?: boolean;
   }): Promise<Review> {
+    if (!this.user) {
+      throw new Error('Debes iniciar sesión para calificar o comentar.');
+    }
     const newRev: Review = {
       id: `rev_${Date.now()}`,
       movieId: reviewData.movieId,
@@ -421,6 +346,9 @@ class MovieSocialAPI {
   }
 
   async addCommentToReview(reviewId: string, text: string): Promise<Review | null> {
+    if (!this.user) {
+      throw new Error('Debes iniciar sesión para comentar.');
+    }
     const idx = this.reviews.findIndex((r) => r.id === reviewId);
     if (idx === -1) return null;
     const rev = { ...this.reviews[idx] };
@@ -486,6 +414,9 @@ class MovieSocialAPI {
   }
 
   async createGroup(name: string, description: string, iconEmoji: string = '🎬'): Promise<MovieGroup> {
+    if (!this.user) {
+      throw new Error('Debes iniciar sesión para crear un cineclub.');
+    }
     const grpId = `grp_${Date.now()}`;
     const code = `CINE-${grpId.slice(-6).toUpperCase()}`;
     const newGroup: MovieGroup = {
@@ -572,6 +503,9 @@ class MovieSocialAPI {
     messageType?: 'text' | 'movie';
     sharedMovie?: Movie;
   }): Promise<ChatMessage> {
+    if (!this.user) {
+      throw new Error('Debes iniciar sesión para enviar mensajes.');
+    }
     const newMsg: ChatMessage = {
       id: `gmsg_${Date.now()}`,
       groupId,
@@ -629,6 +563,9 @@ class MovieSocialAPI {
     messageType?: 'text' | 'movie';
     sharedMovie?: Movie;
   }): Promise<ChatMessage> {
+    if (!this.user) {
+      throw new Error('Debes iniciar sesión para enviar mensajes.');
+    }
     const newMsg: ChatMessage = {
       id: `dmsg_${Date.now()}`,
       conversationId,
@@ -658,17 +595,38 @@ class MovieSocialAPI {
   }
 
   // --- Perfil y Ubicación ---
-  getCurrentUser(): User {
+  getCurrentUser(): User | null {
     return this.user;
   }
 
-  updateUser(updates: Partial<User>): User {
+  login(user: User): User {
+    this.user = user;
+    setLocalItem('user', user);
+    return user;
+  }
+
+  logout(): void {
+    this.user = null;
+    try {
+      localStorage.removeItem('moviesocial_user');
+    } catch (err) {
+      console.warn('Error clearing localStorage user:', err);
+    }
+  }
+
+  isLoggedIn(): boolean {
+    return this.user !== null;
+  }
+
+  updateUser(updates: Partial<User>): User | null {
+    if (!this.user) return null;
     this.user = { ...this.user, ...updates };
     setLocalItem('user', this.user);
     return this.user;
   }
 
-  setUserCity(location: UserLocation): User {
+  setUserCity(location: UserLocation): User | null {
+    if (!this.user) return null;
     this.user = { ...this.user, location };
     setLocalItem('user', this.user);
     return this.user;

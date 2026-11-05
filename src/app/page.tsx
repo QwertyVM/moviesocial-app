@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { User, Movie, Friend, UserLocation } from "@/types";
 import { api } from "@/services/api";
-import { DEFAULT_USER } from "@/data/curatedMovies";
 import { Navbar } from "@/components/common/Navbar";
 import { CatalogView } from "@/views/CatalogView";
 import { FriendsFeedView } from "@/views/FriendsFeedView";
@@ -11,15 +10,36 @@ import { ChatsView } from "@/views/ChatsView";
 import { ProfileView } from "@/views/ProfileView";
 import { MovieDetailModal } from "@/components/movies/MovieDetailModal";
 import { SubscriptionModal } from "@/components/subscription/SubscriptionModal";
+import { AuthModal } from "@/components/auth/AuthModal";
+import { AuthGateCard } from "@/components/auth/AuthGateCard";
+import { getUserById } from "@/actions/users";
+import { Users, MessageSquare, User as UserIcon } from "lucide-react";
 
 export default function Home() {
-  const [currentUser, setCurrentUser] = useState<User>(DEFAULT_USER);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<UserLocation>({
+    city: "Lima",
+    country: "Perú",
+    countryCode: "PE",
+    flagEmoji: "🇵🇪",
+    isLocal: true,
+    area: "Lima",
+  });
+
   const [activeTab, setActiveTab] = useState<"catalog" | "feed" | "chats" | "profile">("catalog");
   const [initialCatalogCategory, setInitialCatalogCategory] = useState<"nowPlaying" | "classics">("nowPlaying");
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [chatTargetFriend, setChatTargetFriend] = useState<Friend | null>(null);
-  const [dbStatus, setDbStatus] = useState<{ online: boolean; database?: string }>({ online: true, database: "Neon DB (PostgreSQL Cloud)" });
-  
+  const [dbStatus, setDbStatus] = useState<{ online: boolean; database?: string }>({
+    online: true,
+    database: "Neon DB (PostgreSQL Cloud)",
+  });
+
+  // Auth modal state
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<"login" | "register">("login");
+  const [authReason, setAuthReason] = useState<string | undefined>();
+
   // Subscription modal state
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [subscriptionReason, setSubscriptionReason] = useState<string | undefined>();
@@ -29,6 +49,9 @@ export default function Home() {
     const storedUser = api.getCurrentUser();
     if (storedUser) {
       setCurrentUser(storedUser);
+      if (storedUser.location) {
+        setCurrentLocation(storedUser.location);
+      }
     }
 
     // Sincronizar tab o película desde parámetros de URL si existen
@@ -48,12 +71,50 @@ export default function Home() {
           if (m) setSelectedMovie(m);
         });
       }
+
+      const authParam = params.get("auth");
+      if (authParam === "login" || authParam === "register") {
+        setAuthModalMode(authParam);
+        setIsAuthModalOpen(true);
+      }
+
+      const asUserParam = params.get("asUser");
+      if (asUserParam) {
+        getUserById(asUserParam).then((u) => {
+          if (u) {
+            api.login(u);
+            setCurrentUser(u);
+            if (u.location) setCurrentLocation(u.location);
+          }
+        });
+      }
     }
   }, []);
 
+  const handleOpenAuthModal = (mode: "login" | "register" = "login", reason?: string) => {
+    setAuthModalMode(mode);
+    setAuthReason(reason);
+    setIsAuthModalOpen(true);
+  };
+
+  const handleLoginSuccess = (user: User) => {
+    setCurrentUser(user);
+    if (user.location) {
+      setCurrentLocation(user.location);
+    }
+  };
+
+  const handleLogout = () => {
+    api.logout();
+    setCurrentUser(null);
+  };
+
   const handleSelectCity = (location: UserLocation) => {
-    const updated = api.setUserCity(location);
-    setCurrentUser(updated);
+    setCurrentLocation(location);
+    if (currentUser) {
+      const updated = api.setUserCity(location);
+      if (updated) setCurrentUser(updated);
+    }
   };
 
   const handleSelectMovieById = async (movieId: string) => {
@@ -74,18 +135,22 @@ export default function Home() {
   };
 
   const handleOpenSubscriptionModal = (reason?: string) => {
+    if (!currentUser) {
+      handleOpenAuthModal("login", "Inicia sesión para suscribirte o cambiar tu plan de comunidad.");
+      return;
+    }
     setSubscriptionReason(reason);
     setIsSubscriptionModalOpen(true);
   };
 
   const handleSubscribe = () => {
     const updated = api.updateUser({ isPremium: true });
-    setCurrentUser(updated);
+    if (updated) setCurrentUser(updated);
   };
 
   const handleCancelSubscription = () => {
     const updated = api.updateUser({ isPremium: false });
-    setCurrentUser(updated);
+    if (updated) setCurrentUser(updated);
   };
 
   return (
@@ -98,9 +163,12 @@ export default function Home() {
           if (tab !== "chats") setChatTargetFriend(null);
         }}
         currentUser={currentUser}
+        currentLocation={currentLocation}
         onSelectCity={handleSelectCity}
         dbStatus={dbStatus}
         onOpenSubscriptionModal={handleOpenSubscriptionModal}
+        onOpenAuthModal={handleOpenAuthModal}
+        onLogout={handleLogout}
       />
 
       {/* Main Content Area */}
@@ -108,37 +176,80 @@ export default function Home() {
         {activeTab === "catalog" && (
           <CatalogView
             currentUser={currentUser}
+            location={currentLocation}
             onSelectMovie={(movie) => setSelectedMovie(movie)}
             initialCategory={initialCatalogCategory}
           />
         )}
 
-        {activeTab === "feed" && (
-          <FriendsFeedView
-            currentUser={currentUser}
-            onSelectMovieById={handleSelectMovieById}
-            onOpenChatWithFriend={handleOpenChatWithFriend}
-            onOpenSubscriptionModal={handleOpenSubscriptionModal}
-          />
-        )}
+        {activeTab === "feed" &&
+          (currentUser ? (
+            <FriendsFeedView
+              currentUser={currentUser}
+              onSelectMovieById={handleSelectMovieById}
+              onOpenChatWithFriend={handleOpenChatWithFriend}
+              onOpenSubscriptionModal={handleOpenSubscriptionModal}
+            />
+          ) : (
+            <AuthGateCard
+              title="Muro Social y Feed de Amigos"
+              subtitle="Conecta con cinéfilos reales, lee sus críticas y descubre qué películas están viendo y calificando tus amigos."
+              icon={<Users className="w-8 h-8 sm:w-10 sm:h-10 text-cinema-gold" />}
+              onOpenAuth={() =>
+                handleOpenAuthModal(
+                  "register",
+                  "Crea tu cuenta cinéfila o inicia sesión para ver las críticas y actividad de tus amigos."
+                )
+              }
+              onGoToCatalog={() => setActiveTab("catalog")}
+            />
+          ))}
 
-        {activeTab === "chats" && (
-          <ChatsView
-            currentUser={currentUser}
-            onSelectMovieById={handleSelectMovieById}
-            initialFriendForChat={chatTargetFriend}
-            onOpenSubscriptionModal={handleOpenSubscriptionModal}
-          />
-        )}
+        {activeTab === "chats" &&
+          (currentUser ? (
+            <ChatsView
+              currentUser={currentUser}
+              onSelectMovieById={handleSelectMovieById}
+              initialFriendForChat={chatTargetFriend}
+              onOpenSubscriptionModal={handleOpenSubscriptionModal}
+            />
+          ) : (
+            <AuthGateCard
+              title="Chats Privados y Cineclubs"
+              subtitle="Únete a comunidades de debate, crea cineclubs con código de invitación y comparte películas directamente con tus amigos."
+              icon={<MessageSquare className="w-8 h-8 sm:w-10 sm:h-10 text-cinema-gold" />}
+              onOpenAuth={() =>
+                handleOpenAuthModal(
+                  "login",
+                  "Inicia sesión para chatear en tiempo real, compartir fichas de cine y unirte a cineclubs."
+                )
+              }
+              onGoToCatalog={() => setActiveTab("catalog")}
+            />
+          ))}
 
-        {activeTab === "profile" && (
-          <ProfileView
-            currentUser={currentUser}
-            onUpdateUser={setCurrentUser}
-            onSelectMovieById={handleSelectMovieById}
-            onOpenSubscriptionModal={handleOpenSubscriptionModal}
-          />
-        )}
+        {activeTab === "profile" &&
+          (currentUser ? (
+            <ProfileView
+              currentUser={currentUser}
+              onUpdateUser={setCurrentUser}
+              onSelectMovieById={handleSelectMovieById}
+              onOpenSubscriptionModal={handleOpenSubscriptionModal}
+            />
+          ) : (
+            <AuthGateCard
+              title="Tu Perfil Cinéfilo y Suscripción"
+              subtitle="Lleva el registro de tus películas vistas, administra tus críticas públicas o privadas y activa tu suscripción Pro."
+              icon={<UserIcon className="w-8 h-8 sm:w-10 sm:h-10 text-cinema-gold" />}
+              onOpenAuth={() =>
+                handleOpenAuthModal(
+                  "login",
+                  "Inicia sesión para gestionar tu perfil, tus reseñas y tu plan de suscripción."
+                )
+              }
+              onGoToCatalog={() => setActiveTab("catalog")}
+            />
+          ))}
       </main>
 
       {/* Global Movie Detail Modal */}
@@ -149,18 +260,30 @@ export default function Home() {
         currentUser={currentUser}
         onShareInChat={handleShareInChat}
         onOpenSubscriptionModal={handleOpenSubscriptionModal}
+        onRequireLogin={(reason) => handleOpenAuthModal("login", reason)}
       />
 
       {/* Subscription Modal for Monthly Plan */}
-      <SubscriptionModal
-        isOpen={isSubscriptionModalOpen}
-        onClose={() => setIsSubscriptionModalOpen(false)}
-        currentUser={currentUser}
-        onSubscribe={handleSubscribe}
-        onCancelSubscription={handleCancelSubscription}
-        triggerReason={subscriptionReason}
+      {currentUser && (
+        <SubscriptionModal
+          isOpen={isSubscriptionModalOpen}
+          onClose={() => setIsSubscriptionModalOpen(false)}
+          currentUser={currentUser}
+          onSubscribe={handleSubscribe}
+          onCancelSubscription={handleCancelSubscription}
+          triggerReason={subscriptionReason}
+        />
+      )}
+
+      {/* Login & Register Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={handleLoginSuccess}
+        initialMode={authModalMode}
+        reason={authReason}
+        defaultLocation={currentLocation}
       />
     </div>
   );
 }
-

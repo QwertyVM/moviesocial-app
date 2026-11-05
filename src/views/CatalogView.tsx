@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Movie, User } from '../types';
+import { Movie, User, UserLocation } from '../types';
 import { MovieCard } from '../components/movies/MovieCard';
 import { api } from '../services/api';
 import {
@@ -18,16 +18,29 @@ import {
 } from 'lucide-react';
 
 interface CatalogViewProps {
-  currentUser: User;
+  currentUser?: User | null;
+  location?: UserLocation;
   onSelectMovie: (movie: Movie) => void;
   initialCategory?: 'nowPlaying' | 'classics' | 'catalog';
 }
 
 export const CatalogView: React.FC<CatalogViewProps> = ({
   currentUser,
+  location,
   onSelectMovie,
   initialCategory = 'nowPlaying',
 }) => {
+  const activeLocation =
+    location ||
+    currentUser?.location || {
+      city: 'Lima',
+      country: 'Perú',
+      countryCode: 'PE',
+      flagEmoji: '🇵🇪',
+      isLocal: true,
+      area: 'Lima',
+    };
+
   const [category, setCategory] = useState<'nowPlaying' | 'catalog'>(
     initialCategory === 'classics' || initialCategory === 'catalog' ? 'catalog' : 'nowPlaying'
   );
@@ -62,8 +75,8 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
     setLoading(true);
     const data = await api.getMovies({
       category,
-      city: currentUser.location.city,
-      countryCode: currentUser.location.countryCode,
+      city: activeLocation.city,
+      countryCode: activeLocation.countryCode,
       decade,
       minRating,
       genre,
@@ -79,7 +92,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
       loadMovies();
     }, searchQuery ? 250 : 0);
     return () => clearTimeout(timer);
-  }, [category, decade, minRating, genre, sortBy, searchQuery, currentUser.location.countryCode, currentUser.location.city]);
+  }, [category, decade, minRating, genre, sortBy, searchQuery, activeLocation.countryCode, activeLocation.city]);
 
   const genresList = [
     { id: 'all', label: 'Todos los Géneros' },
@@ -134,7 +147,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             {category === 'nowPlaying' ? (
               <span className="text-xs text-cinema-textMuted flex items-center gap-1" suppressHydrationWarning>
                 <MapPin className="w-3 h-3 text-cinema-gold" />
-                {currentUser.location.city} ({currentUser.location.countryCode}) • {movies.length} en cartelera hoy
+                {activeLocation.city} ({activeLocation.countryCode}) • {movies.length} en cartelera hoy
               </span>
             ) : (
               <span className="text-xs text-cinema-textMuted flex items-center gap-1">
@@ -145,12 +158,12 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
           </div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight" suppressHydrationWarning>
             {category === 'nowPlaying'
-              ? `Películas en Estreno en ${currentUser.location.country || currentUser.location.city}`
+              ? `Películas en Estreno en ${activeLocation.country || activeLocation.city}`
               : 'Catálogo de Películas (Fuera de Estreno)'}
           </h1>
           <p className="text-xs text-cinema-textSecondary max-w-2xl" suppressHydrationWarning>
             {category === 'nowPlaying'
-              ? `Títulos que se están emitiendo actualmente en los cines según tu ubicación en ${currentUser.location.country || currentUser.location.city}.`
+              ? `Títulos que se están emitiendo actualmente en los cines según tu ubicación en ${activeLocation.country || activeLocation.city}.`
               : 'Películas fuera de salas ordenadas desde la más actual hasta la más antigua, con filtros de rating, género y épocas.'}
           </p>
         </div>
@@ -166,7 +179,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             }`}
           >
             <Film className="w-4 h-4" />
-            <span suppressHydrationWarning>En Estreno ({currentUser.location.countryCode})</span>
+            <span suppressHydrationWarning>En Estreno ({activeLocation.countryCode})</span>
           </button>
           <button
             onClick={() => setCategory('catalog')}
@@ -306,7 +319,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               key={m.id}
               movie={m}
               onSelectMovie={onSelectMovie}
-              userCity={currentUser.location.city}
+              userCity={activeLocation.city}
             />
           ))}
         </div>
@@ -316,7 +329,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
           <p className="text-sm font-semibold text-white">No se encontraron películas</p>
           <p className="text-xs text-cinema-textMuted max-w-sm">
             {category === 'nowPlaying'
-              ? `No hay películas en cartelera registradas actualmente para ${currentUser.location.country || currentUser.location.city}. Prueba seleccionando otro país en el selector superior.`
+              ? `No hay películas en cartelera registradas actualmente para ${activeLocation.country || activeLocation.city}. Prueba seleccionando otro país en el selector superior.`
               : 'Prueba ajustando los filtros de rating, época o género.'}
           </p>
           {(decade !== 'all' || genre !== 'all' || minRating !== null || searchQuery) && (

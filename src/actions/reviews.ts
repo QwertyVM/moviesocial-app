@@ -13,42 +13,35 @@ export async function getReviews(movieId?: string): Promise<Review[]> {
       orderBy: { createdAt: "desc" },
     });
 
-    if (dbReviews.length > 0) {
-      return dbReviews.map((r) => ({
-        id: r.id,
-        movieId: r.movieId,
-        movieTitle: r.movieTitle,
-        moviePosterUrl: r.moviePosterUrl || undefined,
-        movieReleaseYear: r.movieReleaseYear || undefined,
-        userId: r.userId,
-        userName: r.userName,
-        userAvatarUrl: r.userAvatarUrl || undefined,
-        rating: Number(r.rating),
-        comment: r.comment || "",
-        likesCount: r.likesCount,
-        helpfulCount: r.helpfulCount,
-        isCommunity: r.isCommunity,
-        createdAt: r.createdAt ? r.createdAt.toISOString() : new Date().toISOString(),
-        comments: r.comments.map((c) => ({
-          id: c.id,
-          reviewId: c.reviewId,
-          userId: c.userId,
-          userName: c.userName,
-          userAvatarUrl: c.userAvatarUrl || undefined,
-          text: c.text,
-          createdAt: c.createdAt ? c.createdAt.toISOString() : new Date().toISOString(),
-        })),
-      }));
-    }
+    return dbReviews.map((r) => ({
+      id: r.id,
+      movieId: r.movieId,
+      movieTitle: r.movieTitle,
+      moviePosterUrl: r.moviePosterUrl || undefined,
+      movieReleaseYear: r.movieReleaseYear || undefined,
+      userId: r.userId,
+      userName: r.userName,
+      userAvatarUrl: r.userAvatarUrl || undefined,
+      rating: Number(r.rating),
+      comment: r.comment || "",
+      likesCount: r.likesCount,
+      helpfulCount: r.helpfulCount,
+      isCommunity: r.isCommunity,
+      createdAt: r.createdAt ? r.createdAt.toISOString() : new Date().toISOString(),
+      comments: r.comments.map((c) => ({
+        id: c.id,
+        reviewId: c.reviewId,
+        userId: c.userId,
+        userName: c.userName,
+        userAvatarUrl: c.userAvatarUrl || undefined,
+        text: c.text,
+        createdAt: c.createdAt ? c.createdAt.toISOString() : new Date().toISOString(),
+      })),
+    }));
   } catch (err) {
     console.warn("Neon DB reviews fallback:", err);
+    return [];
   }
-
-  let list = [...INITIAL_REVIEWS];
-  if (movieId) {
-    list = list.filter((r) => r.movieId === movieId);
-  }
-  return list;
 }
 
 export async function submitReview(data: {

@@ -18,7 +18,7 @@ import {
 interface SubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  currentUser: User;
+  currentUser: User | null;
   onSubscribe: () => void;
   onCancelSubscription?: () => void;
   triggerReason?: string;
@@ -37,7 +37,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isSubscribed = currentUser.isPremium;
+  const isSubscribed = Boolean(currentUser?.isPremium);
 
   const handleAction = async () => {
     setProcessing(true);
@@ -264,3 +264,4 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
     </div>
   );
 };
+
