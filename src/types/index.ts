@@ -50,7 +50,10 @@ export interface User {
   username: string;
   bio: string;
   avatarUrl: string;
-  isPremium: boolean;
+  isPremium: boolean; // true = Suscripción Mensual Activa (Comunidad Global y Mundo), false = Plan Base (Solo Amigos)
+  subscriptionPlan?: 'base' | 'global_monthly';
+  subscriptionPrice?: string; // e.g. "S/ 14.90 / mes"
+  subscriptionRenewalDate?: string;
   location: UserLocation;
   createdAt?: string;
 }
@@ -61,6 +64,7 @@ export interface ReviewComment {
   userId: string;
   userName: string;
   userAvatarUrl?: string;
+  userIsPremium?: boolean;
   text: string;
   createdAt: string;
 }
@@ -74,11 +78,12 @@ export interface Review {
   userId: string;
   userName: string;
   userAvatarUrl?: string;
+  userIsPremium?: boolean;
   rating: number; // 1.0 to 5.0
   comment: string;
   likesCount: number;
   helpfulCount: number;
-  isCommunity: boolean;
+  isCommunity: boolean; // true = visible para el mundo / comunidad (requiere suscripción mensual), false = solo amigos (plan base)
   createdAt: string;
   comments?: ReviewComment[];
   isLikedByMe?: boolean;

@@ -11,6 +11,7 @@ interface NavbarProps {
   currentUser: User;
   onSelectCity: (city: UserLocation) => void;
   dbStatus?: { online: boolean; database?: string };
+  onOpenSubscriptionModal?: (reason?: string) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -19,6 +20,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentUser,
   onSelectCity,
   dbStatus,
+  onOpenSubscriptionModal,
 }) => {
   const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -222,6 +224,34 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Database className="w-3 h-3 text-cinema-textMuted" />
               <span>{dbStatus?.online ? 'REST API Online' : 'Caché Activo'}</span>
             </div>
+
+            {/* Subscription status pill */}
+            <button
+              onClick={() => onOpenSubscriptionModal?.()}
+              className={`hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all shadow-sm ${
+                currentUser.isPremium
+                  ? 'bg-cinema-gold/15 hover:bg-cinema-gold/25 text-cinema-gold border border-cinema-gold/40'
+                  : 'bg-cinema-surface hover:bg-cinema-card text-cinema-textSecondary border border-cinema-border'
+              }`}
+              title={
+                currentUser.isPremium
+                  ? 'Suscripción Mensual Activa: Tus comentarios son visibles al mundo'
+                  : 'Plan Base: Solo interacción con amigos. Clic para activar suscripción global'
+              }
+            >
+              {currentUser.isPremium ? (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-cinema-gold fill-cinema-gold" />
+                  <span>Cinéfilo Pro</span>
+                </>
+              ) : (
+                <>
+                  <Users className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Plan Base</span>
+                  <span className="text-[10px] text-cinema-gold font-bold ml-0.5">Mejorar</span>
+                </>
+              )}
+            </button>
 
             {/* User Profile Pill */}
             <button

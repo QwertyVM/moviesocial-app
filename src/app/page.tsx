@@ -10,6 +10,7 @@ import { FriendsFeedView } from "@/views/FriendsFeedView";
 import { ChatsView } from "@/views/ChatsView";
 import { ProfileView } from "@/views/ProfileView";
 import { MovieDetailModal } from "@/components/movies/MovieDetailModal";
+import { SubscriptionModal } from "@/components/subscription/SubscriptionModal";
 
 export default function Home() {
   const [currentUser, setCurrentUser] = useState<User>(DEFAULT_USER);
@@ -18,6 +19,10 @@ export default function Home() {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [chatTargetFriend, setChatTargetFriend] = useState<Friend | null>(null);
   const [dbStatus, setDbStatus] = useState<{ online: boolean; database?: string }>({ online: true, database: "Neon DB (PostgreSQL Cloud)" });
+  
+  // Subscription modal state
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [subscriptionReason, setSubscriptionReason] = useState<string | undefined>();
 
   useEffect(() => {
     // Sincronizar usuario guardado en localStorage tras la hidratación inicial
@@ -68,6 +73,21 @@ export default function Home() {
     setActiveTab("chats");
   };
 
+  const handleOpenSubscriptionModal = (reason?: string) => {
+    setSubscriptionReason(reason);
+    setIsSubscriptionModalOpen(true);
+  };
+
+  const handleSubscribe = () => {
+    const updated = api.updateUser({ isPremium: true });
+    setCurrentUser(updated);
+  };
+
+  const handleCancelSubscription = () => {
+    const updated = api.updateUser({ isPremium: false });
+    setCurrentUser(updated);
+  };
+
   return (
     <div className="min-h-screen bg-[#0B0C0E] text-gray-100 flex flex-col pb-20 md:pb-8">
       {/* Top Navbar */}
@@ -80,6 +100,7 @@ export default function Home() {
         currentUser={currentUser}
         onSelectCity={handleSelectCity}
         dbStatus={dbStatus}
+        onOpenSubscriptionModal={handleOpenSubscriptionModal}
       />
 
       {/* Main Content Area */}
@@ -97,6 +118,7 @@ export default function Home() {
             currentUser={currentUser}
             onSelectMovieById={handleSelectMovieById}
             onOpenChatWithFriend={handleOpenChatWithFriend}
+            onOpenSubscriptionModal={handleOpenSubscriptionModal}
           />
         )}
 
@@ -105,6 +127,7 @@ export default function Home() {
             currentUser={currentUser}
             onSelectMovieById={handleSelectMovieById}
             initialFriendForChat={chatTargetFriend}
+            onOpenSubscriptionModal={handleOpenSubscriptionModal}
           />
         )}
 
@@ -113,6 +136,7 @@ export default function Home() {
             currentUser={currentUser}
             onUpdateUser={setCurrentUser}
             onSelectMovieById={handleSelectMovieById}
+            onOpenSubscriptionModal={handleOpenSubscriptionModal}
           />
         )}
       </main>
@@ -124,6 +148,17 @@ export default function Home() {
         onClose={() => setSelectedMovie(null)}
         currentUser={currentUser}
         onShareInChat={handleShareInChat}
+        onOpenSubscriptionModal={handleOpenSubscriptionModal}
+      />
+
+      {/* Subscription Modal for Monthly Plan */}
+      <SubscriptionModal
+        isOpen={isSubscriptionModalOpen}
+        onClose={() => setIsSubscriptionModalOpen(false)}
+        currentUser={currentUser}
+        onSubscribe={handleSubscribe}
+        onCancelSubscription={handleCancelSubscription}
+        triggerReason={subscriptionReason}
       />
     </div>
   );

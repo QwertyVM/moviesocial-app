@@ -20,6 +20,8 @@ import {
   X,
   Sparkles,
   Share2,
+  Lock,
+  Globe,
 } from 'lucide-react';
 import { CURATED_MOVIES } from '../data/curatedMovies';
 
@@ -27,12 +29,14 @@ interface ChatsViewProps {
   currentUser: User;
   onSelectMovieById: (movieId: string) => void;
   initialFriendForChat?: Friend | null;
+  onOpenSubscriptionModal?: (reason?: string) => void;
 }
 
 export const ChatsView: React.FC<ChatsViewProps> = ({
   currentUser,
   onSelectMovieById,
   initialFriendForChat,
+  onOpenSubscriptionModal,
 }) => {
   const [chatType, setChatType] = useState<'direct' | 'groups'>('direct');
   const [conversations, setConversations] = useState<DirectConversation[]>([]);
@@ -112,6 +116,12 @@ export const ChatsView: React.FC<ChatsViewProps> = ({
       setMessages([...messages, msg]);
       setInputText('');
     } else if (chatType === 'groups' && selectedGroupId) {
+      if (!currentUser.isPremium) {
+        onOpenSubscriptionModal?.(
+          'Para participar y enviar mensajes en los Cineclubs de la Comunidad global necesitas la suscripción mensual. En el Plan Base puedes chatear libremente 1 a 1 con tus amigos.'
+        );
+        return;
+      }
       const msg = await api.sendGroupMessage(selectedGroupId, {
         text: inputText.trim(),
         messageType: 'text',
@@ -132,6 +142,12 @@ export const ChatsView: React.FC<ChatsViewProps> = ({
       });
       setMessages([...messages, msg]);
     } else if (chatType === 'groups' && selectedGroupId) {
+      if (!currentUser.isPremium) {
+        onOpenSubscriptionModal?.(
+          'Para participar y enviar mensajes en los Cineclubs de la Comunidad global necesitas la suscripción mensual. En el Plan Base puedes chatear libremente 1 a 1 con tus amigos.'
+        );
+        return;
+      }
       const msg = await api.sendGroupMessage(selectedGroupId, {
         text: `Miren esta recomendación para el cineclub:`,
         messageType: 'movie',
@@ -428,26 +444,52 @@ export const ChatsView: React.FC<ChatsViewProps> = ({
             })}
           </div>
 
-          {/* Composer Input */}
-          <form
-            onSubmit={handleSendMessage}
-            className="p-3 border-t border-cinema-border bg-cinema-surface/40 flex items-center gap-2"
-          >
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Escribe un mensaje en el chat..."
-              className="flex-grow px-4 py-2.5 rounded-xl bg-cinema-card border border-cinema-border focus:border-cinema-gold text-xs text-white placeholder-cinema-textMuted outline-none"
-            />
-            <button
-              type="submit"
-              disabled={!inputText.trim()}
-              className="p-2.5 rounded-xl bg-cinema-gold hover:bg-amber-400 disabled:opacity-40 text-black transition-transform hover:scale-105 shadow"
+          {/* Composer Input / Subscription Gate for Community Cineclubs */}
+          {chatType === 'groups' && !currentUser.isPremium ? (
+            <div className="p-3.5 border-t border-cinema-border bg-cinema-surface/70 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 text-xs text-cinema-textSecondary">
+                <Lock className="w-4 h-4 text-cinema-gold flex-shrink-0" />
+                <span>
+                  Los Cineclubs de la Comunidad global requieren <strong>Suscripción Mensual</strong>. En el <strong>Plan Base</strong> puedes chatear libremente 1 a 1 con tus amigos.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  onOpenSubscriptionModal?.(
+                    'Para participar y debatir en los Cineclubs de la Comunidad global necesitas la suscripción mensual. En el Plan Base puedes chatear libremente 1 a 1 con tus amigos.'
+                  )
+                }
+                className="px-3.5 py-1.5 rounded-xl bg-cinema-gold hover:bg-amber-400 text-black text-xs font-bold transition-all shadow whitespace-nowrap flex-shrink-0"
+              >
+                Activar Suscripción
+              </button>
+            </div>
+          ) : (
+            <form
+              onSubmit={handleSendMessage}
+              className="p-3 border-t border-cinema-border bg-cinema-surface/40 flex items-center gap-2"
             >
-              <Send className="w-4 h-4" />
-            </button>
-          </form>
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder={
+                  chatType === 'direct'
+                    ? 'Escribe un mensaje privado a tu amigo...'
+                    : 'Debate con el cineclub de la comunidad...'
+                }
+                className="flex-grow px-4 py-2.5 rounded-xl bg-cinema-card border border-cinema-border focus:border-cinema-gold text-xs text-white placeholder-cinema-textMuted outline-none"
+              />
+              <button
+                type="submit"
+                disabled={!inputText.trim()}
+                className="p-2.5 rounded-xl bg-cinema-gold hover:bg-amber-400 disabled:opacity-40 text-black transition-transform hover:scale-105 shadow"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
+          )}
         </div>
       </div>
 

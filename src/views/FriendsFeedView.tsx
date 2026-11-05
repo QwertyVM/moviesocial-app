@@ -14,21 +14,27 @@ import {
   Search,
   MessageSquare,
   Star,
+  Globe,
+  Lock,
+  ArrowRight,
 } from 'lucide-react';
 
 interface FriendsFeedViewProps {
   currentUser: User;
   onSelectMovieById: (movieId: string) => void;
   onOpenChatWithFriend: (friend: Friend) => void;
+  onOpenSubscriptionModal?: (reason?: string) => void;
 }
 
 export const FriendsFeedView: React.FC<FriendsFeedViewProps> = ({
   currentUser,
   onSelectMovieById,
   onOpenChatWithFriend,
+  onOpenSubscriptionModal,
 }) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [feedScope, setFeedScope] = useState<'friends' | 'global'>('friends');
   const [searchFriendText, setSearchFriendText] = useState('');
   const [activeCommentReviewId, setActiveCommentReviewId] = useState<string | null>(null);
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
@@ -46,6 +52,13 @@ export const FriendsFeedView: React.FC<FriendsFeedViewProps> = ({
   }, []);
 
   const handleLike = async (reviewId: string) => {
+    const targetRev = reviews.find((r) => r.id === reviewId);
+    if (targetRev?.isCommunity && !currentUser.isPremium) {
+      onOpenSubscriptionModal?.(
+        'Para dar me gusta e interactuar con la comunidad global necesitas una suscripción mensual. En el Plan Base solo puedes interactuar con amigos.'
+      );
+      return;
+    }
     const updated = await api.toggleLikeReview(reviewId);
     if (updated) {
       setReviews(reviews.map((r) => (r.id === reviewId ? updated : r)));
@@ -53,6 +66,13 @@ export const FriendsFeedView: React.FC<FriendsFeedViewProps> = ({
   };
 
   const handleAddComment = async (reviewId: string) => {
+    const targetRev = reviews.find((r) => r.id === reviewId);
+    if (targetRev?.isCommunity && !currentUser.isPremium) {
+      onOpenSubscriptionModal?.(
+        'Para comentar e interactuar con la comunidad global necesitas una suscripción mensual. En el Plan Base solo puedes interactuar con amigos.'
+      );
+      return;
+    }
     const text = commentInputs[reviewId]?.trim();
     if (!text) return;
     const updated = await api.addCommentToReview(reviewId, text);
@@ -75,31 +95,100 @@ export const FriendsFeedView: React.FC<FriendsFeedViewProps> = ({
     }
   };
 
+  const friendIds = new Set(friends.map((f) => f.id));
+  const filteredReviews = reviews.filter((r) => {
+    if (feedScope === 'friends') {
+      return !r.isCommunity || r.userId === currentUser.id || friendIds.has(r.userId);
+    } else {
+      return r.isCommunity;
+    }
+  });
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Left 2 Columns: Activity Feed */}
         <div className="lg:col-span-2 flex flex-col gap-5">
-          {/* Feed Header */}
-          <div className="p-4 sm:p-5 rounded-3xl bg-cinema-card border border-cinema-border flex items-center justify-between">
+          {/* Feed Header with Scope Switcher */}
+          <div className="p-4 sm:p-5 rounded-3xl bg-cinema-card border border-cinema-border flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-950/60 border border-indigo-500/30 flex items-center justify-center">
-                <Users className="w-5 h-5 text-indigo-400" />
+              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${
+                feedScope === 'friends' ? 'bg-indigo-950/60 border border-indigo-500/30 text-indigo-400' : 'bg-amber-950/60 border border-cinema-gold/40 text-cinema-gold'
+              }`}>
+                {feedScope === 'friends' ? <Users className="w-5 h-5" /> : <Globe className="w-5 h-5" />}
               </div>
               <div>
-                <h1 className="text-base sm:text-lg font-bold text-white">Actividad de Amigos</h1>
-                <p className="text-xs text-cinema-textMuted">Micro-reseñas y calificaciones recientes sin anuncios ni spam</p>
+                <h1 className="text-base sm:text-lg font-bold text-white">
+                  {feedScope === 'friends' ? 'Muro de Amigos' : 'Comunidad Global (Mundo)'}
+                </h1>
+                <p className="text-xs text-cinema-textMuted">
+                  {feedScope === 'friends'
+                    ? 'Micro-reseñas y calificaciones exclusivas de tu círculo cercano (Plan Base)'
+                    : 'Críticas abiertas compartidas por cinéfilos de todo el mundo'}
+                </p>
               </div>
             </div>
-            <span className="text-xs font-mono px-3 py-1 rounded-full bg-cinema-surface border border-cinema-border text-cinema-textSecondary">
-              {reviews.length} reseñas
-            </span>
+
+            {/* Scope Switcher */}
+            <div className="flex items-center bg-cinema-surface p-1 rounded-2xl border border-cinema-border flex-shrink-0">
+              <button
+                onClick={() => setFeedScope('friends')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  feedScope === 'friends'
+                    ? 'bg-cinema-card text-purple-300 shadow border border-cinema-border'
+                    : 'text-cinema-textSecondary hover:text-white'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Amigos</span>
+              </button>
+
+              <button
+                onClick={() => setFeedScope('global')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  feedScope === 'global'
+                    ? 'bg-cinema-card text-cinema-gold shadow border border-cinema-border'
+                    : 'text-cinema-textSecondary hover:text-white'
+                }`}
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span>Mundo</span>
+              </button>
+            </div>
           </div>
+
+          {/* Prompt banner if in Global and not Subscribed */}
+          {feedScope === 'global' && !currentUser.isPremium && (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/30 via-cinema-card to-cinema-card border border-cinema-gold/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-amber-950/70 border border-cinema-gold/30 text-cinema-gold flex-shrink-0">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-white">Interacción con la Comunidad Global</span>
+                  <span className="text-[11px] text-cinema-textMuted max-w-lg">
+                    Con tu Plan Base actual puedes leer el muro mundial, pero tus comentarios solo se comparten con amigos. Activa la Suscripción Mensual (S/ 14.90/mes) para que tus opiniones las lea el mundo entero e interactuar con la comunidad.
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() =>
+                  onOpenSubscriptionModal?.(
+                    'Para que tus comentarios se puedan ver al mundo e interactuar con la comunidad, necesitas la suscripción mensual. En el Plan Base solo puedes interactuar con amigos.'
+                  )
+                }
+                className="px-4 py-2 rounded-xl bg-cinema-gold hover:bg-amber-400 text-black text-xs font-bold transition-all shadow-md flex items-center gap-1.5 whitespace-nowrap flex-shrink-0"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Activar Suscripción Mensual</span>
+              </button>
+            </div>
+          )}
 
           {/* Feed Items */}
           <div className="flex flex-col gap-4">
-            {reviews.map((r) => {
+            {filteredReviews.map((r) => {
               const isCommentOpen = activeCommentReviewId === r.id;
               return (
                 <div
@@ -115,13 +204,32 @@ export const FriendsFeedView: React.FC<FriendsFeedViewProps> = ({
                         className="w-10 h-10 rounded-full object-cover border border-cinema-border"
                       />
                       <div className="flex flex-col">
-                        <span className="text-sm font-bold text-white">{r.userName}</span>
-                        <span className="text-[11px] text-cinema-textMuted">
-                          {new Date(r.createdAt).toLocaleDateString('es-ES', {
-                            day: 'numeric',
-                            month: 'short',
-                          })}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-bold text-white">{r.userName}</span>
+                          {r.userIsPremium && (
+                            <span className="px-1.5 py-0.2 rounded-full bg-cinema-gold/20 text-cinema-gold text-[9px] font-bold border border-cinema-gold/30">
+                              Pro
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-cinema-textMuted">
+                          <span>
+                            {new Date(r.createdAt).toLocaleDateString('es-ES', {
+                              day: 'numeric',
+                              month: 'short',
+                            })}
+                          </span>
+                          <span>•</span>
+                          {r.isCommunity ? (
+                            <span className="text-cinema-gold flex items-center gap-1 font-semibold text-[10px]">
+                              <Globe className="w-2.5 h-2.5" /> Comunidad Global
+                            </span>
+                          ) : (
+                            <span className="text-purple-400 flex items-center gap-1 font-semibold text-[10px]">
+                              <Users className="w-2.5 h-2.5" /> Solo Amigos
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -229,27 +337,48 @@ export const FriendsFeedView: React.FC<FriendsFeedViewProps> = ({
                         </div>
                       )}
 
-                      {/* Add comment input */}
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={commentInputs[r.id] || ''}
-                          onChange={(e) =>
-                            setCommentInputs({ ...commentInputs, [r.id]: e.target.value })
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleAddComment(r.id);
-                          }}
-                          placeholder="Escribe una respuesta cinéfila..."
-                          className="flex-grow px-3 py-2 rounded-xl bg-cinema-surface border border-cinema-border focus:border-cinema-gold text-xs text-white placeholder-cinema-textMuted outline-none"
-                        />
-                        <button
-                          onClick={() => handleAddComment(r.id)}
-                          className="p-2 rounded-xl bg-cinema-gold text-black hover:bg-amber-400 transition-colors"
-                        >
-                          <Send className="w-4 h-4" />
-                        </button>
-                      </div>
+                      {/* Add comment input / Subscription gate */}
+                      {r.isCommunity && !currentUser.isPremium ? (
+                        <div className="p-3 rounded-xl bg-cinema-card border border-cinema-gold/30 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 text-xs text-cinema-textSecondary">
+                            <Lock className="w-4 h-4 text-cinema-gold flex-shrink-0" />
+                            <span>
+                              En el <strong>Plan Base</strong> solo puedes comentar a tus amigos. Activa la suscripción para interactuar con la comunidad.
+                            </span>
+                          </div>
+                          <button
+                            onClick={() =>
+                              onOpenSubscriptionModal?.(
+                                'Para comentar e interactuar con la comunidad global necesitas una suscripción mensual. En el Plan Base solo puedes interactuar con amigos.'
+                              )
+                            }
+                            className="px-3 py-1.5 rounded-lg bg-cinema-gold hover:bg-amber-400 text-black text-xs font-bold transition-all whitespace-nowrap shadow"
+                          >
+                            Activar Pro
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={commentInputs[r.id] || ''}
+                            onChange={(e) =>
+                              setCommentInputs({ ...commentInputs, [r.id]: e.target.value })
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleAddComment(r.id);
+                            }}
+                            placeholder="Escribe una respuesta cinéfila..."
+                            className="flex-grow px-3 py-2 rounded-xl bg-cinema-surface border border-cinema-border focus:border-cinema-gold text-xs text-white placeholder-cinema-textMuted outline-none"
+                          />
+                          <button
+                            onClick={() => handleAddComment(r.id)}
+                            className="p-2 rounded-xl bg-cinema-gold text-black hover:bg-amber-400 transition-colors"
+                          >
+                            <Send className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

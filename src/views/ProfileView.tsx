@@ -15,18 +15,25 @@ import {
   X,
   Check,
   Award,
+  Globe,
+  Lock,
+  ShieldCheck,
+  ArrowRight,
+  Users,
 } from 'lucide-react';
 
 interface ProfileViewProps {
   currentUser: User;
   onUpdateUser: (updated: User) => void;
   onSelectMovieById: (movieId: string) => void;
+  onOpenSubscriptionModal?: (reason?: string) => void;
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({
   currentUser,
   onUpdateUser,
   onSelectMovieById,
+  onOpenSubscriptionModal,
 }) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [activeTab, setActiveTab] = useState<'reviews' | 'favorites'>('reviews');
@@ -136,15 +143,80 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </button>
 
           <button
-            onClick={handleTogglePremium}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-colors ${
+            onClick={() => onOpenSubscriptionModal?.()}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
               currentUser.isPremium
                 ? 'bg-cinema-gold/15 text-cinema-gold border border-cinema-gold/40'
-                : 'bg-cinema-gold hover:bg-amber-400 text-black font-bold shadow'
+                : 'bg-cinema-gold hover:bg-amber-400 text-black font-bold shadow-lg shadow-amber-900/30'
             }`}
           >
-            <Award className="w-3.5 h-3.5" />
-            <span>{currentUser.isPremium ? 'Membresía Pro Activa' : 'Activar Cinéfilo Pro'}</span>
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{currentUser.isPremium ? 'Suscripción Activa' : 'Suscripción Mensual'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Subscription Plan Status Card */}
+      <div className={`p-6 rounded-3xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl relative overflow-hidden ${
+        currentUser.isPremium
+          ? 'bg-gradient-to-r from-amber-950/40 via-cinema-card to-cinema-card border-cinema-gold/40'
+          : 'bg-cinema-card border-cinema-border'
+      }`}>
+        <div className="flex items-start gap-4">
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+            currentUser.isPremium
+              ? 'bg-amber-950/80 border border-cinema-gold/50 text-cinema-gold shadow-lg shadow-amber-950/50'
+              : 'bg-purple-950/50 border border-purple-500/30 text-purple-400'
+          }`}>
+            {currentUser.isPremium ? <Globe className="w-6 h-6" /> : <Users className="w-6 h-6" />}
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-cinema-textSecondary">
+                Tu Nivel de Interacción
+              </span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                currentUser.isPremium
+                  ? 'bg-cinema-gold/20 text-cinema-gold border-cinema-gold/40'
+                  : 'bg-purple-950/60 text-purple-300 border-purple-500/40'
+              }`}>
+                {currentUser.isPremium ? '✨ Comunidad Global' : '👥 Plan Base'}
+              </span>
+            </div>
+
+            <h3 className="text-lg font-bold text-white">
+              {currentUser.isPremium
+                ? 'Suscripción Mensual Activa (S/ 14.90 / mes)'
+                : 'Plan Base Gratuito (Solo Amigos)'}
+            </h3>
+
+            <p className="text-xs text-cinema-textSecondary max-w-xl leading-relaxed">
+              {currentUser.isPremium
+                ? 'Tus reseñas y opiniones son públicas para el mundo entero en las fichas de películas e interactúas libremente con toda la comunidad cinéfila en debates y Cineclubs.'
+                : 'Actualmente tus comentarios y calificaciones son privados y solo los pueden ver tus amigos mutuos. Para que tus opiniones se puedan ver al mundo e interactuar con la comunidad global, activa la suscripción mensual.'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 w-full md:w-auto justify-end flex-shrink-0">
+          <button
+            onClick={() => onOpenSubscriptionModal?.()}
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md w-full md:w-auto justify-center ${
+              currentUser.isPremium
+                ? 'bg-cinema-surface hover:bg-cinema-cardHover text-gray-300 border border-cinema-border'
+                : 'bg-cinema-gold hover:bg-amber-400 text-black shadow-amber-900/40 hover:scale-105'
+            }`}
+          >
+            {currentUser.isPremium ? (
+              <span>Gestionar Suscripción</span>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Activar Suscripción Mensual</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </>
+            )}
           </button>
         </div>
       </div>

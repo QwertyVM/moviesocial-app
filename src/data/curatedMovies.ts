@@ -621,7 +621,9 @@ export const DEFAULT_USER: User = {
   username: '@alexrivera',
   bio: 'Crítico entusiasta de cine de autor, sci-fi y experiencias en gran pantalla 🎬 70mm lover.',
   avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-  isPremium: true,
+  isPremium: false,
+  subscriptionPlan: 'base',
+  subscriptionPrice: 'S/ 14.90 / mes',
   location: AVAILABLE_CITIES[0], // Lima por defecto
   createdAt: '2024-01-15T08:00:00Z'
 };

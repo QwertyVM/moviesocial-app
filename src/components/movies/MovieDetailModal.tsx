@@ -18,6 +18,7 @@ import {
   Sparkles,
   Ticket,
   Film,
+  Globe,
 } from 'lucide-react';
 
 interface MovieDetailModalProps {
@@ -26,6 +27,7 @@ interface MovieDetailModalProps {
   onClose: () => void;
   currentUser: User;
   onShareInChat?: (movie: Movie) => void;
+  onOpenSubscriptionModal?: (reason?: string) => void;
 }
 
 export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
@@ -34,6 +36,7 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
   onClose,
   currentUser,
   onShareInChat,
+  onOpenSubscriptionModal,
 }) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -326,10 +329,44 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
             {/* 5. Community Reviews */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between border-b border-cinema-border pb-2">
-                <h2 className="text-sm font-bold text-cinema-textSecondary uppercase tracking-wider">
-                  Críticas de la Comunidad ({communityReviews.length})
-                </h2>
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-cinema-gold" />
+                  <h2 className="text-sm font-bold text-cinema-textSecondary uppercase tracking-wider">
+                    Críticas de la Comunidad ({communityReviews.length})
+                  </h2>
+                </div>
+                {!currentUser.isPremium && (
+                  <span className="text-[10px] text-cinema-gold font-medium bg-cinema-gold/10 px-2 py-0.5 rounded-full border border-cinema-gold/30">
+                    Solo lectura (Plan Base)
+                  </span>
+                )}
               </div>
+
+              {!currentUser.isPremium && (
+                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/40 via-cinema-card to-cinema-card border border-cinema-gold/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-amber-900/40 border border-cinema-gold/30 text-cinema-gold flex-shrink-0">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-white">¿Quieres que tu opinión la lea el mundo?</span>
+                      <span className="text-[11px] text-cinema-textMuted">
+                        En el Plan Base tus comentarios son privados para tus amigos. Con la suscripción mensual se publican aquí para toda la comunidad cinéfila mundial.
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() =>
+                      onOpenSubscriptionModal?.(
+                        'Activa tu suscripción mensual para que tus críticas se publiquen en la comunidad mundial e interactuar sin límites.'
+                      )
+                    }
+                    className="px-3 py-1.5 rounded-xl bg-cinema-gold hover:bg-amber-400 text-black text-xs font-bold transition-all shadow whitespace-nowrap"
+                  >
+                    Mejorar a Global
+                  </button>
+                </div>
+              )}
 
               {communityReviews.length > 0 ? (
                 <div className="flex flex-col gap-3">
@@ -345,7 +382,14 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
                             alt={r.userName}
                             className="w-6 h-6 rounded-full object-cover"
                           />
-                          <span className="text-xs font-semibold text-white">{r.userName}</span>
+                          <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                            {r.userName}
+                            {r.userIsPremium && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-cinema-gold/20 text-cinema-gold border border-cinema-gold/30 font-bold">
+                                Pro
+                              </span>
+                            )}
+                          </span>
                         </div>
                         <span className="text-xs font-mono font-semibold text-cinema-gold">
                           {r.rating.toFixed(1)} ★
@@ -371,6 +415,8 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
         onSubmit={handleReviewSubmitted}
+        currentUser={currentUser}
+        onOpenSubscriptionModal={onOpenSubscriptionModal}
       />
     </>
   );
