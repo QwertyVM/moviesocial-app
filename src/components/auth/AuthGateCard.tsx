@@ -73,3 +73,4 @@ export const AuthGateCard: React.FC<AuthGateCardProps> = ({
     </div>
   );
 };
+
