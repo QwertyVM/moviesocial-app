@@ -170,63 +170,99 @@ class MovieSocialAPI {
 
   // --- Películas y Cartelera ---
   async getMovies(options?: {
-    category?: 'nowPlaying' | 'classics';
+    category?: 'nowPlaying' | 'classics' | 'catalog';
     city?: string;
+    countryCode?: string;
     decade?: string;
+    minRating?: number | null;
+    genre?: string;
+    sortBy?: 'yearDesc' | 'ratingDesc' | 'criticsDesc' | 'audienceDesc';
     searchQuery?: string;
   }): Promise<Movie[]> {
-    const { category = 'nowPlaying', city = this.user.location.city, decade = 'all', searchQuery = '' } = options || {};
+    const {
+      category = 'nowPlaying',
+      city = this.user.location.city,
+      countryCode = this.user.location.countryCode || 'PE',
+      decade = 'all',
+      minRating = null,
+      genre = 'all',
+      sortBy = category === 'nowPlaying' ? 'ratingDesc' : 'yearDesc',
+      searchQuery = '',
+    } = options || {};
 
     let list = [...CURATED_MOVIES];
 
-    // Enriquecer con salas y horarios según ciudad
-    const normCity = city.trim().toLowerCase();
-    const cityData = CITY_SHOWTIMES[normCity] || {};
-
+    // Marcar si la película está en estreno en cines según el país de la ubicación
     list = list.map((m) => {
-      const showtimes = cityData[m.id] || [];
+      const isTheatrical = Boolean(
+        m.theatricalCountries && m.theatricalCountries.includes(countryCode)
+      );
       return {
         ...m,
-        isInTheatersLocally: showtimes.length > 0,
-        theatersPlaying: showtimes.map((s) => s.cinemaName),
-        showtimes: showtimes,
+        isInTheatersLocally: isTheatrical,
+        theatersPlaying: isTheatrical ? ['Cines comerciales en ' + (this.user.location.country || city)] : [],
       };
     });
 
-    // Filtro por Cartelera vs Clásicos
+    // Filtro por Cartelera (Estrenos) vs Catálogo (Fuera de estreno)
     if (category === 'nowPlaying') {
-      // Priorizar los que están en cines en la ciudad o son estrenos recientes (>= 2024)
-      list = list.filter((m) => m.releaseYear >= 2024 || (m.showtimes && m.showtimes.length > 0));
-      // Ordenar: primero los que tienen funciones locales, luego por MovieScore
-      list.sort((a, b) => {
-        const aLocal = a.isInTheatersLocally ? 1 : 0;
-        const bLocal = b.isInTheatersLocally ? 1 : 0;
-        if (aLocal !== bLocal) return bLocal - aLocal;
-        return (b.ratings.compositeScore || 0) - (a.ratings.compositeScore || 0);
-      });
-    } else {
-      // Clásicos históricos: películas de cualquier época
-      list = list.filter((m) => m.releaseYear < 2024);
+      // Solo películas que actualmente están en estreno en el país
+      list = list.filter((m) => m.isInTheatersLocally);
 
-      // Filtro por década
+      // Ordenar estrenos por MovieScore o año
+      if (sortBy === 'ratingDesc') {
+        list.sort((a, b) => (b.ratings.compositeScore || 0) - (a.ratings.compositeScore || 0));
+      } else {
+        list.sort((a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime());
+      }
+    } else {
+      // Catálogo general: películas FUERA de estreno
+      list = list.filter((m) => !m.isInTheatersLocally);
+
+      // Filtro por década / época
       if (decade !== 'all') {
         list = list.filter((m) => {
           const y = m.releaseYear;
-          if (decade === '60s') return y <= 1969;
-          if (decade === '70s') return y >= 1970 && y <= 1979;
-          if (decade === '80s') return y >= 1980 && y <= 1989;
-          if (decade === '90s') return y >= 1990 && y <= 1999;
-          if (decade === '2000s') return y >= 2000 && y <= 2009;
+          if (decade === '2020s') return y >= 2020 && y <= 2029;
           if (decade === '2010s') return y >= 2010 && y <= 2019;
+          if (decade === '2000s') return y >= 2000 && y <= 2009;
+          if (decade === '90s') return y >= 1990 && y <= 1999;
+          if (decade === '80s') return y >= 1980 && y <= 1989;
+          if (decade === '70s') return y >= 1970 && y <= 1979;
+          if (decade === '60s') return y <= 1969;
           return true;
         });
       }
 
-      // Ordenar estrictamente por MovieScore de mayor a menor
-      list.sort((a, b) => (b.ratings.compositeScore || 0) - (a.ratings.compositeScore || 0));
+      // Filtro por Rating Mínimo
+      if (minRating && minRating > 0) {
+        list = list.filter((m) => (m.ratings.compositeScore || 0) >= minRating);
+      }
+
+      // Filtro por Género
+      if (genre && genre !== 'all') {
+        const normG = genre.toLowerCase();
+        list = list.filter((m) => m.genres.some((g) => g.toLowerCase().includes(normG)));
+      }
+
+      // Ordenamiento: Por defecto descendente desde la más actual fuera de estreno hasta la más antigua
+      if (sortBy === 'yearDesc') {
+        list.sort((a, b) => {
+          const timeA = new Date(a.releaseDate).getTime();
+          const timeB = new Date(b.releaseDate).getTime();
+          if (timeA !== timeB) return timeB - timeA;
+          return b.releaseYear - a.releaseYear;
+        });
+      } else if (sortBy === 'ratingDesc') {
+        list.sort((a, b) => (b.ratings.compositeScore || 0) - (a.ratings.compositeScore || 0));
+      } else if (sortBy === 'criticsDesc') {
+        list.sort((a, b) => (b.ratings.rottenTomatoesCritics || 0) - (a.ratings.rottenTomatoesCritics || 0));
+      } else if (sortBy === 'audienceDesc') {
+        list.sort((a, b) => (b.ratings.rottenTomatoesAudience || 0) - (a.ratings.rottenTomatoesAudience || 0));
+      }
     }
 
-    // Buscador
+    // Buscador general (título, director, género o año)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter(
@@ -245,15 +281,15 @@ class MovieSocialAPI {
     const found = CURATED_MOVIES.find((m) => m.id === id);
     if (!found) return null;
 
-    const normCity = this.user.location.city.trim().toLowerCase();
-    const cityData = CITY_SHOWTIMES[normCity] || {};
-    const showtimes = cityData[found.id] || [];
+    const countryCode = this.user.location.countryCode || 'PE';
+    const isTheatrical = Boolean(
+      found.theatricalCountries && found.theatricalCountries.includes(countryCode)
+    );
 
     return {
       ...found,
-      isInTheatersLocally: showtimes.length > 0,
-      theatersPlaying: showtimes.map((s) => s.cinemaName),
-      showtimes: showtimes,
+      isInTheatersLocally: isTheatrical,
+      theatersPlaying: isTheatrical ? ['Cines de ' + (this.user.location.country || this.user.location.city)] : [],
     };
   }
 

@@ -91,7 +91,7 @@ export const CITY_SHOWTIMES: Record<string, Record<string, CinemaShowtime[]>> = 
 };
 
 export const RAW_MOVIES: Movie[] = [
-  // --- ESTRENOS ACTUALES ---
+  // --- ESTRENOS ACTUALES EN CINES (Según país) ---
   {
     id: 'obsesion_2026',
     title: 'Obsesión (Obsession)',
@@ -106,6 +106,7 @@ export const RAW_MOVIES: Movie[] = [
     director: 'Curry Barker',
     countryOfOrigin: 'US',
     originCountryName: 'Estados Unidos',
+    theatricalCountries: ['PE', 'MX', 'ES', 'CO', 'AR', 'CL', 'US', 'FR'],
     ratings: {
       rottenTomatoesCritics: 92,
       rottenTomatoesAudience: 88,
@@ -128,6 +129,7 @@ export const RAW_MOVIES: Movie[] = [
     director: 'Marco Panéz',
     countryOfOrigin: 'PE',
     originCountryName: 'Perú',
+    theatricalCountries: ['PE'], // Estreno exclusivo en cines de Perú
     ratings: {
       rottenTomatoesCritics: 89,
       rottenTomatoesAudience: 91,
@@ -137,27 +139,54 @@ export const RAW_MOVIES: Movie[] = [
     }
   },
   {
-    id: 'dune_part_two',
-    title: 'Dune: Parte Dos (Dune: Part Two)',
-    overview: 'Paul Atreides se une a Chani y a los Fremen mientras busca venganza contra los conspiradores que destruyeron a su familia. Ante una elección entre el amor de su vida y el destino del universo, debe prevenir un futuro terrible que solo él puede prever.',
+    id: 'gladiator_two',
+    title: 'Gladiador II (Gladiator II)',
+    overview: 'Años después de presenciar la muerte del admirado héroe Máximo a manos de su tío, Lucio debe entrar en el Coliseo tras ser conquistado su hogar por los tiránicos emperadores que ahora lideran Roma.',
     releaseYear: 2024,
-    releaseDate: '2024-03-01',
-    posterURL: 'https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg',
-    backdropURL: 'https://image.tmdb.org/t/p/w1280/xOMo8BRK7PfcJv9JCnx7s5200bm.jpg',
-    genres: ['Ciencia Ficción', 'Aventura', 'Drama'],
-    runtimeMinutes: 166,
-    imdbId: 'tt15239678',
-    director: 'Denis Villeneuve',
+    releaseDate: '2024-11-15',
+    posterURL: 'https://image.tmdb.org/t/p/w500/2cxhvwyEwRlysAmRHbtVIQI98D.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/euYIwmwkmz95mnExrPy4vAeaQdU.jpg',
+    genres: ['Acción', 'Aventura', 'Drama'],
+    runtimeMinutes: 148,
+    imdbId: 'tt9218128',
+    director: 'Ridley Scott',
     countryOfOrigin: 'US',
     originCountryName: 'Estados Unidos',
+    theatricalCountries: ['PE', 'MX', 'ES', 'CO', 'AR', 'CL', 'US', 'FR'],
     ratings: {
-      rottenTomatoesCritics: 92,
-      rottenTomatoesAudience: 95,
-      imdbScore: 8.5,
-      imdbVotes: '540K',
-      compositeScore: 8.8
+      rottenTomatoesCritics: 76,
+      rottenTomatoesAudience: 87,
+      imdbScore: 7.2,
+      imdbVotes: '180K',
+      compositeScore: 7.8
     }
   },
+  {
+    id: 'wicked_2024',
+    title: 'Wicked',
+    overview: 'Elphaba, una joven incomprendida debido a su inusual piel verde, y Glinda, una joven popular dorada por el privilegio, forjan una amistad improbable pero profunda en la Universidad de Shiz.',
+    releaseYear: 2024,
+    releaseDate: '2024-11-22',
+    posterURL: 'https://image.tmdb.org/t/p/w500/2E1x1qcHqGZc99j0z7mUeIeeCj7.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/tElnmtQ6yz1PjN1kePNl8yMSb59.jpg',
+    genres: ['Fantasía', 'Drama', 'Romance'],
+    runtimeMinutes: 160,
+    imdbId: 'tt1787884',
+    director: 'Jon M. Chu',
+    countryOfOrigin: 'US',
+    originCountryName: 'Estados Unidos',
+    theatricalCountries: ['PE', 'MX', 'ES', 'CO', 'AR', 'CL', 'US', 'FR'],
+    ratings: {
+      rottenTomatoesCritics: 90,
+      rottenTomatoesAudience: 95,
+      imdbScore: 8.0,
+      imdbVotes: '135K',
+      compositeScore: 8.6
+    }
+  },
+
+  // --- CATÁLOGO GENERAL (FUERA DE ESTRENO / STREAMING Y FORMATOS DOMÉSTICOS) ---
+  // Ordenados naturalmente por fecha descendente
   {
     id: 'deadpool_wolverine',
     title: 'Deadpool & Wolverine',
@@ -172,6 +201,7 @@ export const RAW_MOVIES: Movie[] = [
     director: 'Shawn Levy',
     countryOfOrigin: 'US',
     originCountryName: 'Estados Unidos',
+    theatricalCountries: [],
     ratings: {
       rottenTomatoesCritics: 78,
       rottenTomatoesAudience: 94,
@@ -194,6 +224,7 @@ export const RAW_MOVIES: Movie[] = [
     director: 'George Miller',
     countryOfOrigin: 'AU',
     originCountryName: 'Australia',
+    theatricalCountries: [],
     ratings: {
       rottenTomatoesCritics: 90,
       rottenTomatoesAudience: 89,
@@ -202,94 +233,142 @@ export const RAW_MOVIES: Movie[] = [
       compositeScore: 8.1
     }
   },
-
-  // --- CLÁSICOS HISTÓRICOS ---
   {
-    id: 'the_godfather',
-    title: 'El Padrino (The Godfather)',
-    overview: 'El envejecido patriarca de una dinastía del crimen organizado en Nueva York transfiere el control de su imperio clandestino a su reacio hijo menor.',
-    releaseYear: 1972,
-    releaseDate: '1972-03-24',
-    posterURL: 'https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg',
-    backdropURL: 'https://image.tmdb.org/t/p/w1280/tmU7GeKVybMWFButWEGl2M4GeiP.jpg',
-    genres: ['Crimen', 'Drama'],
-    runtimeMinutes: 175,
-    imdbId: 'tt0068646',
-    director: 'Francis Ford Coppola',
+    id: 'dune_part_two',
+    title: 'Dune: Parte Dos (Dune: Part Two)',
+    overview: 'Paul Atreides se une a Chani y a los Fremen mientras busca venganza contra los conspiradores que destruyeron a su familia. Ante una elección entre el amor de su vida y el destino del universo, debe prevenir un futuro terrible que solo él puede prever.',
+    releaseYear: 2024,
+    releaseDate: '2024-03-01',
+    posterURL: 'https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/xOMo8BRK7PfcJv9JCnx7s5200bm.jpg',
+    genres: ['Ciencia Ficción', 'Aventura', 'Drama'],
+    runtimeMinutes: 166,
+    imdbId: 'tt15239678',
+    director: 'Denis Villeneuve',
     countryOfOrigin: 'US',
     originCountryName: 'Estados Unidos',
-    ratings: {
-      rottenTomatoesCritics: 97,
-      rottenTomatoesAudience: 98,
-      imdbScore: 9.2,
-      imdbVotes: '2.0M',
-      compositeScore: 9.5
-    }
-  },
-  {
-    id: 'the_godfather_part_ii',
-    title: 'El Padrino Parte II (The Godfather Part II)',
-    overview: 'Se retratan los primeros pasos en el crimen del joven Vito Corleone en la Nueva York de los años 20 mientras en los 50 su hijo Michael expande el sindicato a Las Vegas, Hollywood y Cuba.',
-    releaseYear: 1974,
-    releaseDate: '1974-12-20',
-    posterURL: 'https://image.tmdb.org/t/p/w500/hek3koDUyMrk7ilW5eEv6vBu5ye.jpg',
-    backdropURL: 'https://image.tmdb.org/t/p/w1280/kGzFbGhp99zva6vdZ2yoVI5usnS.jpg',
-    genres: ['Crimen', 'Drama'],
-    runtimeMinutes: 202,
-    imdbId: 'tt0071562',
-    director: 'Francis Ford Coppola',
-    countryOfOrigin: 'US',
-    originCountryName: 'Estados Unidos',
-    ratings: {
-      rottenTomatoesCritics: 96,
-      rottenTomatoesAudience: 97,
-      imdbScore: 9.0,
-      imdbVotes: '1.4M',
-      compositeScore: 9.3
-    }
-  },
-  {
-    id: 'pulp_fiction',
-    title: 'Pulp Fiction (Tiempos Violentos)',
-    overview: 'Las vidas de dos matones de la mafia, un boxeador, la esposa de un gángster y dos bandidos se entrelazan en cuatro historias de violencia y redención en Los Ángeles.',
-    releaseYear: 1994,
-    releaseDate: '1994-10-14',
-    posterURL: 'https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg',
-    backdropURL: 'https://image.tmdb.org/t/p/w1280/suaEOtk1N1sgg2MTM7oZd2cfVp3.jpg',
-    genres: ['Crimen', 'Comedia Negra', 'Drama'],
-    runtimeMinutes: 154,
-    imdbId: 'tt0110912',
-    director: 'Quentin Tarantino',
-    countryOfOrigin: 'US',
-    originCountryName: 'Estados Unidos',
+    theatricalCountries: [],
     ratings: {
       rottenTomatoesCritics: 92,
-      rottenTomatoesAudience: 96,
+      rottenTomatoesAudience: 95,
+      imdbScore: 8.5,
+      imdbVotes: '540K',
+      compositeScore: 8.8
+    }
+  },
+  {
+    id: 'oppenheimer',
+    title: 'Oppenheimer',
+    overview: 'La historia del científico estadounidense J. Robert Oppenheimer y su papel fundamental en el desarrollo y creación de la bomba atómica durante el Proyecto Manhattan.',
+    releaseYear: 2023,
+    releaseDate: '2023-07-21',
+    posterURL: 'https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/rLb2cwF3Pazuxaj0sRXQ037tGI1.jpg',
+    genres: ['Drama', 'Historia', 'Biografía'],
+    runtimeMinutes: 180,
+    imdbId: 'tt15398776',
+    director: 'Christopher Nolan',
+    countryOfOrigin: 'US',
+    originCountryName: 'Estados Unidos',
+    theatricalCountries: [],
+    ratings: {
+      rottenTomatoesCritics: 93,
+      rottenTomatoesAudience: 91,
       imdbScore: 8.9,
-      imdbVotes: '2.2M',
+      imdbVotes: '820K',
       compositeScore: 9.1
     }
   },
   {
-    id: '12_angry_men',
-    title: '12 Hombres en Pugna (12 Angry Men)',
-    overview: 'Un miembro de un jurado intenta evitar un error judicial convenciendo a los otros once colegas de que reconsideren las pruebas en un juicio por asesinato.',
-    releaseYear: 1957,
-    releaseDate: '1957-04-10',
-    posterURL: 'https://image.tmdb.org/t/p/w500/ow3wq89wM8qd5X7hWKxiRfsFf9C.jpg',
-    backdropURL: 'https://image.tmdb.org/t/p/w1280/qqHQsStV6exghCM7zbR8477w7H.jpg',
-    genres: ['Drama', 'Misterio'],
-    runtimeMinutes: 96,
-    imdbId: 'tt0050083',
-    director: 'Sidney Lumet',
+    id: 'the_batman',
+    title: 'The Batman',
+    overview: 'En su segundo año luchando contra el crimen, Batman explora la corrupción existente en Gotham City y el vínculo de esta con su propia familia mientras persigue a El Acertijo.',
+    releaseYear: 2022,
+    releaseDate: '2022-03-04',
+    posterURL: 'https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/b0PlSFdDwbyK0cf5RxwDpaOJQvQ.jpg',
+    genres: ['Acción', 'Crimen', 'Drama'],
+    runtimeMinutes: 176,
+    imdbId: 'tt1877830',
+    director: 'Matt Reeves',
     countryOfOrigin: 'US',
     originCountryName: 'Estados Unidos',
+    theatricalCountries: [],
     ratings: {
-      rottenTomatoesCritics: 100,
-      rottenTomatoesAudience: 97,
-      imdbScore: 9.0,
-      imdbVotes: '870K',
-      compositeScore: 9.4
+      rottenTomatoesCritics: 85,
+      rottenTomatoesAudience: 87,
+      imdbScore: 7.8,
+      imdbVotes: '780K',
+      compositeScore: 8.2
+    }
+  },
+  {
+    id: 'parasite',
+    title: 'Parásitos (Parasite)',
+    overview: 'Tanto Gi-taek como su familia están sin trabajo. Cuando su hijo mayor empieza a dar clases particulares en la adinerada casa de los Park, las dos familias se involucran en una serie de eventos inesperados.',
+    releaseYear: 2019,
+    releaseDate: '2019-05-30',
+    posterURL: 'https://image.tmdb.org/t/p/w500/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/hiKmpZMGZsrkA3cdce8a7Dpos1j.jpg',
+    genres: ['Comedia Negra', 'Drama', 'Suspenso'],
+    runtimeMinutes: 132,
+    imdbId: 'tt6751668',
+    director: 'Bong Joon-ho',
+    countryOfOrigin: 'KR',
+    originCountryName: 'Corea del Sur',
+    theatricalCountries: [],
+    ratings: {
+      rottenTomatoesCritics: 99,
+      rottenTomatoesAudience: 95,
+      imdbScore: 8.5,
+      imdbVotes: '950K',
+      compositeScore: 9.2
+    }
+  },
+  {
+    id: 'interstellar',
+    title: 'Interestelar (Interstellar)',
+    overview: 'Un equipo de exploradores viaja a través de un agujero de gusano en el espacio en un intento por asegurar la supervivencia de la humanidad.',
+    releaseYear: 2014,
+    releaseDate: '2014-11-07',
+    posterURL: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/xJHokMbljvjADYdit5fK5VQsXEG.jpg',
+    genres: ['Ciencia Ficción', 'Drama', 'Aventura'],
+    runtimeMinutes: 169,
+    imdbId: 'tt0816692',
+    director: 'Christopher Nolan',
+    countryOfOrigin: 'US',
+    originCountryName: 'Estados Unidos',
+    theatricalCountries: [],
+    ratings: {
+      rottenTomatoesCritics: 73,
+      rottenTomatoesAudience: 86,
+      imdbScore: 8.7,
+      imdbVotes: '2.1M',
+      compositeScore: 8.3
+    }
+  },
+  {
+    id: 'fast_five_2011',
+    title: 'Rápidos y Furiosos 5in Control (Fast Five)',
+    overview: 'Dominic Toretto y Brian O\'Conner reúnen a su legendario equipo en Río de Janeiro para un último atraco de 100 millones de dólares.',
+    releaseYear: 2011,
+    releaseDate: '2011-04-29',
+    posterURL: 'https://m.media-amazon.com/images/M/MV5BMTUxNTk5MTE0OF5BMl5BanBnXkFtZTcwMjA2NzY3NA@@._V1_QL75_UX380_CR0,0,380,562_.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/lGDeo2NlTz6N1H8F1N6H9Tf6iXF.jpg',
+    genres: ['Acción', 'Crimen', 'Suspenso'],
+    runtimeMinutes: 130,
+    imdbId: 'tt1596343',
+    director: 'Justin Lin',
+    countryOfOrigin: 'US',
+    originCountryName: 'Estados Unidos',
+    theatricalCountries: [],
+    ratings: {
+      rottenTomatoesCritics: 78,
+      rottenTomatoesAudience: 83,
+      imdbScore: 7.3,
+      imdbVotes: '430K',
+      compositeScore: 7.5
     }
   },
   {
@@ -306,6 +385,7 @@ export const RAW_MOVIES: Movie[] = [
     director: 'Christopher Nolan',
     countryOfOrigin: 'US',
     originCountryName: 'Estados Unidos',
+    theatricalCountries: [],
     ratings: {
       rottenTomatoesCritics: 94,
       rottenTomatoesAudience: 94,
@@ -328,6 +408,7 @@ export const RAW_MOVIES: Movie[] = [
     director: 'Hayao Miyazaki',
     countryOfOrigin: 'JP',
     originCountryName: 'Japón',
+    theatricalCountries: [],
     ratings: {
       rottenTomatoesCritics: 96,
       rottenTomatoesAudience: 96,
@@ -337,25 +418,72 @@ export const RAW_MOVIES: Movie[] = [
     }
   },
   {
-    id: 'interstellar',
-    title: 'Interestelar (Interstellar)',
-    overview: 'Un equipo de exploradores viaja a través de un agujero de gusano en el espacio en un intento por asegurar la supervivencia de la humanidad.',
-    releaseYear: 2014,
-    releaseDate: '2014-11-07',
-    posterURL: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
-    backdropURL: 'https://image.tmdb.org/t/p/w1280/xJHokMbljvjADYdit5fK5VQsXEG.jpg',
-    genres: ['Ciencia Ficción', 'Drama', 'Aventura'],
-    runtimeMinutes: 169,
-    imdbId: 'tt0816692',
-    director: 'Christopher Nolan',
+    id: 'fast_furious_1',
+    title: 'Rápidos y Furiosos (The Fast and the Furious)',
+    overview: 'El oficial encubierto Brian O\'Conner se infiltra en las carreras clandestinas de Los Ángeles lideradas por Dominic Toretto.',
+    releaseYear: 2001,
+    releaseDate: '2001-06-22',
+    posterURL: 'https://m.media-amazon.com/images/M/MV5BZGRiMDE1NTMtMThmZS00YjE4LWI1ODQtNjRkZGZlOTg2MGE1XkEyXkFqcGc@._V1_QL75_UX380_CR0,1,380,562_.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/yF1EbAnkhUp1DEt5kWZ15Tgmhbt.jpg',
+    genres: ['Acción', 'Crimen', 'Suspenso'],
+    runtimeMinutes: 106,
+    imdbId: 'tt0232500',
+    director: 'Rob Cohen',
     countryOfOrigin: 'US',
     originCountryName: 'Estados Unidos',
+    theatricalCountries: [],
     ratings: {
-      rottenTomatoesCritics: 73,
-      rottenTomatoesAudience: 86,
+      rottenTomatoesCritics: 56,
+      rottenTomatoesAudience: 74,
+      imdbScore: 6.8,
+      imdbVotes: '468K',
+      compositeScore: 6.6
+    }
+  },
+  {
+    id: 'the_matrix',
+    title: 'Matrix (The Matrix)',
+    overview: 'Un hacker aprende de misteriosos rebeldes sobre la verdadera naturaleza de su realidad y su papel en la guerra contra sus controladores.',
+    releaseYear: 1999,
+    releaseDate: '1999-03-31',
+    posterURL: 'https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/7u3fhRw1Ns2qj5I5m4bS1W162D6.jpg',
+    genres: ['Ciencia Ficción', 'Acción'],
+    runtimeMinutes: 136,
+    imdbId: 'tt0133093',
+    director: 'Lilly & Lana Wachowski',
+    countryOfOrigin: 'US',
+    originCountryName: 'Estados Unidos',
+    theatricalCountries: [],
+    ratings: {
+      rottenTomatoesCritics: 83,
+      rottenTomatoesAudience: 85,
       imdbScore: 8.7,
-      imdbVotes: '2.1M',
-      compositeScore: 8.3
+      imdbVotes: '2.0M',
+      compositeScore: 8.5
+    }
+  },
+  {
+    id: 'pulp_fiction',
+    title: 'Pulp Fiction (Tiempos Violentos)',
+    overview: 'Las vidas de dos matones de la mafia, un boxeador, la esposa de un gángster y dos bandidos se entrelazan en cuatro historias de violencia y redención en Los Ángeles.',
+    releaseYear: 1994,
+    releaseDate: '1994-10-14',
+    posterURL: 'https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/suaEOtk1N1sgg2MTM7oZd2cfVp3.jpg',
+    genres: ['Crimen', 'Comedia Negra', 'Drama'],
+    runtimeMinutes: 154,
+    imdbId: 'tt0110912',
+    director: 'Quentin Tarantino',
+    countryOfOrigin: 'US',
+    originCountryName: 'Estados Unidos',
+    theatricalCountries: [],
+    ratings: {
+      rottenTomatoesCritics: 92,
+      rottenTomatoesAudience: 96,
+      imdbScore: 8.9,
+      imdbVotes: '2.2M',
+      compositeScore: 9.1
     }
   },
   {
@@ -372,6 +500,7 @@ export const RAW_MOVIES: Movie[] = [
     director: 'Giuseppe Tornatore',
     countryOfOrigin: 'IT',
     originCountryName: 'Italia',
+    theatricalCountries: [],
     ratings: {
       rottenTomatoesCritics: 90,
       rottenTomatoesAudience: 97,
@@ -380,50 +509,96 @@ export const RAW_MOVIES: Movie[] = [
       compositeScore: 8.9
     }
   },
-
-  // --- SAGA RÁPIDOS Y FURIOSOS ---
   {
-    id: 'fast_furious_1',
-    title: 'Rápidos y Furiosos (The Fast and the Furious)',
-    overview: 'El oficial encubierto Brian O\'Conner se infiltra en las carreras clandestinas de Los Ángeles lideradas por Dominic Toretto.',
-    releaseYear: 2001,
-    releaseDate: '2001-06-22',
-    posterURL: 'https://m.media-amazon.com/images/M/MV5BZGRiMDE1NTMtMThmZS00YjE4LWI1ODQtNjRkZGZlOTg2MGE1XkEyXkFqcGc@._V1_QL75_UX380_CR0,1,380,562_.jpg',
-    backdropURL: 'https://image.tmdb.org/t/p/w1280/yF1EbAnkhUp1DEt5kWZ15Tgmhbt.jpg',
-    genres: ['Acción', 'Crimen', 'Suspenso'],
-    runtimeMinutes: 106,
-    imdbId: 'tt0232500',
-    director: 'Rob Cohen',
-    countryOfOrigin: 'US',
-    originCountryName: 'Estados Unidos',
+    id: 'alien_1979',
+    title: 'Alien: El Octavo Pasajero',
+    overview: 'La tripulación de una nave espacial comercial entra en contacto con una forma de vida misteriosa y letal tras investigar una llamada de socorro en una luna lejana.',
+    releaseYear: 1979,
+    releaseDate: '1979-05-25',
+    posterURL: 'https://image.tmdb.org/t/p/w500/vfrQk5IPloGg1v9Rzbh2Eg3VGyM.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/AmR3JG1DYz52Wp5L9P6vV3B4.jpg',
+    genres: ['Terror', 'Ciencia Ficción'],
+    runtimeMinutes: 117,
+    imdbId: 'tt0078748',
+    director: 'Ridley Scott',
+    countryOfOrigin: 'GB',
+    originCountryName: 'Reino Unido',
+    theatricalCountries: [],
     ratings: {
-      rottenTomatoesCritics: 56,
-      rottenTomatoesAudience: 74,
-      imdbScore: 6.8,
-      imdbVotes: '468K',
-      compositeScore: 6.6
+      rottenTomatoesCritics: 93,
+      rottenTomatoesAudience: 94,
+      imdbScore: 8.5,
+      imdbVotes: '940K',
+      compositeScore: 9.0
     }
   },
   {
-    id: 'fast_five_2011',
-    title: 'Rápidos y Furiosos 5in Control (Fast Five)',
-    overview: 'Dominic Toretto y Brian O\'Conner reúnen a su legendario equipo en Río de Janeiro para un último atraco de 100 millones de dólares.',
-    releaseYear: 2011,
-    releaseDate: '2011-04-29',
-    posterURL: 'https://m.media-amazon.com/images/M/MV5BMTUxNTk5MTE0OF5BMl5BanBnXkFtZTcwMjA2NzY3NA@@._V1_QL75_UX380_CR0,0,380,562_.jpg',
-    backdropURL: 'https://image.tmdb.org/t/p/w1280/lGDeo2NlTz6N1H8F1N6H9Tf6iXF.jpg',
-    genres: ['Acción', 'Crimen', 'Suspenso'],
-    runtimeMinutes: 130,
-    imdbId: 'tt1596343',
-    director: 'Justin Lin',
+    id: 'the_godfather_part_ii',
+    title: 'El Padrino Parte II (The Godfather Part II)',
+    overview: 'Se retratan los primeros pasos en el crimen del joven Vito Corleone en la Nueva York de los años 20 mientras en los 50 su hijo Michael expande el sindicato a Las Vegas, Hollywood y Cuba.',
+    releaseYear: 1974,
+    releaseDate: '1974-12-20',
+    posterURL: 'https://image.tmdb.org/t/p/w500/hek3koDUyMrk7ilW5eEv6vBu5ye.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/kGzFbGhp99zva6vdZ2yoVI5usnS.jpg',
+    genres: ['Crimen', 'Drama'],
+    runtimeMinutes: 202,
+    imdbId: 'tt0071562',
+    director: 'Francis Ford Coppola',
     countryOfOrigin: 'US',
     originCountryName: 'Estados Unidos',
+    theatricalCountries: [],
     ratings: {
-      rottenTomatoesCritics: 78,
-      rottenTomatoesAudience: 83,
-      imdbScore: 7.3,
-      imdbVotes: '430K',
-      compositeScore: 7.5
+      rottenTomatoesCritics: 96,
+      rottenTomatoesAudience: 97,
+      imdbScore: 9.0,
+      imdbVotes: '1.4M',
+      compositeScore: 9.3
+    }
+  },
+  {
+    id: 'the_godfather',
+    title: 'El Padrino (The Godfather)',
+    overview: 'El envejecido patriarca de una dinastía del crimen organizado en Nueva York transfiere el control de su imperio clandestino a su reacio hijo menor.',
+    releaseYear: 1972,
+    releaseDate: '1972-03-24',
+    posterURL: 'https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/tmU7GeKVybMWFButWEGl2M4GeiP.jpg',
+    genres: ['Crimen', 'Drama'],
+    runtimeMinutes: 175,
+    imdbId: 'tt0068646',
+    director: 'Francis Ford Coppola',
+    countryOfOrigin: 'US',
+    originCountryName: 'Estados Unidos',
+    theatricalCountries: [],
+    ratings: {
+      rottenTomatoesCritics: 97,
+      rottenTomatoesAudience: 98,
+      imdbScore: 9.2,
+      imdbVotes: '2.0M',
+      compositeScore: 9.5
+    }
+  },
+  {
+    id: '12_angry_men',
+    title: '12 Hombres en Pugna (12 Angry Men)',
+    overview: 'Un miembro de un jurado intenta evitar un error judicial convenciendo a los otros once colegas de que reconsideren las pruebas en un juicio por asesinato.',
+    releaseYear: 1957,
+    releaseDate: '1957-04-10',
+    posterURL: 'https://image.tmdb.org/t/p/w500/ow3wq89wM8qd5X7hWKxiRfsFf9C.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/qqHQsStV6exghCM7zbR8477w7H.jpg',
+    genres: ['Drama', 'Misterio'],
+    runtimeMinutes: 96,
+    imdbId: 'tt0050083',
+    director: 'Sidney Lumet',
+    countryOfOrigin: 'US',
+    originCountryName: 'Estados Unidos',
+    theatricalCountries: [],
+    ratings: {
+      rottenTomatoesCritics: 100,
+      rottenTomatoesAudience: 97,
+      imdbScore: 9.0,
+      imdbVotes: '870K',
+      compositeScore: 9.4
     }
   }
 ];

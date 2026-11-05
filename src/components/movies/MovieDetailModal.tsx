@@ -17,6 +17,7 @@ import {
   HelpCircle,
   Sparkles,
   Ticket,
+  Film,
 } from 'lucide-react';
 
 interface MovieDetailModalProps {
@@ -186,56 +187,65 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
               </div>
             </div>
 
-            {/* 3. Local Showtimes (Cartelera) */}
+            {/* 3. Estado de Estreno / Exhibición */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-cinema-gold" />
+                  <Film className="w-4 h-4 text-cinema-gold" />
                   <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-                    Funciones y Cines en {currentUser.location.city}
+                    Estado de Estreno en {currentUser.location.country || currentUser.location.city}
                   </h2>
                 </div>
                 <span className="text-xs text-cinema-textMuted font-mono">
-                  {currentUser.location.flagEmoji} {currentUser.location.area || currentUser.location.city}
+                  {currentUser.location.flagEmoji} {currentUser.location.city} ({currentUser.location.countryCode})
                 </span>
               </div>
 
-              {showtimes.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {showtimes.map((s, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3.5 rounded-xl bg-cinema-card border border-cinema-border hover:border-cinema-gold/40 transition-colors flex flex-col gap-2"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-xs text-white flex items-center gap-1.5">
-                          <Ticket className="w-3.5 h-3.5 text-cinema-gold" />
-                          {s.cinemaName}
+              <div className="p-4 rounded-2xl bg-cinema-card border border-cinema-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`p-2.5 rounded-xl border ${
+                      movie.isInTheatersLocally
+                        ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-400'
+                        : 'bg-zinc-900 border-zinc-700 text-zinc-400'
+                    }`}
+                  >
+                    <Film className="w-6 h-6" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-sm font-bold ${
+                          movie.isInTheatersLocally ? 'text-emerald-400' : 'text-zinc-300'
+                        }`}
+                      >
+                        {movie.isInTheatersLocally
+                          ? 'En Estreno Comercial en Cines'
+                          : 'Fuera de Estreno / Catálogo General'}
+                      </span>
+                      {movie.isInTheatersLocally && (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                          En Cartelera Hoy
                         </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-cinema-surface border border-cinema-border text-cinema-textMuted font-mono">
-                          {s.roomFormat}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {s.times.map((t) => (
-                          <span
-                            key={t}
-                            className="px-2.5 py-1 rounded-md bg-cinema-surface text-cinema-gold font-mono font-bold text-xs border border-cinema-border hover:border-cinema-gold/50 cursor-pointer transition-colors"
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      </div>
+                      )}
                     </div>
-                  ))}
+                    <p className="text-xs text-cinema-textSecondary max-w-xl">
+                      {movie.isInTheatersLocally
+                        ? `Esta película se encuentra actualmente en periodo de exhibición en salas de cine de ${currentUser.location.country || currentUser.location.city}.`
+                        : `Esta película ya culminó su ciclo de salas y está disponible en streaming y formatos digitales de catálogo.`}
+                    </p>
+                  </div>
                 </div>
-              ) : (
-                <div className="p-4 rounded-xl bg-cinema-card/50 border border-cinema-border text-center text-xs text-cinema-textMuted">
-                  {movie.releaseYear < 2024
-                    ? 'Esta película pertenece al catálogo de obras maestras históricas. Puedes consultarla o debatirla en Cineclubs.'
-                    : `No hay funciones físicas programadas hoy en los cines registrados de ${currentUser.location.city}. Consulta en otras ciudades desde el selector de ciudad.`}
+
+                <div className="flex flex-col items-end gap-1 flex-shrink-0 text-right">
+                  <span className="text-[10px] text-cinema-textMuted uppercase font-mono">
+                    Fecha de Estreno
+                  </span>
+                  <span className="text-xs font-mono font-bold text-white">
+                    {movie.releaseDate || movie.releaseYear}
+                  </span>
                 </div>
-              )}
+              </div>
             </div>
 
             {/* 4. Friends Reviews Section */}

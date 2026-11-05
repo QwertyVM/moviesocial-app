@@ -4,12 +4,23 @@ import React, { useState, useEffect } from 'react';
 import { Movie, User } from '../types';
 import { MovieCard } from '../components/movies/MovieCard';
 import { api } from '../services/api';
-import { Film, Sparkles, Search, SlidersHorizontal, MapPin } from 'lucide-react';
+import {
+  Film,
+  Sparkles,
+  Search,
+  SlidersHorizontal,
+  MapPin,
+  Star,
+  Calendar,
+  Layers,
+  ArrowDownWideNarrow,
+  Check,
+} from 'lucide-react';
 
 interface CatalogViewProps {
   currentUser: User;
   onSelectMovie: (movie: Movie) => void;
-  initialCategory?: 'nowPlaying' | 'classics';
+  initialCategory?: 'nowPlaying' | 'classics' | 'catalog';
 }
 
 export const CatalogView: React.FC<CatalogViewProps> = ({
@@ -17,15 +28,25 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   onSelectMovie,
   initialCategory = 'nowPlaying',
 }) => {
-  const [category, setCategory] = useState<'nowPlaying' | 'classics'>(initialCategory);
+  const [category, setCategory] = useState<'nowPlaying' | 'catalog'>(
+    initialCategory === 'classics' || initialCategory === 'catalog' ? 'catalog' : 'nowPlaying'
+  );
+
+  // Filtros del catálogo
   const [decade, setDecade] = useState<string>('all');
+  const [genre, setGenre] = useState<string>('all');
+  const [minRating, setMinRating] = useState<number | null>(null);
+  const [sortBy, setSortBy] = useState<'yearDesc' | 'ratingDesc' | 'criticsDesc' | 'audienceDesc'>('yearDesc');
   const [searchQuery, setSearchQuery] = useState<string>('');
+
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    if (initialCategory) {
-      setCategory(initialCategory);
+    if (initialCategory === 'classics' || initialCategory === 'catalog') {
+      setCategory('catalog');
+    } else if (initialCategory === 'nowPlaying') {
+      setCategory('nowPlaying');
     }
   }, [initialCategory]);
 
@@ -34,7 +55,11 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
     const data = await api.getMovies({
       category,
       city: currentUser.location.city,
+      countryCode: currentUser.location.countryCode,
       decade,
+      minRating,
+      genre,
+      sortBy: category === 'nowPlaying' ? 'ratingDesc' : sortBy,
       searchQuery,
     });
     setMovies(data);
@@ -43,10 +68,33 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
 
   useEffect(() => {
     loadMovies();
-  }, [category, decade, searchQuery, currentUser.location.city]);
+  }, [category, decade, minRating, genre, sortBy, searchQuery, currentUser.location.countryCode, currentUser.location.city]);
+
+  const genresList = [
+    { id: 'all', label: 'Todos los Géneros' },
+    { id: 'Acción', label: 'Acción' },
+    { id: 'Drama', label: 'Drama' },
+    { id: 'Crimen', label: 'Crimen' },
+    { id: 'Ciencia Ficción', label: 'Ciencia Ficción' },
+    { id: 'Terror', label: 'Terror' },
+    { id: 'Suspenso', label: 'Suspenso' },
+    { id: 'Aventura', label: 'Aventura' },
+    { id: 'Animación', label: 'Animación' },
+    { id: 'Comedia', label: 'Comedia' },
+    { id: 'Romance', label: 'Romance' },
+  ];
+
+  const ratingOptions = [
+    { value: null, label: 'Cualquier Rating' },
+    { value: 9.0, label: '★ 9.0+ Obras Maestras' },
+    { value: 8.0, label: '★ 8.0+ Excelentes' },
+    { value: 7.0, label: '★ 7.0+ Muy Buenas' },
+    { value: 6.0, label: '★ 6.0+ Aceptables' },
+  ];
 
   const decadesList = [
     { id: 'all', label: 'Todas las Épocas' },
+    { id: '2020s', label: '2020s' },
     { id: '2010s', label: '2010s' },
     { id: '2000s', label: '2000s' },
     { id: '90s', label: '90s' },
@@ -55,7 +103,12 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
     { id: '60s', label: '≤ 60s' },
   ];
 
-  const inTheatersCount = movies.filter((m) => m.isInTheatersLocally).length;
+  const sortOptions = [
+    { id: 'yearDesc', label: '📅 Más recientes primero (Año desc)' },
+    { id: 'ratingDesc', label: '⭐ Mayor MovieScore' },
+    { id: 'criticsDesc', label: '🍅 Mayor Aprobación Crítica (RT)' },
+    { id: 'audienceDesc', label: '🍿 Favoritas del Público (RT)' },
+  ];
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -67,22 +120,27 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               <Sparkles className="w-3 h-3" />
               Descubrimiento Cinéfilo
             </span>
-            {category === 'nowPlaying' && (
+            {category === 'nowPlaying' ? (
               <span className="text-xs text-cinema-textMuted flex items-center gap-1">
                 <MapPin className="w-3 h-3 text-cinema-gold" />
-                {currentUser.location.city} ({inTheatersCount} en cartelera)
+                {currentUser.location.city} ({currentUser.location.countryCode}) • {movies.length} en cartelera hoy
+              </span>
+            ) : (
+              <span className="text-xs text-cinema-textMuted flex items-center gap-1">
+                <Calendar className="w-3 h-3 text-cinema-gold" />
+                Catálogo general ({movies.length} títulos)
               </span>
             )}
           </div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
             {category === 'nowPlaying'
-              ? `Cartelera & Estrenos en ${currentUser.location.city}`
-              : 'Clásicos de la Historia por Cruce de Ratings'}
+              ? `Películas en Estreno en ${currentUser.location.country || currentUser.location.city}`
+              : 'Catálogo de Películas (Fuera de Estreno)'}
           </h1>
           <p className="text-xs text-cinema-textSecondary max-w-2xl">
             {category === 'nowPlaying'
-              ? `Salas, horarios y disponibilidad física en cines de ${currentUser.location.city} combinados con ratings oficiales de Rotten Tomatoes e IMDb.`
-              : 'Obras maestras de toda la historia ordenadas matemáticamente por el MovieScore (50% IMDb + 30% RT Críticos + 20% Audiencia).'}
+              ? `Títulos que se están emitiendo actualmente en los cines según tu ubicación en ${currentUser.location.country || currentUser.location.city}.`
+              : 'Películas fuera de salas ordenadas desde la más actual hasta la más antigua, con filtros de rating, género y épocas.'}
           </p>
         </div>
 
@@ -97,48 +155,112 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             }`}
           >
             <Film className="w-4 h-4" />
-            <span>Cartelera Local</span>
+            <span>En Estreno ({currentUser.location.countryCode})</span>
           </button>
           <button
-            onClick={() => setCategory('classics')}
+            onClick={() => setCategory('catalog')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              category === 'classics'
+              category === 'catalog'
                 ? 'bg-cinema-card text-cinema-gold shadow-md border border-cinema-border'
                 : 'text-cinema-textSecondary hover:text-white'
             }`}
           >
-            <Sparkles className="w-4 h-4" />
-            <span>Clásicos Históricos</span>
+            <Layers className="w-4 h-4" />
+            <span>Catálogo Completo</span>
           </button>
         </div>
       </div>
 
-      {/* Controls Bar: Search & Decade Filters */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-        {/* Search Input */}
-        <div className="relative flex-grow max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-cinema-textMuted" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar por título, director, género o año..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-cinema-card border border-cinema-border focus:border-cinema-gold focus:ring-1 focus:ring-cinema-gold text-xs text-white placeholder-cinema-textMuted outline-none transition-colors"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-cinema-textMuted hover:text-white"
-            >
-              ✕
-            </button>
+      {/* Controls Bar: Search & Advanced Filters */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+          {/* Search Input */}
+          <div className="relative flex-grow max-w-lg">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-cinema-textMuted" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por título, director, género o año..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-cinema-card border border-cinema-border focus:border-cinema-gold focus:ring-1 focus:ring-cinema-gold text-xs text-white placeholder-cinema-textMuted outline-none transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-cinema-textMuted hover:text-white"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Quick Selectors in Catalog Mode */}
+          {category === 'catalog' && (
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Sort By Dropdown */}
+              <div className="flex items-center gap-1.5 bg-cinema-card px-3 py-2 rounded-xl border border-cinema-border">
+                <ArrowDownWideNarrow className="w-3.5 h-3.5 text-cinema-gold" />
+                <span className="text-[11px] text-cinema-textMuted">Orden:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="bg-transparent text-xs text-white outline-none cursor-pointer font-medium"
+                >
+                  {sortOptions.map((opt) => (
+                    <option key={opt.id} value={opt.id} className="bg-cinema-card text-white">
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Min Rating Dropdown */}
+              <div className="flex items-center gap-1.5 bg-cinema-card px-3 py-2 rounded-xl border border-cinema-border">
+                <Star className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-[11px] text-cinema-textMuted">Rating:</span>
+                <select
+                  value={minRating === null ? '' : minRating.toString()}
+                  onChange={(e) => setMinRating(e.target.value ? parseFloat(e.target.value) : null)}
+                  className="bg-transparent text-xs text-white outline-none cursor-pointer font-medium"
+                >
+                  {ratingOptions.map((opt, idx) => (
+                    <option
+                      key={idx}
+                      value={opt.value === null ? '' : opt.value.toString()}
+                      className="bg-cinema-card text-white"
+                    >
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Genre Dropdown */}
+              <div className="flex items-center gap-1.5 bg-cinema-card px-3 py-2 rounded-xl border border-cinema-border">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-cinema-gold" />
+                <span className="text-[11px] text-cinema-textMuted">Género:</span>
+                <select
+                  value={genre}
+                  onChange={(e) => setGenre(e.target.value)}
+                  className="bg-transparent text-xs text-white outline-none cursor-pointer font-medium"
+                >
+                  {genresList.map((g) => (
+                    <option key={g.id} value={g.id} className="bg-cinema-card text-white">
+                      {g.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Decade Filters (Only shown in Classics mode) */}
-        {category === 'classics' && (
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
-            <SlidersHorizontal className="w-3.5 h-3.5 text-cinema-textMuted mr-1 flex-shrink-0 hidden sm:inline" />
+        {/* Decade Filters Bar (Only shown in Catalog mode) */}
+        {category === 'catalog' && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none pt-1">
+            <span className="text-[11px] text-cinema-textMuted mr-1 flex-shrink-0 font-medium">
+              Década:
+            </span>
             {decadesList.map((d) => (
               <button
                 key={d.id}
@@ -182,8 +304,23 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
           <Film className="w-10 h-10 text-cinema-textMuted" />
           <p className="text-sm font-semibold text-white">No se encontraron películas</p>
           <p className="text-xs text-cinema-textMuted max-w-sm">
-            Prueba ajustando tu búsqueda o cambiando los filtros de época o la ciudad seleccionada.
+            {category === 'nowPlaying'
+              ? `No hay películas en cartelera registradas actualmente para ${currentUser.location.country || currentUser.location.city}. Prueba seleccionando otro país en el selector superior.`
+              : 'Prueba ajustando los filtros de rating, época o género.'}
           </p>
+          {(decade !== 'all' || genre !== 'all' || minRating !== null || searchQuery) && (
+            <button
+              onClick={() => {
+                setDecade('all');
+                setGenre('all');
+                setMinRating(null);
+                setSearchQuery('');
+              }}
+              className="px-4 py-2 rounded-xl bg-cinema-surface hover:bg-cinema-border border border-cinema-border text-xs text-cinema-gold font-semibold transition-colors"
+            >
+              Restablecer filtros
+            </button>
+          )}
         </div>
       )}
     </div>

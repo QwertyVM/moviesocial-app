@@ -31,6 +31,7 @@ export interface Movie {
   isInTheatersLocally?: boolean;
   theatersPlaying?: string[];
   showtimes?: CinemaShowtime[];
+  theatricalCountries?: string[];
 }
 
 export interface UserLocation {

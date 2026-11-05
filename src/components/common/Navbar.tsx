@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { User, UserLocation } from '../../types';
-import { Film, Users, MessageSquare, User as UserIcon, MapPin, ChevronDown, Check, Sparkles, Database } from 'lucide-react';
+import { Film, Users, MessageSquare, User as UserIcon, MapPin, ChevronDown, Check, Sparkles, Database, Navigation } from 'lucide-react';
 import { AVAILABLE_CITIES } from '../../data/curatedMovies';
 
 interface NavbarProps {
@@ -21,6 +21,60 @@ export const Navbar: React.FC<NavbarProps> = ({
   dbStatus,
 }) => {
   const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
+
+  const handleDetectGPS = () => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      alert('Tu navegador no soporta geolocalización.');
+      return;
+    }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          );
+          const data = await res.json();
+          const city =
+            data.address.city ||
+            data.address.town ||
+            data.address.village ||
+            data.address.municipality ||
+            data.address.state ||
+            'Mi Ciudad';
+          const country = data.address.country || 'Mi País';
+          const countryCode = (data.address.country_code || 'PE').toUpperCase();
+
+          // Código bandera emoji
+          const codePoints = countryCode
+            .split('')
+            .map((char: string) => 127397 + char.charCodeAt(0));
+          const flagEmoji = String.fromCodePoint(...codePoints);
+
+          onSelectCity({
+            city,
+            country,
+            countryCode,
+            flagEmoji,
+            isLocal: true,
+            area: city,
+          });
+          setCityDropdownOpen(false);
+        } catch (err) {
+          console.warn('Error en reverse geocoding:', err);
+        } finally {
+          setGpsLoading(false);
+        }
+      },
+      (err) => {
+        console.warn('GPS permiso denegado o error:', err);
+        setGpsLoading(false);
+      },
+      { timeout: 8000 }
+    );
+  };
 
   return (
     <>
@@ -62,9 +116,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
 
               {cityDropdownOpen && (
-                <div className="absolute left-0 mt-2 w-64 rounded-xl bg-cinema-card border border-cinema-border shadow-2xl z-50 py-2 max-h-80 overflow-y-auto">
-                  <div className="px-3 py-1.5 text-[11px] font-semibold text-cinema-textMuted uppercase tracking-wider">
-                    Selecciona tu Ciudad (Cartelera)
+                <div className="absolute left-0 mt-2 w-64 rounded-xl bg-cinema-card border border-cinema-border shadow-2xl z-50 p-2 max-h-80 overflow-y-auto">
+                  {/* Botón GPS */}
+                  <button
+                    onClick={handleDetectGPS}
+                    disabled={gpsLoading}
+                    className="w-full mb-2 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-cinema-gold/15 hover:bg-cinema-gold/25 border border-cinema-gold/40 text-cinema-gold font-semibold text-xs transition-colors"
+                  >
+                    <Navigation className={`w-3.5 h-3.5 ${gpsLoading ? 'animate-spin' : ''}`} />
+                    <span>{gpsLoading ? 'Detectando GPS...' : 'Detectar mi ubicación (GPS)'}</span>
+                  </button>
+
+                  <div className="px-2 py-1 text-[10px] font-semibold text-cinema-textMuted uppercase tracking-wider">
+                    O selecciona tu país / ciudad:
                   </div>
                   {AVAILABLE_CITIES.map((loc) => {
                     const isSelected = loc.city === currentUser.location.city;

@@ -10,7 +10,7 @@ interface MovieCardProps {
 }
 
 export const MovieCard: React.FC<MovieCardProps> = ({ movie, onSelectMovie, userCity }) => {
-  const isInTheaters = movie.isInTheatersLocally && movie.showtimes && movie.showtimes.length > 0;
+  const isInTheaters = Boolean(movie.isInTheatersLocally);
 
   return (
     <div
@@ -43,14 +43,20 @@ export const MovieCard: React.FC<MovieCardProps> = ({ movie, onSelectMovie, user
             </div>
           )}
 
-          {/* Local Showtimes Pill */}
-          {isInTheaters && (
+          {/* Theatrical Release Pill */}
+          {isInTheaters ? (
             <div
               className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-950/90 backdrop-blur-md border border-emerald-500/40 text-emerald-300 font-semibold text-[10px] shadow-lg animate-pulse"
-              title={`Disponible en cines de ${userCity}`}
+              title={`En cartelera de cines actualmente`}
             >
-              <MapPin className="w-2.5 h-2.5 text-emerald-400" />
-              <span>En Cines</span>
+              <Film className="w-2.5 h-2.5 text-emerald-400" />
+              <span>En Estreno</span>
+            </div>
+          ) : (
+            <div
+              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-900/80 backdrop-blur-md border border-zinc-700/40 text-zinc-400 font-medium text-[10px] shadow"
+            >
+              <span>Catálogo</span>
             </div>
           )}
         </div>
@@ -59,7 +65,7 @@ export const MovieCard: React.FC<MovieCardProps> = ({ movie, onSelectMovie, user
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-[2px]">
           <span className="px-4 py-2 rounded-full bg-cinema-gold text-black font-semibold text-xs tracking-wide shadow-xl transform translate-y-2 group-hover:translate-y-0 transition-transform flex items-center gap-1.5">
             <Film className="w-3.5 h-3.5" />
-            Ver Ficha y Salas
+            Ver Ficha y Calificaciones
           </span>
         </div>
       </div>
