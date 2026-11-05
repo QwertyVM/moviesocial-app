@@ -219,6 +219,16 @@ class MovieSocialAPI {
         list = list.filter((m) => m.isInTheatersLocally);
       }
 
+      // Si el usuario busca dentro de estrenos
+      if (searchQuery && searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        list = list.filter(
+          (m) =>
+            m.title.toLowerCase().includes(q) ||
+            m.genres.some((g) => g.toLowerCase().includes(q))
+        );
+      }
+
       // Ordenar estrenos por MovieScore o año
       if (sortBy === 'ratingDesc') {
         list.sort((a, b) => (b.ratings.compositeScore || 0) - (a.ratings.compositeScore || 0));
@@ -236,7 +246,7 @@ class MovieSocialAPI {
           searchQuery,
           countryCode,
         });
-        if (liveCatalog && liveCatalog.length > 0) {
+        if (Array.isArray(liveCatalog)) {
           return liveCatalog;
         }
       } catch (err) {

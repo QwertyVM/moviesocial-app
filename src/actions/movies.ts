@@ -52,15 +52,61 @@ function isWithinTwoWeeksWindow(dateStr?: string): boolean {
 }
 
 /**
+ * Mapeador universal de película TMDB a Movie con soporte de puntuaciones IMDb / RT
+ */
+function formatTmdbMovie(item: any, isPremiering: boolean = false, countryCode: string = "PE"): Movie {
+  const voteAvg = item.vote_average || 7.0;
+  const votesStr = item.vote_count
+    ? item.vote_count >= 1000000
+      ? `${(item.vote_count / 1000000).toFixed(1)}M`
+      : item.vote_count >= 1000
+      ? `${(item.vote_count / 1000).toFixed(1)}K`
+      : item.vote_count.toString()
+    : "N/A";
+
+  const genres = (item.genre_ids || item.genres || [])
+    .map((g: any) => (typeof g === "number" ? TMDB_GENRES_MAP[g] : g.name))
+    .filter(Boolean);
+
+  return {
+    id: `tmdb_${item.id}`,
+    title: item.title,
+    overview: item.overview || "Sin descripción disponible.",
+    releaseYear: item.release_date ? new Date(item.release_date).getFullYear() : 2026,
+    releaseDate: item.release_date || new Date().toISOString().split("T")[0],
+    posterURL: item.poster_path
+      ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+      : "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500",
+    backdropURL: item.backdrop_path
+      ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}`
+      : undefined,
+    genres: genres.length > 0 ? genres : ["Cine"],
+    runtimeMinutes: item.runtime || 115,
+    countryOfOrigin: item.origin_country?.[0] || countryCode,
+    imdbId: item.imdb_id || undefined,
+    ratings: {
+      compositeScore: parseFloat(voteAvg.toFixed(1)),
+      imdbScore: parseFloat(voteAvg.toFixed(1)),
+      imdbVotes: votesStr,
+      rottenTomatoesCritics: Math.min(100, Math.round(voteAvg * 10)),
+      rottenTomatoesAudience: Math.min(100, Math.round(voteAvg * 10 + 2)),
+    },
+    isInTheatersLocally: isPremiering,
+    theatersPlaying: isPremiering ? (CHAINS_BY_COUNTRY[countryCode] || [`Cines comerciales (${countryCode})`]) : [],
+  };
+}
+
+/**
  * Obtener películas estrictamente en periodo de estreno (primeras 2 semanas en cines).
  */
 export async function getTheatricalMovies(countryCode: string = "PE"): Promise<Movie[]> {
   const code = (countryCode || "PE").toUpperCase();
   const tmdbKey = process.env.TMDB_API_KEY;
+  const lang = code === "ES" ? "es-ES" : "es-MX";
 
   if (tmdbKey) {
     try {
-      const url = `https://api.themoviedb.org/3/movie/now_playing?api_key=${tmdbKey}&region=${code}&language=es-ES&page=1`;
+      const url = `https://api.themoviedb.org/3/movie/now_playing?api_key=${tmdbKey}&region=${code}&language=${lang}&page=1`;
       const res = await fetch(url, { next: { revalidate: 1800 } });
       if (res.ok) {
         const data = await res.json();
@@ -70,37 +116,7 @@ export async function getTheatricalMovies(countryCode: string = "PE"): Promise<M
             isWithinTwoWeeksWindow(item.release_date)
           );
 
-          return activePremieres.map((item: any) => {
-            const voteAvg = item.vote_average || 7.5;
-            const genres = (item.genre_ids || [])
-              .map((id: number) => TMDB_GENRES_MAP[id])
-              .filter(Boolean);
-
-            return {
-              id: `tmdb_${item.id}`,
-              title: item.title,
-              overview: item.overview || "Sin descripción disponible.",
-              releaseYear: item.release_date ? new Date(item.release_date).getFullYear() : 2026,
-              releaseDate: item.release_date || new Date().toISOString().split("T")[0],
-              posterURL: item.poster_path
-                ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-                : "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500",
-              backdropURL: item.backdrop_path
-                ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}`
-                : undefined,
-              genres: genres.length > 0 ? genres : ["Cine"],
-              runtimeMinutes: 115,
-              countryOfOrigin: code,
-              ratings: {
-                compositeScore: parseFloat(voteAvg.toFixed(1)),
-                imdbScore: parseFloat(voteAvg.toFixed(1)),
-                rottenTomatoesCritics: Math.min(100, Math.round(voteAvg * 10)),
-                rottenTomatoesAudience: Math.min(100, Math.round(voteAvg * 10 + 2)),
-              },
-              isInTheatersLocally: true,
-              theatersPlaying: CHAINS_BY_COUNTRY[code] || [`Cines comerciales (${code})`],
-            };
-          });
+          return activePremieres.map((item: any) => formatTmdbMovie(item, true, code));
         }
       }
     } catch (tmdbError) {
@@ -123,7 +139,7 @@ export async function getTheatricalMovies(countryCode: string = "PE"): Promise<M
 
 /**
  * Obtener catálogo global de películas fuera de estreno (que superaron las 2 semanas o lanzadas en digital),
- * ordenadas descendentemente por año/fecha.
+ * con soporte de búsqueda global contra la base de datos de películas (TMDB / IMDb) y orden desc.
  */
 export async function getCatalogMovies(options?: {
   decade?: string;
@@ -143,68 +159,115 @@ export async function getCatalogMovies(options?: {
   } = options || {};
 
   const tmdbKey = process.env.TMDB_API_KEY;
-  let tmdbPastMovies: Movie[] = [];
+  const lang = countryCode === "ES" ? "es-ES" : "es-MX";
+  let list: Movie[] = [];
 
-  // Obtener películas de TMDB que ya superaron las 2 semanas de estreno (como Michael, Obsession, etc.)
-  if (tmdbKey) {
-    try {
-      const url = `https://api.themoviedb.org/3/movie/now_playing?api_key=${tmdbKey}&region=${countryCode}&language=es-ES&page=1`;
-      const res = await fetch(url, { next: { revalidate: 1800 } });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.results && Array.isArray(data.results)) {
-          // Las películas con más de 14 días pasan automáticamente al Catálogo Global
-          const pastPremieres = data.results.filter(
-            (item: any) => !isWithinTwoWeeksWindow(item.release_date)
-          );
+  // CASO 1: BÚSQUEDA GLOBAL ACTIVA (e.g. "Rapidos y furiosos", "Batman", "Titanic", etc.)
+  if (searchQuery.trim()) {
+    const q = searchQuery.trim();
+    let searchedTmdbMovies: Movie[] = [];
 
-          tmdbPastMovies = pastPremieres.map((item: any) => {
-            const voteAvg = item.vote_average || 7.5;
-            const genres = (item.genre_ids || [])
-              .map((id: number) => TMDB_GENRES_MAP[id])
-              .filter(Boolean);
-
-            return {
-              id: `tmdb_${item.id}`,
-              title: item.title,
-              overview: item.overview || "Sin descripción disponible.",
-              releaseYear: item.release_date ? new Date(item.release_date).getFullYear() : 2026,
-              releaseDate: item.release_date || new Date().toISOString().split("T")[0],
-              posterURL: item.poster_path
-                ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-                : "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500",
-              backdropURL: item.backdrop_path
-                ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}`
-                : undefined,
-              genres: genres.length > 0 ? genres : ["Cine"],
-              runtimeMinutes: 115,
-              countryOfOrigin: countryCode,
-              ratings: {
-                compositeScore: parseFloat(voteAvg.toFixed(1)),
-                imdbScore: parseFloat(voteAvg.toFixed(1)),
-                rottenTomatoesCritics: Math.min(100, Math.round(voteAvg * 10)),
-                rottenTomatoesAudience: Math.min(100, Math.round(voteAvg * 10 + 2)),
-              },
-              isInTheatersLocally: false, // Fuera de estreno
-              theatersPlaying: [],
-            };
-          });
+    if (tmdbKey) {
+      try {
+        const searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${tmdbKey}&query=${encodeURIComponent(q)}&language=${lang}&page=1&include_adult=false`;
+        const res = await fetch(searchUrl, { next: { revalidate: 3600 } });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.results && Array.isArray(data.results)) {
+            searchedTmdbMovies = data.results.map((item: any) =>
+              formatTmdbMovie(item, isWithinTwoWeeksWindow(item.release_date), countryCode)
+            );
+          }
         }
+      } catch (err) {
+        console.warn("Error buscando en TMDB:", err);
       }
-    } catch (err) {
-      console.warn("Error fetching tmdb catalog:", err);
+    }
+
+    // Buscar también en el catálogo curado local
+    const qLower = q.toLowerCase();
+    const localMatches = CURATED_MOVIES.filter(
+      (m) =>
+        m.title.toLowerCase().includes(qLower) ||
+        m.director?.toLowerCase().includes(qLower) ||
+        m.genres.some((g) => g.toLowerCase().includes(qLower))
+    ).map((m) => ({
+      ...m,
+      isInTheatersLocally: isWithinTwoWeeksWindow(m.releaseDate),
+    }));
+
+    // Combinar sin duplicados
+    const seenTitles = new Set<string>();
+    for (const m of [...searchedTmdbMovies, ...localMatches]) {
+      const normTitle = m.title.toLowerCase().trim();
+      if (!seenTitles.has(normTitle)) {
+        seenTitles.add(normTitle);
+        list.push(m);
+      }
+    }
+  } else {
+    // CASO 2: NAVEGACIÓN GENERAL DEL CATÁLOGO
+    let tmdbMovies: Movie[] = [];
+
+    if (tmdbKey) {
+      try {
+        // 1. Títulos de now_playing que ya superaron las 2 semanas (como Michael, Obsession, etc.)
+        const nowUrl = `https://api.themoviedb.org/3/movie/now_playing?api_key=${tmdbKey}&region=${countryCode}&language=${lang}&page=1`;
+        // 2. Títulos Top Rated históricos
+        const topUrl = `https://api.themoviedb.org/3/movie/top_rated?api_key=${tmdbKey}&language=${lang}&page=1`;
+        // 3. Títulos populares
+        const popUrl = `https://api.themoviedb.org/3/movie/popular?api_key=${tmdbKey}&language=${lang}&page=1`;
+
+        const [nowRes, topRes, popRes] = await Promise.all([
+          fetch(nowUrl, { next: { revalidate: 1800 } }).catch(() => null),
+          fetch(topUrl, { next: { revalidate: 86400 } }).catch(() => null),
+          fetch(popUrl, { next: { revalidate: 86400 } }).catch(() => null),
+        ]);
+
+        const rawResults: any[] = [];
+        if (nowRes && nowRes.ok) {
+          const nowData = await nowRes.json();
+          const past = (nowData.results || []).filter((item: any) => !isWithinTwoWeeksWindow(item.release_date));
+          rawResults.push(...past);
+        }
+        if (topRes && topRes.ok) {
+          const topData = await topRes.json();
+          rawResults.push(...(topData.results || []));
+        }
+        if (popRes && popRes.ok) {
+          const popData = await popRes.json();
+          rawResults.push(...(popData.results || []));
+        }
+
+        const seenIds = new Set<number>();
+        for (const item of rawResults) {
+          if (!seenIds.has(item.id)) {
+            seenIds.add(item.id);
+            tmdbMovies.push(formatTmdbMovie(item, false, countryCode));
+          }
+        }
+      } catch (err) {
+        console.warn("Error fetching tmdb catalog:", err);
+      }
+    }
+
+    // Combinar con catálogo local de clásicos fuera de estreno
+    const localCatalog = CURATED_MOVIES.filter(
+      (m) => !isWithinTwoWeeksWindow(m.releaseDate)
+    ).map((m) => ({
+      ...m,
+      isInTheatersLocally: false,
+    }));
+
+    const seenKeys = new Set<string>();
+    for (const m of [...tmdbMovies, ...localCatalog]) {
+      const key = m.title.toLowerCase().trim();
+      if (!seenKeys.has(key)) {
+        seenKeys.add(key);
+        list.push(m);
+      }
     }
   }
-
-  // Combinar catálogo local fuera de las 2 semanas con los títulos pasados de TMDB
-  const localCatalog = CURATED_MOVIES.filter(
-    (m) => !isWithinTwoWeeksWindow(m.releaseDate)
-  ).map((m) => ({
-    ...m,
-    isInTheatersLocally: false,
-  }));
-
-  let list = [...tmdbPastMovies, ...localCatalog];
 
   // Filtro por década / época
   if (decade !== "all") {
@@ -230,18 +293,6 @@ export async function getCatalogMovies(options?: {
   if (genre && genre !== "all") {
     const norm = genre.toLowerCase();
     list = list.filter((m) => m.genres.some((g) => g.toLowerCase().includes(norm)));
-  }
-
-  // Buscador
-  if (searchQuery.trim()) {
-    const q = searchQuery.toLowerCase().trim();
-    list = list.filter(
-      (m) =>
-        m.title.toLowerCase().includes(q) ||
-        m.director?.toLowerCase().includes(q) ||
-        m.genres.some((g) => g.toLowerCase().includes(q)) ||
-        m.releaseYear.toString().includes(q)
-    );
   }
 
   // Ordenamiento: Por defecto descendente desde la más actual fuera de estreno hasta la más antigua
@@ -273,13 +324,20 @@ export async function getMovieByIdAction(id: string): Promise<Movie | null> {
     try {
       const tmdbId = id.replace("tmdb_", "");
       const res = await fetch(
-        `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${tmdbKey}&language=es-ES`
+        `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${tmdbKey}&language=es-MX`
       );
       if (res.ok) {
         const item = await res.json();
         const voteAvg = item.vote_average || 7.5;
         const genres = (item.genres || []).map((g: any) => g.name);
         const isPremiering = isWithinTwoWeeksWindow(item.release_date);
+        const votesStr = item.vote_count
+          ? item.vote_count >= 1000000
+            ? `${(item.vote_count / 1000000).toFixed(1)}M`
+            : item.vote_count >= 1000
+            ? `${(item.vote_count / 1000).toFixed(1)}K`
+            : `${item.vote_count}`
+          : "N/A";
 
         return {
           id: `tmdb_${item.id}`,
@@ -296,9 +354,11 @@ export async function getMovieByIdAction(id: string): Promise<Movie | null> {
           genres: genres.length > 0 ? genres : ["Cine"],
           runtimeMinutes: item.runtime || 115,
           countryOfOrigin: item.origin_country?.[0] || "US",
+          imdbId: item.imdb_id || undefined,
           ratings: {
             compositeScore: parseFloat(voteAvg.toFixed(1)),
             imdbScore: parseFloat(voteAvg.toFixed(1)),
+            imdbVotes: votesStr,
             rottenTomatoesCritics: Math.min(100, Math.round(voteAvg * 10)),
             rottenTomatoesAudience: Math.min(100, Math.round(voteAvg * 10 + 2)),
           },

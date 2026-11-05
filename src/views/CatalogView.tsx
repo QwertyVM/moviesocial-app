@@ -48,6 +48,14 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
     } else if (initialCategory === 'nowPlaying') {
       setCategory('nowPlaying');
     }
+
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get('q');
+      if (q) {
+        setSearchQuery(q);
+      }
+    }
   }, [initialCategory]);
 
   const loadMovies = async () => {
@@ -67,7 +75,10 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   };
 
   useEffect(() => {
-    loadMovies();
+    const timer = setTimeout(() => {
+      loadMovies();
+    }, searchQuery ? 250 : 0);
+    return () => clearTimeout(timer);
   }, [category, decade, minRating, genre, sortBy, searchQuery, currentUser.location.countryCode, currentUser.location.city]);
 
   const genresList = [

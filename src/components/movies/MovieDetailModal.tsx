@@ -151,6 +151,18 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
                   >
                     <HelpCircle className="w-3.5 h-3.5" />
                   </span>
+                  {movie.imdbId && (
+                    <a
+                      href={`https://www.imdb.com/title/${movie.imdbId}/`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-2 px-2 py-0.5 rounded bg-cinema-card border border-cinema-imdb/40 text-cinema-imdb hover:bg-amber-950/40 text-[11px] font-bold tracking-wide transition-colors flex items-center gap-1"
+                      title="Ver ficha oficial en IMDb"
+                    >
+                      <span>IMDb</span>
+                      <span className="text-[10px]">↗</span>
+                    </a>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-3xl font-extrabold font-mono text-cinema-gold">
