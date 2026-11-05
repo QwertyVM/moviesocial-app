@@ -18,6 +18,7 @@ import {
   INITIAL_REVIEWS,
   INITIAL_GROUPS,
 } from '../data/curatedMovies';
+import { getTheatricalMovies, getMovieByIdAction } from '@/actions/movies';
 
 const API_BASE = '/api';
 
@@ -206,8 +207,17 @@ class MovieSocialAPI {
 
     // Filtro por Cartelera (Estrenos) vs Catálogo (Fuera de estreno)
     if (category === 'nowPlaying') {
-      // Solo películas que actualmente están en estreno en el país
-      list = list.filter((m) => m.isInTheatersLocally);
+      try {
+        const liveTheatrical = await getTheatricalMovies(countryCode);
+        if (liveTheatrical && liveTheatrical.length > 0) {
+          list = liveTheatrical;
+        } else {
+          list = list.filter((m) => m.isInTheatersLocally);
+        }
+      } catch (err) {
+        console.warn('Error fetching live theatrical movies, using fallback:', err);
+        list = list.filter((m) => m.isInTheatersLocally);
+      }
 
       // Ordenar estrenos por MovieScore o año
       if (sortBy === 'ratingDesc') {
@@ -278,6 +288,13 @@ class MovieSocialAPI {
   }
 
   async getMovieById(id: string): Promise<Movie | null> {
+    try {
+      const live = await getMovieByIdAction(id);
+      if (live) return live;
+    } catch (err) {
+      console.warn('Error in getMovieByIdAction:', err);
+    }
+
     const found = CURATED_MOVIES.find((m) => m.id === id);
     if (!found) return null;
 

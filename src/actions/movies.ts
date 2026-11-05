@@ -172,3 +172,55 @@ export async function getCatalogMovies(options?: {
 
   return list;
 }
+
+/**
+ * Obtener detalle de película por ID (soporta IDs de TMDB 'tmdb_1234' y catálogo local).
+ */
+export async function getMovieByIdAction(id: string): Promise<Movie | null> {
+  const tmdbKey = process.env.TMDB_API_KEY;
+
+  if (id.startsWith("tmdb_") && tmdbKey) {
+    try {
+      const tmdbId = id.replace("tmdb_", "");
+      const res = await fetch(
+        `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${tmdbKey}&language=es-ES`
+      );
+      if (res.ok) {
+        const item = await res.json();
+        const voteAvg = item.vote_average || 7.5;
+        const genres = (item.genres || []).map((g: any) => g.name);
+
+        return {
+          id: `tmdb_${item.id}`,
+          title: item.title,
+          overview: item.overview || "Sin descripción disponible.",
+          releaseYear: item.release_date ? new Date(item.release_date).getFullYear() : 2026,
+          releaseDate: item.release_date || new Date().toISOString().split("T")[0],
+          posterURL: item.poster_path
+            ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+            : "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500",
+          backdropURL: item.backdrop_path
+            ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}`
+            : undefined,
+          genres: genres.length > 0 ? genres : ["Cine"],
+          runtimeMinutes: item.runtime || 115,
+          countryOfOrigin: item.origin_country?.[0] || "US",
+          ratings: {
+            compositeScore: parseFloat(voteAvg.toFixed(1)),
+            imdbScore: parseFloat(voteAvg.toFixed(1)),
+            rottenTomatoesCritics: Math.min(100, Math.round(voteAvg * 10)),
+            rottenTomatoesAudience: Math.min(100, Math.round(voteAvg * 10 + 2)),
+          },
+          isInTheatersLocally: true,
+          theatersPlaying: ["Cines comerciales"],
+        };
+      }
+    } catch (err) {
+      console.warn("Error fetching tmdb movie detail:", err);
+    }
+  }
+
+  const found = CURATED_MOVIES.find((m) => m.id === id);
+  if (found) return found;
+  return null;
+}
