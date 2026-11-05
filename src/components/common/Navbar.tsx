@@ -108,10 +108,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => setCityDropdownOpen(!cityDropdownOpen)}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cinema-surface hover:bg-cinema-card border border-cinema-border hover:border-cinema-borderHover transition-all text-xs font-medium text-cinema-textPrimary"
                 title="Cambiar tu ciudad para consultar salas y horarios"
+                suppressHydrationWarning
               >
                 <MapPin className="w-3.5 h-3.5 text-cinema-gold" />
-                <span className="mr-0.5">{currentUser.location.flagEmoji}</span>
-                <span>{currentUser.location.city}</span>
+                <span className="mr-0.5" suppressHydrationWarning>{currentUser.location.flagEmoji}</span>
+                <span suppressHydrationWarning>{currentUser.location.city}</span>
                 <ChevronDown className="w-3.5 h-3.5 text-cinema-textMuted" />
               </button>
 

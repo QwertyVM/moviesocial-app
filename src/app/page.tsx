@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { User, Movie, Friend, UserLocation } from "@/types";
 import { api } from "@/services/api";
+import { DEFAULT_USER } from "@/data/curatedMovies";
 import { Navbar } from "@/components/common/Navbar";
 import { CatalogView } from "@/views/CatalogView";
 import { FriendsFeedView } from "@/views/FriendsFeedView";
@@ -11,7 +12,7 @@ import { ProfileView } from "@/views/ProfileView";
 import { MovieDetailModal } from "@/components/movies/MovieDetailModal";
 
 export default function Home() {
-  const [currentUser, setCurrentUser] = useState<User>(api.getCurrentUser());
+  const [currentUser, setCurrentUser] = useState<User>(DEFAULT_USER);
   const [activeTab, setActiveTab] = useState<"catalog" | "feed" | "chats" | "profile">("catalog");
   const [initialCatalogCategory, setInitialCatalogCategory] = useState<"nowPlaying" | "classics">("nowPlaying");
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
@@ -19,6 +20,12 @@ export default function Home() {
   const [dbStatus, setDbStatus] = useState<{ online: boolean; database?: string }>({ online: true, database: "Neon DB (PostgreSQL Cloud)" });
 
   useEffect(() => {
+    // Sincronizar usuario guardado en localStorage tras la hidratación inicial
+    const storedUser = api.getCurrentUser();
+    if (storedUser) {
+      setCurrentUser(storedUser);
+    }
+
     // Sincronizar tab o película desde parámetros de URL si existen
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);

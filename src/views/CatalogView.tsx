@@ -121,7 +121,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               Descubrimiento Cinéfilo
             </span>
             {category === 'nowPlaying' ? (
-              <span className="text-xs text-cinema-textMuted flex items-center gap-1">
+              <span className="text-xs text-cinema-textMuted flex items-center gap-1" suppressHydrationWarning>
                 <MapPin className="w-3 h-3 text-cinema-gold" />
                 {currentUser.location.city} ({currentUser.location.countryCode}) • {movies.length} en cartelera hoy
               </span>
@@ -132,12 +132,12 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               </span>
             )}
           </div>
-          <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight" suppressHydrationWarning>
             {category === 'nowPlaying'
               ? `Películas en Estreno en ${currentUser.location.country || currentUser.location.city}`
               : 'Catálogo de Películas (Fuera de Estreno)'}
           </h1>
-          <p className="text-xs text-cinema-textSecondary max-w-2xl">
+          <p className="text-xs text-cinema-textSecondary max-w-2xl" suppressHydrationWarning>
             {category === 'nowPlaying'
               ? `Títulos que se están emitiendo actualmente en los cines según tu ubicación en ${currentUser.location.country || currentUser.location.city}.`
               : 'Películas fuera de salas ordenadas desde la más actual hasta la más antigua, con filtros de rating, género y épocas.'}
@@ -155,7 +155,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             }`}
           >
             <Film className="w-4 h-4" />
-            <span>En Estreno ({currentUser.location.countryCode})</span>
+            <span suppressHydrationWarning>En Estreno ({currentUser.location.countryCode})</span>
           </button>
           <button
             onClick={() => setCategory('catalog')}
