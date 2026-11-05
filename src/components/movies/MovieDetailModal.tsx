@@ -231,8 +231,8 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
                     </div>
                     <p className="text-xs text-cinema-textSecondary max-w-xl">
                       {movie.isInTheatersLocally
-                        ? `Esta película se encuentra en el circuito de exhibición en salas de cine de ${currentUser.location.country || currentUser.location.city}.`
-                        : `Esta película ya culminó su ciclo de salas y está disponible en streaming y formatos digitales de catálogo.`}
+                        ? `Esta película se encuentra en sus primeras 2 semanas de estreno en salas de cine de ${currentUser.location.country || currentUser.location.city}.`
+                        : `Esta película ya superó su ventana de estreno inicial (más de 2 semanas en salas) y forma parte del catálogo general.`}
                     </p>
 
                     {movie.isInTheatersLocally && movie.theatersPlaying && movie.theatersPlaying.length > 0 && (

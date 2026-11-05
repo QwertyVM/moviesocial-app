@@ -18,7 +18,7 @@ import {
   INITIAL_REVIEWS,
   INITIAL_GROUPS,
 } from '../data/curatedMovies';
-import { getTheatricalMovies, getMovieByIdAction } from '@/actions/movies';
+import { getTheatricalMovies, getCatalogMovies, getMovieByIdAction } from '@/actions/movies';
 
 const API_BASE = '/api';
 
@@ -226,7 +226,23 @@ class MovieSocialAPI {
         list.sort((a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime());
       }
     } else {
-      // Catálogo general: películas FUERA de estreno
+      // Catálogo general: películas FUERA de estreno (que superaron las 2 semanas o lanzadas en digital)
+      try {
+        const liveCatalog = await getCatalogMovies({
+          decade,
+          minRating,
+          genre,
+          sortBy,
+          searchQuery,
+          countryCode,
+        });
+        if (liveCatalog && liveCatalog.length > 0) {
+          return liveCatalog;
+        }
+      } catch (err) {
+        console.warn('Error fetching live catalog, using fallback:', err);
+      }
+
       list = list.filter((m) => !m.isInTheatersLocally);
 
       // Filtro por década / época
