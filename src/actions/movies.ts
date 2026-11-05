@@ -26,6 +26,16 @@ const TMDB_GENRES_MAP: Record<number, string> = {
   37: "Western",
 };
 
+const CHAINS_BY_COUNTRY: Record<string, string[]> = {
+  PE: ["Cineplanet", "Cinemark", "Cinépolis", "Cine Star"],
+  MX: ["Cinépolis", "Cinemex", "Cineteca Nacional"],
+  ES: ["Cinesa", "Yelmo Cines", "Kinépolis", "Renoir"],
+  CO: ["Cine Colombia", "Cinemark", "Procinal", "Cinépolis"],
+  AR: ["Cinemark Hoyts", "Showcase Cinemas", "Cinépolis"],
+  CL: ["Cinemark", "Cineplanet", "Cinépolis"],
+  US: ["AMC Theatres", "Regal Cinemas", "Cinemark"],
+};
+
 /**
  * Obtener películas que se están emitiendo en cines a día de hoy según país (Opción A).
  * Si existe TMDB_API_KEY en variables de entorno, consulta en vivo la API de TMDB (now_playing).
@@ -70,7 +80,7 @@ export async function getTheatricalMovies(countryCode: string = "PE"): Promise<M
                 rottenTomatoesAudience: Math.min(100, Math.round(voteAvg * 10 + 2)),
               },
               isInTheatersLocally: true,
-              theatersPlaying: [`Cines comerciales (${code})`],
+              theatersPlaying: CHAINS_BY_COUNTRY[code] || [`Cines comerciales (${code})`],
             };
           });
         }
@@ -86,7 +96,7 @@ export async function getTheatricalMovies(countryCode: string = "PE"): Promise<M
   ).map((m) => ({
     ...m,
     isInTheatersLocally: true,
-    theatersPlaying: [`Salas de cine (${code})`],
+    theatersPlaying: CHAINS_BY_COUNTRY[code] || [`Salas de cine (${code})`],
   }));
 }
 
@@ -212,7 +222,7 @@ export async function getMovieByIdAction(id: string): Promise<Movie | null> {
             rottenTomatoesAudience: Math.min(100, Math.round(voteAvg * 10 + 2)),
           },
           isInTheatersLocally: true,
-          theatersPlaying: ["Cines comerciales"],
+          theatersPlaying: CHAINS_BY_COUNTRY["PE"] || ["Cines comerciales"],
         };
       }
     } catch (err) {

@@ -231,9 +231,25 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
                     </div>
                     <p className="text-xs text-cinema-textSecondary max-w-xl">
                       {movie.isInTheatersLocally
-                        ? `Esta película se encuentra actualmente en periodo de exhibición en salas de cine de ${currentUser.location.country || currentUser.location.city}.`
+                        ? `Esta película se encuentra en el circuito de exhibición en salas de cine de ${currentUser.location.country || currentUser.location.city}.`
                         : `Esta película ya culminó su ciclo de salas y está disponible en streaming y formatos digitales de catálogo.`}
                     </p>
+
+                    {movie.isInTheatersLocally && movie.theatersPlaying && movie.theatersPlaying.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
+                        <span className="text-[10px] text-cinema-textMuted uppercase font-mono mr-1">
+                          Cadenas ({currentUser.location.countryCode}):
+                        </span>
+                        {movie.theatersPlaying.map((chain) => (
+                          <span
+                            key={chain}
+                            className="px-2 py-0.5 rounded-md bg-cinema-surface border border-cinema-border text-cinema-gold text-[10px] font-semibold"
+                          >
+                            {chain}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
