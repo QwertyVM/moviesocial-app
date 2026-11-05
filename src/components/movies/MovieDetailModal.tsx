@@ -70,6 +70,10 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
             <img
               src={movie.backdropURL || movie.posterURL}
               alt={movie.title}
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src =
+                  'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1280';
+              }}
               className="w-full h-full object-cover object-center filter brightness-60"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-cinema-bg via-cinema-bg/60 to-transparent" />

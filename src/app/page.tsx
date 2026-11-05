@@ -13,9 +13,31 @@ import { MovieDetailModal } from "@/components/movies/MovieDetailModal";
 export default function Home() {
   const [currentUser, setCurrentUser] = useState<User>(api.getCurrentUser());
   const [activeTab, setActiveTab] = useState<"catalog" | "feed" | "chats" | "profile">("catalog");
+  const [initialCatalogCategory, setInitialCatalogCategory] = useState<"nowPlaying" | "classics">("nowPlaying");
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [chatTargetFriend, setChatTargetFriend] = useState<Friend | null>(null);
   const [dbStatus, setDbStatus] = useState<{ online: boolean; database?: string }>({ online: true, database: "Neon DB (PostgreSQL Cloud)" });
+
+  useEffect(() => {
+    // Sincronizar tab o película desde parámetros de URL si existen
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      if (tabParam === "classics") {
+        setActiveTab("catalog");
+        setInitialCatalogCategory("classics");
+      } else if (tabParam === "feed" || tabParam === "chats" || tabParam === "profile") {
+        setActiveTab(tabParam);
+      }
+
+      const movieParam = params.get("movie");
+      if (movieParam) {
+        api.getMovieById(movieParam).then((m) => {
+          if (m) setSelectedMovie(m);
+        });
+      }
+    }
+  }, []);
 
   const handleSelectCity = (location: UserLocation) => {
     const updated = api.setUserCity(location);
@@ -59,6 +81,7 @@ export default function Home() {
           <CatalogView
             currentUser={currentUser}
             onSelectMovie={(movie) => setSelectedMovie(movie)}
+            initialCategory={initialCatalogCategory}
           />
         )}
 

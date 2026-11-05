@@ -242,8 +242,19 @@ class MovieSocialAPI {
   }
 
   async getMovieById(id: string): Promise<Movie | null> {
-    const list = await this.getMovies();
-    return list.find((m) => m.id === id) || null;
+    const found = CURATED_MOVIES.find((m) => m.id === id);
+    if (!found) return null;
+
+    const normCity = this.user.location.city.trim().toLowerCase();
+    const cityData = CITY_SHOWTIMES[normCity] || {};
+    const showtimes = cityData[found.id] || [];
+
+    return {
+      ...found,
+      isInTheatersLocally: showtimes.length > 0,
+      theatersPlaying: showtimes.map((s) => s.cinemaName),
+      showtimes: showtimes,
+    };
   }
 
   async getShowtimes(movieId: string, city: string): Promise<CinemaShowtime[]> {

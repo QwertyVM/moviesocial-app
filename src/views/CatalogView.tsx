@@ -9,14 +9,25 @@ import { Film, Sparkles, Search, SlidersHorizontal, MapPin } from 'lucide-react'
 interface CatalogViewProps {
   currentUser: User;
   onSelectMovie: (movie: Movie) => void;
+  initialCategory?: 'nowPlaying' | 'classics';
 }
 
-export const CatalogView: React.FC<CatalogViewProps> = ({ currentUser, onSelectMovie }) => {
-  const [category, setCategory] = useState<'nowPlaying' | 'classics'>('nowPlaying');
+export const CatalogView: React.FC<CatalogViewProps> = ({
+  currentUser,
+  onSelectMovie,
+  initialCategory = 'nowPlaying',
+}) => {
+  const [category, setCategory] = useState<'nowPlaying' | 'classics'>(initialCategory);
   const [decade, setDecade] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (initialCategory) {
+      setCategory(initialCategory);
+    }
+  }, [initialCategory]);
 
   const loadMovies = async () => {
     setLoading(true);
