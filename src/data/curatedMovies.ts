@@ -1,0 +1,594 @@
+import { Movie, UserLocation, CinemaShowtime, User, Friend, MovieGroup, Review, calculateCompositeScore } from '../types';
+
+export const AVAILABLE_CITIES: UserLocation[] = [
+  { city: 'Lima', country: 'Perú', countryCode: 'PE', flagEmoji: '🇵🇪', isLocal: true, area: 'Lima Metropolitana' },
+  { city: 'Ciudad de México', country: 'México', countryCode: 'MX', flagEmoji: '🇲🇽', isLocal: true, area: 'CDMX / Valle de México' },
+  { city: 'Madrid', country: 'España', countryCode: 'ES', flagEmoji: '🇪🇸', isLocal: true, area: 'Comunidad de Madrid' },
+  { city: 'Barcelona', country: 'España', countryCode: 'ES', flagEmoji: '🇪🇸', isLocal: true, area: 'Cataluña' },
+  { city: 'Bogotá', country: 'Colombia', countryCode: 'CO', flagEmoji: '🇨🇴', isLocal: true, area: 'Bogotá D.C.' },
+  { city: 'Buenos Aires', country: 'Argentina', countryCode: 'AR', flagEmoji: '🇦🇷', isLocal: true, area: 'CABA / AMBA' },
+  { city: 'Santiago', country: 'Chile', countryCode: 'CL', flagEmoji: '🇨🇱', isLocal: true, area: 'Región Metropolitana' },
+  { city: 'Los Ángeles', country: 'Estados Unidos', countryCode: 'US', flagEmoji: '🇺🇸', isLocal: true, area: 'California' },
+  { city: 'Nueva York', country: 'Estados Unidos', countryCode: 'US', flagEmoji: '🇺🇸', isLocal: true, area: 'New York' },
+  { city: 'París', country: 'Francia', countryCode: 'FR', flagEmoji: '🇫🇷', isLocal: true, area: 'Île-de-France' },
+  { city: 'Tokio', country: 'Japón', countryCode: 'JP', flagEmoji: '🇯🇵', isLocal: true, area: 'Kanto' },
+];
+
+export const CITY_SHOWTIMES: Record<string, Record<string, CinemaShowtime[]>> = {
+  'lima': {
+    'ekeko_pe_2026': [
+      { cinemaName: 'Cineplanet Alcázar Prime', city: 'Lima', roomFormat: 'Sala 1 Prime', times: ['17:30', '20:15', '22:45'] },
+      { cinemaName: 'Cinemark Jockey Plaza XD', city: 'Lima', roomFormat: 'Sala XD Dolby Atmos', times: ['19:00', '21:30'] },
+      { cinemaName: 'CCPUCP San Isidro', city: 'Lima', roomFormat: 'Sala Azul Cine de Autor', times: ['18:00', '20:30'] },
+    ],
+    'obsesion_2026': [
+      { cinemaName: 'Cineplanet San Miguel', city: 'Lima', roomFormat: 'Sala 4 (Subtitulada)', times: ['18:40', '21:10'] },
+      { cinemaName: 'Cinemark Angamos', city: 'Lima', roomFormat: 'Sala 2 2D', times: ['17:00', '19:40', '22:15'] },
+    ],
+    'dune_part_two': [
+      { cinemaName: 'Cinemark Jockey Plaza XD', city: 'Lima', roomFormat: 'Sala XD IMAX', times: ['16:00', '19:45'] },
+      { cinemaName: 'Cineplanet Mall del Sur', city: 'Lima', roomFormat: 'Sala Xtreme', times: ['18:30', '21:40'] },
+    ],
+    'deadpool_wolverine': [
+      { cinemaName: 'Cineplanet Alcázar', city: 'Lima', roomFormat: 'Sala 3', times: ['16:15', '19:00', '21:45'] },
+      { cinemaName: 'Cinemark San Miguel', city: 'Lima', roomFormat: 'Sala XD', times: ['18:15', '21:00'] },
+    ]
+  },
+  'ciudad de méxico': {
+    'obsesion_2026': [
+      { cinemaName: 'Cineteca Nacional México', city: 'Ciudad de México', roomFormat: 'Sala 1 Gabriel Figueroa', times: ['16:30', '19:00', '21:15'] },
+      { cinemaName: 'Cinépolis Diana Reforma', city: 'Ciudad de México', roomFormat: 'Sala 4 Macro XE', times: ['17:45', '20:20', '22:50'] },
+      { cinemaName: 'Cine Tonalá Roma Sur', city: 'Ciudad de México', roomFormat: 'Sala Cineclub', times: ['18:00', '20:45'] },
+    ],
+    'dune_part_two': [
+      { cinemaName: 'Cinépolis Universidad IMAX', city: 'Ciudad de México', roomFormat: 'IMAX con Láser', times: ['16:00', '19:30', '22:45'] },
+      { cinemaName: 'Cinemex Reforma 222', city: 'Ciudad de México', roomFormat: 'Sala Platino', times: ['18:15', '21:30'] },
+    ],
+    'furiosa_mad_max': [
+      { cinemaName: 'Cinépolis Perisur', city: 'Ciudad de México', roomFormat: 'Sala 4DX 3D', times: ['17:00', '20:15'] },
+      { cinemaName: 'Cineteca de las Artes', city: 'Ciudad de México', roomFormat: 'Sala 3', times: ['18:45', '21:20'] },
+    ],
+  },
+  'madrid': {
+    'obsesion_2026': [
+      { cinemaName: 'Cine Yelmo Ideal', city: 'Madrid', roomFormat: 'Sala 3 (VOSE)', times: ['18:15', '20:45', '22:50'] },
+      { cinemaName: 'Cinesa Proyecciones', city: 'Madrid', roomFormat: 'Sala iSense', times: ['17:30', '20:00', '22:30'] },
+      { cinemaName: 'Cineteca Matadero', city: 'Madrid', roomFormat: 'Sala Azcona', times: ['19:15', '21:30'] },
+    ],
+    'dune_part_two': [
+      { cinemaName: 'Kinépolis Madrid Ciudad de la Imagen', city: 'Madrid', roomFormat: 'Sala IMAX 70mm Laser', times: ['17:00', '20:30'] },
+      { cinemaName: 'Phenomena Madrid', city: 'Madrid', roomFormat: 'Gran Sala VOSE', times: ['19:00', '22:00'] },
+    ],
+  },
+  'bogotá': {
+    'obsesion_2026': [
+      { cinemaName: 'Cinemateca de Bogotá', city: 'Bogotá', roomFormat: 'Sala Capital', times: ['17:00', '19:30'] },
+      { cinemaName: 'Cine Colombia Andino', city: 'Bogotá', roomFormat: 'Sala Múltiplex Diners', times: ['18:30', '21:00'] },
+    ],
+    'dune_part_two': [
+      { cinemaName: 'Cine Colombia Centro Mayor MegaSala', city: 'Bogotá', roomFormat: 'MegaSala Onyx', times: ['16:15', '19:45'] },
+    ]
+  },
+  'buenos aires': {
+    'obsesion_2026': [
+      { cinemaName: 'Malba Cine', city: 'Buenos Aires', roomFormat: 'Sala Auditorio', times: ['19:00', '21:30'] },
+      { cinemaName: 'Cine Gaumont Espacio INCAA', city: 'Buenos Aires', roomFormat: 'Sala Leonardo Favio', times: ['18:00', '20:30'] },
+    ],
+    'dune_part_two': [
+      { cinemaName: 'Showcase IMAX Norcenter', city: 'Buenos Aires', roomFormat: 'IMAX 3D', times: ['17:15', '20:45'] },
+      { cinemaName: 'Cinemark Palermo', city: 'Buenos Aires', roomFormat: 'Sala XD Atmos', times: ['18:30', '21:50'] },
+    ]
+  },
+  'santiago': {
+    'obsesion_2026': [
+      { cinemaName: 'Cineteca Nacional de Chile', city: 'Santiago', roomFormat: 'Sala Microcine', times: ['18:15', '20:45'] },
+      { cinemaName: 'Cineplanet Costanera Center', city: 'Santiago', roomFormat: 'Sala Prime', times: ['17:30', '20:10', '22:40'] },
+    ],
+    'dune_part_two': [
+      { cinemaName: 'Cinemark Mallplaza Egaña', city: 'Santiago', roomFormat: 'Sala IMAX', times: ['16:45', '20:15'] },
+    ]
+  }
+};
+
+export const RAW_MOVIES: Movie[] = [
+  // --- ESTRENOS ACTUALES ---
+  {
+    id: 'obsesion_2026',
+    title: 'Obsesión (Obsession)',
+    overview: 'Bear pide un deseo al enigmático Sauce de los Deseos para que Nikki, su amor platónico de la infancia, se enamore de él. Pronto, su afecto se transforma en una asfixiante, violenta y aterradora pesadilla de posesión sobrenatural en este aclamado filme de terror psicológico.',
+    releaseYear: 2026,
+    releaseDate: '2026-10-25',
+    posterURL: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500&auto=format&fit=crop&q=80',
+    backdropURL: 'https://images.unsplash.com/photo-1518676599649-f000e527c7f4?w=1280&auto=format&fit=crop&q=80',
+    genres: ['Terror', 'Suspenso', 'Misterio'],
+    runtimeMinutes: 98,
+    imdbId: 'tt3355026',
+    director: 'Curry Barker',
+    countryOfOrigin: 'US',
+    originCountryName: 'Estados Unidos',
+    ratings: {
+      rottenTomatoesCritics: 92,
+      rottenTomatoesAudience: 88,
+      imdbScore: 8.4,
+      imdbVotes: '14.2K',
+      compositeScore: 8.6
+    }
+  },
+  {
+    id: 'ekeko_pe_2026',
+    title: 'Ekeko: El Dios de la Abundancia',
+    overview: 'Un thriller andino donde un comerciante desesperado invoca a una deidad precolombina para salvar a su familia de la ruina, pero cada deseo concedido exige un tributo cada vez más siniestro en las alturas de los Andes peruanos.',
+    releaseYear: 2026,
+    releaseDate: '2026-10-23',
+    posterURL: 'https://images.unsplash.com/photo-1509281373149-e957c6296406?w=500&auto=format&fit=crop&q=80',
+    backdropURL: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1280&auto=format&fit=crop&q=80',
+    genres: ['Terror Folclórico', 'Misterio', 'Drama'],
+    runtimeMinutes: 104,
+    imdbId: 'tt3344011',
+    director: 'Marco Panéz',
+    countryOfOrigin: 'PE',
+    originCountryName: 'Perú',
+    ratings: {
+      rottenTomatoesCritics: 89,
+      rottenTomatoesAudience: 91,
+      imdbScore: 8.5,
+      imdbVotes: '8.7K',
+      compositeScore: 8.7
+    }
+  },
+  {
+    id: 'dune_part_two',
+    title: 'Dune: Parte Dos (Dune: Part Two)',
+    overview: 'Paul Atreides se une a Chani y a los Fremen mientras busca venganza contra los conspiradores que destruyeron a su familia. Ante una elección entre el amor de su vida y el destino del universo, debe prevenir un futuro terrible que solo él puede prever.',
+    releaseYear: 2024,
+    releaseDate: '2024-03-01',
+    posterURL: 'https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/xOMo8BRK7PfcJv9JCnx7s5200bm.jpg',
+    genres: ['Ciencia Ficción', 'Aventura', 'Drama'],
+    runtimeMinutes: 166,
+    imdbId: 'tt15239678',
+    director: 'Denis Villeneuve',
+    countryOfOrigin: 'US',
+    originCountryName: 'Estados Unidos',
+    ratings: {
+      rottenTomatoesCritics: 92,
+      rottenTomatoesAudience: 95,
+      imdbScore: 8.5,
+      imdbVotes: '540K',
+      compositeScore: 8.8
+    }
+  },
+  {
+    id: 'deadpool_wolverine',
+    title: 'Deadpool & Wolverine',
+    overview: 'Un apático Wade Wilson lucha en la vida civil con sus días como el mercenario moralmente flexible Deadpool a sus espaldas. Pero cuando su mundo natal enfrenta una amenaza existencial, Wade debe volver a ponerse el traje.',
+    releaseYear: 2024,
+    releaseDate: '2024-07-26',
+    posterURL: 'https://image.tmdb.org/t/p/w500/8cdWjvZQUExUUTzyp4t6EDMubfO.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/dvBCWXtTxftVkkiIauU2980Z0Q9.jpg',
+    genres: ['Acción', 'Comedia', 'Ciencia Ficción'],
+    runtimeMinutes: 128,
+    imdbId: 'tt6263850',
+    director: 'Shawn Levy',
+    countryOfOrigin: 'US',
+    originCountryName: 'Estados Unidos',
+    ratings: {
+      rottenTomatoesCritics: 78,
+      rottenTomatoesAudience: 94,
+      imdbScore: 7.7,
+      imdbVotes: '360K',
+      compositeScore: 8.0
+    }
+  },
+  {
+    id: 'furiosa_mad_max',
+    title: 'Furiosa: De la Saga Mad Max',
+    overview: 'Al caer el mundo, la joven Furiosa es arrebatada del Lugar Verde de Muchas Madres y cae en manos de una gran Horda de Motoristas liderada por el Señor de la Guerra Dementus.',
+    releaseYear: 2024,
+    releaseDate: '2024-05-24',
+    posterURL: 'https://image.tmdb.org/t/p/w500/iADOJ8Zymht2JPMoy3R7xUMZ51.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/wNAhuOZ3Zf84jCI5TeTV5Y8JJR9.jpg',
+    genres: ['Acción', 'Aventura', 'Ciencia Ficción'],
+    runtimeMinutes: 148,
+    imdbId: 'tt12037194',
+    director: 'George Miller',
+    countryOfOrigin: 'AU',
+    originCountryName: 'Australia',
+    ratings: {
+      rottenTomatoesCritics: 90,
+      rottenTomatoesAudience: 89,
+      imdbScore: 7.6,
+      imdbVotes: '210K',
+      compositeScore: 8.1
+    }
+  },
+
+  // --- CLÁSICOS HISTÓRICOS ---
+  {
+    id: 'the_godfather',
+    title: 'El Padrino (The Godfather)',
+    overview: 'El envejecido patriarca de una dinastía del crimen organizado en Nueva York transfiere el control de su imperio clandestino a su reacio hijo menor.',
+    releaseYear: 1972,
+    releaseDate: '1972-03-24',
+    posterURL: 'https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/tmU7GeKVybMWFButWEGl2M4GeiP.jpg',
+    genres: ['Crimen', 'Drama'],
+    runtimeMinutes: 175,
+    imdbId: 'tt0068646',
+    director: 'Francis Ford Coppola',
+    countryOfOrigin: 'US',
+    originCountryName: 'Estados Unidos',
+    ratings: {
+      rottenTomatoesCritics: 97,
+      rottenTomatoesAudience: 98,
+      imdbScore: 9.2,
+      imdbVotes: '2.0M',
+      compositeScore: 9.5
+    }
+  },
+  {
+    id: 'the_godfather_part_ii',
+    title: 'El Padrino Parte II (The Godfather Part II)',
+    overview: 'Se retratan los primeros pasos en el crimen del joven Vito Corleone en la Nueva York de los años 20 mientras en los 50 su hijo Michael expande el sindicato a Las Vegas, Hollywood y Cuba.',
+    releaseYear: 1974,
+    releaseDate: '1974-12-20',
+    posterURL: 'https://image.tmdb.org/t/p/w500/hek3koDUyMrk7ilW5eEv6vBu5ye.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/kGzFbGhp99zva6vdZ2yoVI5usnS.jpg',
+    genres: ['Crimen', 'Drama'],
+    runtimeMinutes: 202,
+    imdbId: 'tt0071562',
+    director: 'Francis Ford Coppola',
+    countryOfOrigin: 'US',
+    originCountryName: 'Estados Unidos',
+    ratings: {
+      rottenTomatoesCritics: 96,
+      rottenTomatoesAudience: 97,
+      imdbScore: 9.0,
+      imdbVotes: '1.4M',
+      compositeScore: 9.3
+    }
+  },
+  {
+    id: 'pulp_fiction',
+    title: 'Pulp Fiction (Tiempos Violentos)',
+    overview: 'Las vidas de dos matones de la mafia, un boxeador, la esposa de un gángster y dos bandidos se entrelazan en cuatro historias de violencia y redención en Los Ángeles.',
+    releaseYear: 1994,
+    releaseDate: '1994-10-14',
+    posterURL: 'https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/suaEOtk1N1sgg2MTM7oZd2cfVp3.jpg',
+    genres: ['Crimen', 'Comedia Negra', 'Drama'],
+    runtimeMinutes: 154,
+    imdbId: 'tt0110912',
+    director: 'Quentin Tarantino',
+    countryOfOrigin: 'US',
+    originCountryName: 'Estados Unidos',
+    ratings: {
+      rottenTomatoesCritics: 92,
+      rottenTomatoesAudience: 96,
+      imdbScore: 8.9,
+      imdbVotes: '2.2M',
+      compositeScore: 9.1
+    }
+  },
+  {
+    id: '12_angry_men',
+    title: '12 Hombres en Pugna (12 Angry Men)',
+    overview: 'Un miembro de un jurado intenta evitar un error judicial convenciendo a los otros once colegas de que reconsideren las pruebas en un juicio por asesinato.',
+    releaseYear: 1957,
+    releaseDate: '1957-04-10',
+    posterURL: 'https://image.tmdb.org/t/p/w500/ow3wq89wM8qd5X7hWKxiRfsFf9C.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/qqHQsStV6exghCM7zbR8477w7H.jpg',
+    genres: ['Drama', 'Misterio'],
+    runtimeMinutes: 96,
+    imdbId: 'tt0050083',
+    director: 'Sidney Lumet',
+    countryOfOrigin: 'US',
+    originCountryName: 'Estados Unidos',
+    ratings: {
+      rottenTomatoesCritics: 100,
+      rottenTomatoesAudience: 97,
+      imdbScore: 9.0,
+      imdbVotes: '870K',
+      compositeScore: 9.4
+    }
+  },
+  {
+    id: 'the_dark_knight',
+    title: 'El Caballero de la Noche (The Dark Knight)',
+    overview: 'Cuando la amenaza conocida como el Joker causa estragos y caos en Gotham, Batman debe aceptar una de las mayores pruebas psicológicas y físicas de su capacidad para combatir la injusticia.',
+    releaseYear: 2008,
+    releaseDate: '2008-07-18',
+    posterURL: 'https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/oKa4iyqC4f7H9sF61C0K2B64t.jpg',
+    genres: ['Acción', 'Crimen', 'Drama'],
+    runtimeMinutes: 152,
+    imdbId: 'tt0468569',
+    director: 'Christopher Nolan',
+    countryOfOrigin: 'US',
+    originCountryName: 'Estados Unidos',
+    ratings: {
+      rottenTomatoesCritics: 94,
+      rottenTomatoesAudience: 94,
+      imdbScore: 9.0,
+      imdbVotes: '2.9M',
+      compositeScore: 9.2
+    }
+  },
+  {
+    id: 'spirited_away',
+    title: 'El Viaje de Chihiro (Spirited Away)',
+    overview: 'Chihiro, una niña de 10 años caprichosa, se adentra en un mundo gobernado por dioses, brujas y espíritus donde los humanos son transformados en bestias.',
+    releaseYear: 2001,
+    releaseDate: '2001-07-20',
+    posterURL: 'https://image.tmdb.org/t/p/w500/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/Ab8mkHmkYADjU7wQiOkia99GQI.jpg',
+    genres: ['Animación', 'Fantasía', 'Aventura'],
+    runtimeMinutes: 125,
+    imdbId: 'tt0245429',
+    director: 'Hayao Miyazaki',
+    countryOfOrigin: 'JP',
+    originCountryName: 'Japón',
+    ratings: {
+      rottenTomatoesCritics: 96,
+      rottenTomatoesAudience: 96,
+      imdbScore: 8.6,
+      imdbVotes: '840K',
+      compositeScore: 9.1
+    }
+  },
+  {
+    id: 'interstellar',
+    title: 'Interestelar (Interstellar)',
+    overview: 'Un equipo de exploradores viaja a través de un agujero de gusano en el espacio en un intento por asegurar la supervivencia de la humanidad.',
+    releaseYear: 2014,
+    releaseDate: '2014-11-07',
+    posterURL: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/xJHokMbljvjADYdit5fK5VQsXEG.jpg',
+    genres: ['Ciencia Ficción', 'Drama', 'Aventura'],
+    runtimeMinutes: 169,
+    imdbId: 'tt0816692',
+    director: 'Christopher Nolan',
+    countryOfOrigin: 'US',
+    originCountryName: 'Estados Unidos',
+    ratings: {
+      rottenTomatoesCritics: 73,
+      rottenTomatoesAudience: 86,
+      imdbScore: 8.7,
+      imdbVotes: '2.1M',
+      compositeScore: 8.3
+    }
+  },
+  {
+    id: 'cinema_paradiso',
+    title: 'Cinema Paradiso',
+    overview: 'Un cineasta recuerda su infancia cuando se enamoró de las imágenes en el cine de su pueblo y entabló una profunda amistad con el proyeccionista Alfredo.',
+    releaseYear: 1988,
+    releaseDate: '1988-11-17',
+    posterURL: 'https://image.tmdb.org/t/p/w500/8SRUuvvH5yTbw584w54ZJ4w.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/6xKzbqcY3k8J3WbVv.jpg',
+    genres: ['Drama', 'Romance'],
+    runtimeMinutes: 155,
+    imdbId: 'tt0095765',
+    director: 'Giuseppe Tornatore',
+    countryOfOrigin: 'IT',
+    originCountryName: 'Italia',
+    ratings: {
+      rottenTomatoesCritics: 90,
+      rottenTomatoesAudience: 97,
+      imdbScore: 8.5,
+      imdbVotes: '290K',
+      compositeScore: 8.9
+    }
+  },
+
+  // --- SAGA RÁPIDOS Y FURIOSOS ---
+  {
+    id: 'fast_furious_1',
+    title: 'Rápidos y Furiosos (The Fast and the Furious)',
+    overview: 'El oficial encubierto Brian O\'Conner se infiltra en las carreras clandestinas de Los Ángeles lideradas por Dominic Toretto.',
+    releaseYear: 2001,
+    releaseDate: '2001-06-22',
+    posterURL: 'https://m.media-amazon.com/images/M/MV5BZGRiMDE1NTMtMThmZS00YjE4LWI1ODQtNjRkZGZlOTg2MGE1XkEyXkFqcGc@._V1_QL75_UX380_CR0,1,380,562_.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/yF1EbAnkhUp1DEt5kWZ15Tgmhbt.jpg',
+    genres: ['Acción', 'Crimen', 'Suspenso'],
+    runtimeMinutes: 106,
+    imdbId: 'tt0232500',
+    director: 'Rob Cohen',
+    countryOfOrigin: 'US',
+    originCountryName: 'Estados Unidos',
+    ratings: {
+      rottenTomatoesCritics: 56,
+      rottenTomatoesAudience: 74,
+      imdbScore: 6.8,
+      imdbVotes: '468K',
+      compositeScore: 6.6
+    }
+  },
+  {
+    id: 'fast_five_2011',
+    title: 'Rápidos y Furiosos 5in Control (Fast Five)',
+    overview: 'Dominic Toretto y Brian O\'Conner reúnen a su legendario equipo en Río de Janeiro para un último atraco de 100 millones de dólares.',
+    releaseYear: 2011,
+    releaseDate: '2011-04-29',
+    posterURL: 'https://m.media-amazon.com/images/M/MV5BMTUxNTk5MTE0OF5BMl5BanBnXkFtZTcwMjA2NzY3NA@@._V1_QL75_UX380_CR0,0,380,562_.jpg',
+    backdropURL: 'https://image.tmdb.org/t/p/w1280/lGDeo2NlTz6N1H8F1N6H9Tf6iXF.jpg',
+    genres: ['Acción', 'Crimen', 'Suspenso'],
+    runtimeMinutes: 130,
+    imdbId: 'tt1596343',
+    director: 'Justin Lin',
+    countryOfOrigin: 'US',
+    originCountryName: 'Estados Unidos',
+    ratings: {
+      rottenTomatoesCritics: 78,
+      rottenTomatoesAudience: 83,
+      imdbScore: 7.3,
+      imdbVotes: '430K',
+      compositeScore: 7.5
+    }
+  }
+];
+
+export const CURATED_MOVIES: Movie[] = RAW_MOVIES.map(movie => {
+  const comp = calculateCompositeScore(movie.ratings);
+  return {
+    ...movie,
+    ratings: {
+      ...movie.ratings,
+      compositeScore: comp
+    }
+  };
+});
+
+export const DEFAULT_USER: User = {
+  id: 'user_alex_101',
+  email: 'cinefilo@apple.com',
+  displayName: 'Alex Rivera',
+  username: '@alexrivera',
+  bio: 'Crítico entusiasta de cine de autor, sci-fi y experiencias en gran pantalla 🎬 70mm lover.',
+  avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+  isPremium: true,
+  location: AVAILABLE_CITIES[0], // Lima por defecto
+  createdAt: '2024-01-15T08:00:00Z'
+};
+
+export const INITIAL_FRIENDS: Friend[] = [
+  {
+    id: 'friend_valeria',
+    displayName: 'Valeria Gómez',
+    username: '@valeriacine',
+    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
+    isMutual: true,
+    mutualMoviesCount: 14,
+    bio: 'Devoradora de festivales (Cannes, Sundance). Amante del cine asiático y terror andino.'
+  },
+  {
+    id: 'friend_lucas',
+    displayName: 'Lucas Romero',
+    username: '@lucasromero',
+    avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
+    isMutual: true,
+    mutualMoviesCount: 18,
+    bio: 'Fotografía cinematográfica y ciencia ficción dura. Denis Villeneuve y Kubrick siempre.'
+  },
+  {
+    id: 'friend_marcos',
+    displayName: 'Marcos Silva',
+    username: '@marcoss',
+    avatarUrl: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=200&auto=format&fit=crop&q=80',
+    isMutual: true,
+    mutualMoviesCount: 9,
+    bio: 'Guionista aficionado. Fanático de Coppola, Scorsese y el cine noir de los 70s.'
+  },
+  {
+    id: 'friend_sofia',
+    displayName: 'Sofía Alarcón',
+    username: '@sofia_film',
+    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&auto=format&fit=crop&q=80',
+    isMutual: true,
+    mutualMoviesCount: 11,
+    bio: 'Montajista y documentalista en formación. Cine latinoamericano contemporáneo.'
+  }
+];
+
+export const INITIAL_REVIEWS: Review[] = [
+  {
+    id: 'rev_ekeko_1',
+    movieId: 'ekeko_pe_2026',
+    movieTitle: 'Ekeko: El Dios de la Abundancia',
+    moviePosterUrl: 'https://images.unsplash.com/photo-1509281373149-e957c6296406?w=500&auto=format&fit=crop&q=80',
+    movieReleaseYear: 2026,
+    userId: 'friend_valeria',
+    userName: 'Valeria Gómez',
+    userAvatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
+    rating: 4.5,
+    comment: '¡Extraordinario terror folclórico andino! El diseño sonoro en salas con Dolby Atmos te eriza la piel. La tensión ancestral está construida con maestría.',
+    likesCount: 12,
+    helpfulCount: 8,
+    isCommunity: false,
+    createdAt: '2026-10-28T19:30:00Z',
+    comments: [
+      {
+        id: 'c1',
+        reviewId: 'rev_ekeko_1',
+        userId: 'user_alex_101',
+        userName: 'Alex Rivera',
+        text: 'Totalmente de acuerdo, la escena en las minas es de lo mejor del cine latinoamericano este año.',
+        createdAt: '2026-10-28T20:15:00Z'
+      }
+    ]
+  },
+  {
+    id: 'rev_dune_1',
+    movieId: 'dune_part_two',
+    movieTitle: 'Dune: Parte Dos',
+    moviePosterUrl: 'https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg',
+    movieReleaseYear: 2024,
+    userId: 'friend_lucas',
+    userName: 'Lucas Romero',
+    userAvatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
+    rating: 5.0,
+    comment: 'Una obra cumbre de la ciencia ficción contemporánea. La secuencia en Giedi Prime en blanco y negro infrarrojo es pura poesía visual. Austin Butler inolvidable.',
+    likesCount: 24,
+    helpfulCount: 15,
+    isCommunity: false,
+    createdAt: '2026-10-26T14:10:00Z',
+    comments: []
+  },
+  {
+    id: 'rev_godfather_1',
+    movieId: 'the_godfather',
+    movieTitle: 'El Padrino',
+    moviePosterUrl: 'https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg',
+    movieReleaseYear: 1972,
+    userId: 'friend_marcos',
+    userName: 'Marcos Silva',
+    userAvatarUrl: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=200&auto=format&fit=crop&q=80',
+    rating: 5.0,
+    comment: 'No envejece ni un solo segundo. Cada plano de Gordon Willis en penumbra y cada silencio de Marlon Brando dictan cátedra de cómo hacer historia en el cine.',
+    likesCount: 31,
+    helpfulCount: 22,
+    isCommunity: false,
+    createdAt: '2026-10-22T11:00:00Z',
+    comments: []
+  }
+];
+
+export const INITIAL_GROUPS: MovieGroup[] = [
+  {
+    id: 'grp_cine_peruano',
+    name: 'Cine Peruano & Latinoamericano',
+    description: 'Debates de estrenos, cine de autor, retrospectivas y cartelera regional.',
+    iconEmoji: '🇵🇪',
+    creatorId: 'user_alex_101',
+    creatorName: 'Alex Rivera',
+    inviteCode: 'CINE-PERU',
+    messagesCount: 42,
+    membersCount: 8,
+    createdAt: '2026-09-01T10:00:00Z'
+  },
+  {
+    id: 'grp_clasicos_70mm',
+    name: 'Clásicos Ocultos & 70mm',
+    description: 'Joyas restauradas, cine en celuloide y reestrenos en salas especiales.',
+    iconEmoji: '🎞️',
+    creatorId: 'friend_lucas',
+    creatorName: 'Lucas Romero',
+    inviteCode: '70MM-CLUB',
+    messagesCount: 68,
+    membersCount: 12,
+    createdAt: '2026-08-15T14:30:00Z'
+  },
+  {
+    id: 'grp_scifi_future',
+    name: 'Horizontes Sci-Fi',
+    description: 'Todo sobre ciencia ficción dura, distopías y mundos especulativos.',
+    iconEmoji: '🚀',
+    creatorId: 'friend_valeria',
+    creatorName: 'Valeria Gómez',
+    inviteCode: 'SCIFI-NOW',
+    messagesCount: 51,
+    membersCount: 9,
+    createdAt: '2026-09-10T18:00:00Z'
+  }
+];
+

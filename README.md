@@ -1,122 +1,89 @@
-# MovieSocial: Aplicación iOS de Cine & Amigos
+# MovieSocial: Plataforma Cinéfila & Red Social
 
-Aplicación nativa para **iOS (iOS 17+)** construida con **Swift 6** y **SwiftUI**, diseñada con una filosofía **minimalista**, enfocada exclusivamente en el descubrimiento de películas (estrenos y clásicos de cualquier época), la agregación de calificaciones oficiales de **Rotten Tomatoes** (Tomatometer y Audiencia) e **IMDb**, y la conexión con amigos para compartir puntuaciones y micro-reseñas sin ruido, anuncios ni secciones de noticias.
-
----
-
-## 🌟 Características Principales
-
-1. **Autenticación Nativa y Segura:**
-   - **Sign in with Apple** (utilizando `AuthenticationServices`, compatible con los estándares de la App Store Review Guideline 4.8).
-   - **Sign in with Google** (integración lista para producción y mock para entorno de pruebas).
-2. **Catálogo Cinematográfico Completo:**
-   - **Cartelera Local por Ciudad:** Filtro y selector interactivo de ciudad activa (Madrid, Barcelona, CDMX, Bogotá, Buenos Aires, Santiago, Lima) con indicador de disponibilidad en cines físicos locales, salas y horarios.
-   - **Clásicos Históricos por Cruce de Ratings:** Obras maestras de toda la historia del cine ordenadas por cruce ponderado de puntuaciones y filtro por décadas (`≤ 60s`, `70s`, `80s`, `90s`, `2000s`, `2010s`, `Todas`).
-   - **Búsqueda Instantánea:** Filtrado ágil por título, género o año.
-3. **Puntuaciones Críticas Unificadas:**
-   - ✨ **MovieScore (Score Cruce Ponderado):** Cruce normalizado en base 10 (50% IMDb + 30% Rotten Tomatoes Críticos + 20% Audiencia).
-   - 🍅 **Rotten Tomatoes:** Puntuación de críticos (*Tomatometer %*) y de audiencia (*Popcorn %*).
-   - ⭐ **IMDb:** Calificación numérica sobre 10 (ej. `9.2/10`) y volumen de votos.
-   - 👥 **Círculo de Amigos:** Promedio ponderado exclusivo de las personas que sigues.
-4. **Capa Social Limpia (Sin Noticias):**
-   - Feed de actividad cronológico de reseñas escritas por tus amigos.
-   - Detalle de película con sección destacada *"Qué opinan tus amigos"*.
-   - Modal minimalista para registrar puntuación (1 a 5 estrellas con medios puntos) y opinión personal.
-   - Búsqueda y adición de amigos mediante nombre de usuario (`@usuario`).
-5. **Mensajería y Chats Directos (One-to-One) & Cineclubs:**
-   - Sección dedicada de **Chats 1 a 1** entre cinéfilos al estilo WhatsApp Dark.
-   - Selector segmentado unificado para alternar entre **Chats 1 a 1** y **Cineclubs (Grupos)**.
-   - Recomendación y compartición de películas en directo dentro del chat privado con póster, sinopsis, año y acceso a ficha.
-   - Botón directo para iniciar chat 1 a 1 desde el perfil y lista de amigos.
-6. **Diseño Visual Minimalista (Cinema Dark):**
-   - Paleta monocromática OLED (`#0B0C0E`), tipografía limpia y foco absoluto en los pósters y opiniones.
-   - Cero secciones de noticias, publicidad o algoritmos invasivos.
+Plataforma Web moderna y responsive construida con la misma arquitectura de **gestion-3d-app** y **gestion-bg-app**:
+- **Framework:** **Next.js 15 (App Router)**
+- **ORM & Base de Datos:** **Prisma ORM** conectado directamente a **Neon DB (PostgreSQL Serverless)** mediante `DATABASE_URL` en `.env`
+- **Server Actions & Lógica:** `src/actions/` con `"use server"` para consultas y mutaciones directas de datos
+- **Estilos:** **Tailwind CSS + shadcn/ui** con paleta **Cinema Dark OLED** (`#0B0C0E`), tipografía limpia y acentos dorados (`#E5A93C`)
+- **Iconos:** **Lucide React**
 
 ---
 
-## 🏗 Arquitectura de Software
+## 🌟 Características
 
-La aplicación sigue los principios de **Clean Architecture + MVVM** con **Swift Concurrency (Swift 6)**:
+1. **Cartelera Local por Ciudad:**
+   - Selector interactivo de ciudad (Madrid, Barcelona, Ciudad de México, Bogotá, Buenos Aires, Santiago, Lima) con salas y horarios reales (IMAX, VOSE, Dolby Atmos).
+2. **Clásicos Históricos por MovieScore:**
+   - Obras maestras de toda la historia ordenadas por cruce ponderado (50% IMDb + 30% Rotten Tomatoes Críticos + 20% Audiencia) con filtro por décadas (`≤ 60s`, `70s`, `80s`, `90s`, `2000s`, `2010s`, `Todas`).
+3. **Ficha de Película & Reseñas:**
+   - Desglose de calificaciones oficiales (**Tomatometer**, **Popcornmeter**, **IMDb** y **MovieScore**), salas de proyección y opiniones de amigos.
+   - Calificador interactivo con estrellas de 1 a 5 con **medios puntos** (0.5 a 5.0).
+4. **Feed Social & Conexiones:**
+   - Feed cronológico de reseñas escritas por tu círculo de amigos con comentarios interactivos y likes.
+   - Directorio de amigos y buscador por `@usuario`.
+5. **Chats 1 a 1 & Cineclubs:**
+   - Mensajería estilo WhatsApp Dark con soporte para compartir tarjetas de películas recomendadas dentro de la conversación.
+   - Cineclubs comunitarios con código de invitación (`CINE-XXXXXX`).
+6. **Perfil & Cinéfilo Pro:**
+   - Estadísticas, edición de datos/ciudad y membresía Pro.
+
+---
+
+## 🏗 Arquitectura del Proyecto (Igual a gestion-3d-app / gestion-bg-app)
 
 ```text
 MovieSocialApp/
-├── Package.swift               # Manifiesto Swift Package multi-plataforma
-├── test.sh                     # Script para ejecutar suite de pruebas
-├── Sources/
-│   ├── App/
-│   │   ├── MovieSocialApp.swift # Punto de entrada principal
-│   │   ├── RootTabView.swift    # Navegación por pestañas (Cine, Amigos, Perfil)
-│   │   └── AppEnvironment.swift # Contenedor de Inyección de Dependencias
-│   ├── Core/
-│   │   └── DesignSystem/
-│   │       ├── Theme.swift      # Tokens de color, espaciado y bordes
-│   │       └── Components/
-│   │           ├── RatingBadgesView.swift      # Badge unificado RT + IMDb + Amigos
-│   │           ├── MoviePosterCard.swift       # Tarjeta de póster minimalista
-│   │           └── MinimalistRatingPicker.swift# Selector de estrellas y medios puntos
-│   └── Features/
-│       ├── Auth/
-│       │   ├── Domain/ (User, AuthServiceProtocol)
-│       │   ├── Services/ (AppleAuthService, GoogleAuthService, MockAuthService)
-│       │   └── Presentation/ (LoginView, AuthViewModel)
-│       ├── Movies/
-│       │   ├── Domain/ (Movie, ExternalRatings, MovieRepositoryProtocol, UseCases)
-│       │   ├── Data/ (MovieRepositoryImpl actor, TMDBMovieDTO, OMDbRatingDTO)
-│       │   └── Presentation/ (MovieCatalogView, MovieDetailView, ViewModels)
-│       ├── Social/
-│       │   ├── Domain/ (Friend, Review, SocialRepositoryProtocol, UseCases)
-│       │   ├── Data/ (SocialRepositoryImpl actor)
-│       │   └── Presentation/ (FriendsFeedView, FriendsListView, AddReviewSheetView, SocialViewModel)
-│       ├── DirectChat/
-│       │   ├── Domain/ (DirectConversation, DirectMessage, DirectChatRepositoryProtocol, UseCases)
-│       │   ├── Data/ (DirectChatRepositoryImpl actor)
-│       │   └── Presentation/ (ChatsMainView, DirectChatListView, DirectChatDetailView, DirectChatViewModel)
-│       ├── Groups/
-│       │   ├── Domain/ (MovieGroup, GroupMessage, GroupRepositoryProtocol, UseCases)
-│       │   ├── Data/ (GroupRepositoryImpl actor)
-│       │   └── Presentation/ (GroupsListView, GroupDetailView, GroupsViewModel)
-│       └── Profile/
-│           └── Presentation/ (ProfileView, ProfileViewModel)
-└── Tests/
-    └── MovieSocialAppTests/
-        ├── TMDBMappingTests.swift
-        ├── OMDbMappingTests.swift
-        ├── MovieRepositoryTests.swift
-        ├── SocialUseCasesTests.swift
-        └── AuthViewModelTests.swift
+├── .env                      # Variables de entorno (DATABASE_URL para Neon DB PostgreSQL)
+├── components.json           # Configuración de shadcn/ui
+├── next.config.ts            # Configuración de Next.js
+├── tailwind.config.js        # Tokens de tema Cinema Dark
+├── postcss.config.mjs        # Configuración PostCSS
+├── prisma/
+│   └── schema.prisma         # Modelos de Prisma conectados a PostgreSQL (Neon DB)
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx        # RootLayout con viewport, metadatos y fuente
+│   │   ├── page.tsx          # Página principal interactiva con navegación por pestañas
+│   │   └── globals.css       # Estilos globales y scrollbars oscuros
+│   ├── actions/              # Server Actions (Prisma ORM)
+│   │   ├── movies.ts         # Consultas de cartelera y clásicos
+│   │   ├── reviews.ts        # Consultas y creación de reseñas
+│   │   ├── friends.ts        # Amigos y conexiones
+│   │   ├── chats.ts          # Chats 1 a 1 y cineclubs
+│   │   └── users.ts          # Datos de usuario y perfil
+│   ├── lib/
+│   │   ├── prisma.ts         # Singleton de PrismaClient
+│   │   └── utils.ts          # Helper 'cn' (clsx + tailwind-merge) y formateadores
+│   ├── components/           # Componentes modulares
+│   │   ├── common/           # Navbar, RatingBadges, StarRatingPicker
+│   │   └── movies/           # MovieCard, MovieDetailModal, AddReviewModal
+│   ├── views/                # Vistas principales
+│   │   ├── CatalogView.tsx   # Cartelera y Clásicos
+│   │   ├── FriendsFeedView.tsx # Feed de reseñas
+│   │   ├── ChatsView.tsx     # Mensajería y Cineclubs
+│   │   └── ProfileView.tsx   # Perfil y membresía Pro
+│   └── types/                # Interfaces TypeScript y cálculo de MovieScore
+├── dev.sh                    # Iniciar servidor de desarrollo (puerto 3000)
+├── start.sh                  # Compilar y arrancar producción local
+└── Dockerfile                # Despliegue en contenedor Docker
 ```
 
 ---
 
-## 🚀 Cómo Abrir y Ejecutar el Proyecto
+## 🚀 Cómo Ejecutar la Aplicación
 
-### Opción 1: Abrir en Xcode (Recomendado para Simulador iOS)
-1. Abre Xcode en tu Mac.
-2. Selecciona **File > Open...** y elige la carpeta `/Users/vctormnzn/.gemini/antigravity/scratch/MovieSocialApp`.
-3. Xcode detectará automáticamente `Package.swift`.
-4. Selecciona el esquema `MovieSocialApp` y cualquier simulador de iOS (ej. **iPhone 16 Pro** o **iOS Simulator**).
-5. Pulsa **Cmd + R** para compilar y ejecutar, o **Cmd + U** para ejecutar las pruebas.
-
-### Opción 2: Ejecutar Pruebas Automatizadas desde Terminal
-El proyecto incluye un script de prueba que ejecuta las 13 pruebas automatizadas:
+### Modo Desarrollo (Puerto 3000)
 ```bash
-cd /Users/vctormnzn/.gemini/antigravity/scratch/MovieSocialApp
-./test.sh
+npm run dev
+# o usando el script:
+./dev.sh
 ```
+Abre en tu navegador: **[http://localhost:3000](http://localhost:3000)**
 
----
-
-## 🔑 Configuración de APIs de TMDB y OMDb
-
-Por defecto, la aplicación incluye un catálogo curado offline con datos reales (estrenos como *Dune 2*, *Inside Out 2*, *Deadpool & Wolverine*, y clásicos como *El Padrino*, *Pulp Fiction*, *12 Angry Men* y *El Viaje de Chihiro*) con puntuaciones auténticas de Rotten Tomatoes e IMDb.
-
-Para conectar tus propias claves de API de producción:
-1. En `AppEnvironment.swift`, instancia el repositorio proporcionando tus claves:
-   ```swift
-   let movieRepository = MovieRepositoryImpl(
-       tmdbApiKey: "TU_TMDB_API_KEY",
-       omdbApiKey: "TU_OMDB_API_KEY"
-   )
-   ```
-2. El repositorio llamará a TMDB para obtener el catálogo y los pósters, extraerá el identificador `imdb_id` y consultará a OMDb para cargar dinámicamente los porcentajes de Rotten Tomatoes y la puntuación de IMDb.
-
+### Modo Producción
+```bash
+npm run build
+npm run start
+# o usando el script:
+./start.sh
+```

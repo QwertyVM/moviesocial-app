@@ -1,14 +1,12 @@
 services:
   - type: web
-    name: moviesocial-api
-    env: python
+    name: moviesocial-web
+    env: docker
     region: ohio
     plan: free
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: python server.py
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: PORT
-        value: 8080
+        value: 3000
       - key: DATABASE_URL
-        sync: false # Pega aquí tu URL de conexión de Neon DB
+        sync: false # Pega aquí tu URL de conexión de Neon DB (PostgreSQL)
