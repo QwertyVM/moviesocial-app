@@ -24,6 +24,8 @@ interface FriendsFeedViewProps {
   onSelectMovieById: (movieId: string) => void;
   onOpenChatWithFriend: (friend: Friend) => void;
   onOpenSubscriptionModal?: (reason?: string) => void;
+  lens?: 'friends' | 'global';
+  onToggleLens?: (lens: 'friends' | 'global') => void;
 }
 
 export const FriendsFeedView: React.FC<FriendsFeedViewProps> = ({
@@ -31,14 +33,20 @@ export const FriendsFeedView: React.FC<FriendsFeedViewProps> = ({
   onSelectMovieById,
   onOpenChatWithFriend,
   onOpenSubscriptionModal,
+  lens = 'friends',
+  onToggleLens,
 }) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
-  const [feedScope, setFeedScope] = useState<'friends' | 'global'>('friends');
+  const [feedScope, setFeedScope] = useState<'friends' | 'global'>(lens);
   const [searchFriendText, setSearchFriendText] = useState('');
   const [activeCommentReviewId, setActiveCommentReviewId] = useState<string | null>(null);
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [addingFriend, setAddingFriend] = useState(false);
+
+  useEffect(() => {
+    setFeedScope(lens);
+  }, [lens]);
 
   const loadData = async () => {
     const revs = await api.getReviews();
@@ -188,7 +196,24 @@ export const FriendsFeedView: React.FC<FriendsFeedViewProps> = ({
 
           {/* Feed Items */}
           <div className="flex flex-col gap-4">
-            {filteredReviews.map((r) => {
+            {filteredReviews.length === 0 ? (
+              <div className="p-10 rounded-3xl bg-cinema-card border border-cinema-border text-center flex flex-col items-center justify-center gap-3 shadow-lg">
+                <div className="w-14 h-14 rounded-2xl bg-cinema-surface border border-cinema-border flex items-center justify-center text-cinema-gold shadow-inner">
+                  <MessageSquare className="w-7 h-7 opacity-80" />
+                </div>
+                <h3 className="text-sm font-bold text-white">
+                  {feedScope === 'friends'
+                    ? 'Aún no hay reseñas de tus amigos'
+                    : 'Aún no hay reseñas de la comunidad'}
+                </h3>
+                <p className="text-xs text-cinema-textSecondary max-w-sm leading-relaxed">
+                  {feedScope === 'friends'
+                    ? 'Sé el primero en calificar una película en cartelera o conecta con más cinéfilos en el directorio lateral.'
+                    : 'Las reseñas globales de la comunidad aparecerán aquí a medida que los usuarios opinen sobre estrenos.'}
+                </p>
+              </div>
+            ) : (
+              filteredReviews.map((r) => {
               const isCommentOpen = activeCommentReviewId === r.id;
               return (
                 <div
@@ -383,7 +408,7 @@ export const FriendsFeedView: React.FC<FriendsFeedViewProps> = ({
                   )}
                 </div>
               );
-            })}
+            }))}
           </div>
         </div>
 

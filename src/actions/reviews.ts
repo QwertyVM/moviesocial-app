@@ -44,6 +44,58 @@ export async function getReviews(movieId?: string): Promise<Review[]> {
   }
 }
 
+export async function getMovieReviewStats(movieId: string): Promise<{
+  totalReviews: number;
+  friendsAverage: number | null;
+  friendsCount: number;
+  communityAverage: number | null;
+  communityCount: number;
+  distribution: Record<number, number>;
+}> {
+  try {
+    const allReviews = await getReviews(movieId);
+    let friendsSum = 0;
+    let friendsCount = 0;
+    let communitySum = 0;
+    let communityCount = 0;
+    const distribution: Record<number, number> = {
+      1: 0, 2: 0, 3: 0, 4: 0, 5: 0
+    };
+
+    for (const r of allReviews) {
+      const roundedStar = Math.min(5, Math.max(1, Math.round(r.rating)));
+      distribution[roundedStar] = (distribution[roundedStar] || 0) + 1;
+
+      if (r.isCommunity) {
+        communitySum += r.rating;
+        communityCount++;
+      } else {
+        friendsSum += r.rating;
+        friendsCount++;
+      }
+    }
+
+    return {
+      totalReviews: allReviews.length,
+      friendsAverage: friendsCount > 0 ? Number((friendsSum / friendsCount).toFixed(1)) : null,
+      friendsCount,
+      communityAverage: communityCount > 0 ? Number((communitySum / communityCount).toFixed(1)) : null,
+      communityCount,
+      distribution,
+    };
+  } catch (err) {
+    console.warn("Error calculating review stats:", err);
+    return {
+      totalReviews: 0,
+      friendsAverage: null,
+      friendsCount: 0,
+      communityAverage: null,
+      communityCount: 0,
+      distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+    };
+  }
+}
+
 export async function submitReview(data: {
   movieId: string;
   movieTitle: string;

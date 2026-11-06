@@ -27,6 +27,7 @@ export default function Home() {
   });
 
   const [activeTab, setActiveTab] = useState<"catalog" | "feed" | "chats" | "profile">("catalog");
+  const [lens, setLens] = useState<"friends" | "global">("friends");
   const [initialCatalogCategory, setInitialCatalogCategory] = useState<"nowPlaying" | "classics">("nowPlaying");
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [chatTargetFriend, setChatTargetFriend] = useState<Friend | null>(null);
@@ -154,7 +155,20 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0C0E] text-gray-100 flex flex-col pb-20 md:pb-8">
+    <div className={`bg-[#050608] text-gray-100 flex flex-col ${activeTab === 'catalog' ? 'h-screen overflow-hidden' : 'min-h-screen pb-20 md:pb-8 overflow-x-hidden'} relative selection:bg-amber-500/30 selection:text-amber-200`}>
+      {/* Atmósfera de Sala de Cine: Haz de Luz de Proyector y Resplandor de Gran Pantalla */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        {/* Foco de Proyector Cenital proyectando sobre la pantalla */}
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[1000px] h-[550px] bg-[radial-gradient(ellipse_at_top,rgba(245,158,11,0.12),rgba(217,119,6,0.04)_45%,transparent_70%)] blur-2xl opacity-80" />
+        {/* Haz cónico de luz cinematrográfica */}
+        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[450px] h-[480px] bg-gradient-to-b from-amber-200/10 via-amber-400/5 to-transparent blur-3xl opacity-60" />
+        {/* Reflejos laterales aterciopelados estilo butacas de cine */}
+        <div className="absolute top-1/4 -left-48 w-96 h-96 bg-rose-950/15 rounded-full blur-[130px]" />
+        <div className="absolute top-1/3 -right-48 w-96 h-96 bg-amber-950/15 rounded-full blur-[130px]" />
+        {/* Viñeta perimetral de sala a oscuras */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_40%,rgba(3,4,6,0.9)_100%)]" />
+      </div>
+
       {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
@@ -165,20 +179,22 @@ export default function Home() {
         currentUser={currentUser}
         currentLocation={currentLocation}
         onSelectCity={handleSelectCity}
-        dbStatus={dbStatus}
         onOpenSubscriptionModal={handleOpenSubscriptionModal}
         onOpenAuthModal={handleOpenAuthModal}
         onLogout={handleLogout}
       />
 
       {/* Main Content Area */}
-      <main className="flex-grow">
+      <main className="flex-grow relative z-10">
         {activeTab === "catalog" && (
           <CatalogView
             currentUser={currentUser}
             location={currentLocation}
             onSelectMovie={(movie) => setSelectedMovie(movie)}
             initialCategory={initialCatalogCategory}
+            lens={lens}
+            onOpenAuthModal={handleOpenAuthModal}
+            onOpenChatWithFriend={handleOpenChatWithFriend}
           />
         )}
 
@@ -189,6 +205,8 @@ export default function Home() {
               onSelectMovieById={handleSelectMovieById}
               onOpenChatWithFriend={handleOpenChatWithFriend}
               onOpenSubscriptionModal={handleOpenSubscriptionModal}
+              lens={lens}
+              onToggleLens={setLens}
             />
           ) : (
             <AuthGateCard

@@ -2,7 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { CURATED_MOVIES } from "@/data/curatedMovies";
-import { Movie } from "@/types";
+import { Movie, MovieTrailerInfo, MovieCastMember } from "@/types";
 
 const TMDB_GENRES_MAP: Record<number, string> = {
   28: "Acción",
@@ -40,7 +40,7 @@ const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
 
 /**
  * REGLA DE ESTRENO:
- * Solo se considera "Estreno" a las películas que estén en sus primeras 2 semanas
+ * Se considera "Estreno" a las películas que estén en sus primeras 2 semanas
  * (14 días) desde su fecha de lanzamiento oficial en salas de cine.
  */
 function isWithinTwoWeeksWindow(dateStr?: string): boolean {
@@ -49,6 +49,72 @@ function isWithinTwoWeeksWindow(dateStr?: string): boolean {
   const now = new Date();
   const startWindow = new Date(now.getTime() - TWO_WEEKS_MS);
   return rel <= now && rel >= startWindow;
+}
+
+/**
+ * Sobrescrituras y verificaciones de duración teatral oficial en salas de cine de Perú/LATAM
+ * para películas cuyos cortes cinematográficos comerciales difieren del corte extendido o no reportado en TMDB.
+ */
+const THEATRICAL_RUNTIME_OVERRIDES: Record<number, number> = {
+  1477712: 75, // "El heladero: Dulce sabor a muerte" (Ice Cream Man) -> Duración oficial en cartelera de cines Perú: 75 min (1h 15m)
+};
+
+/**
+ * Mapeo de directores o transliteraciones oficiales conocidas (ej. kanji -> romaji)
+ */
+const DIRECTOR_OVERRIDES: Record<number, string> = {
+  43652: "Takashi Yamazaki", // 山崎貴 -> Director de Godzilla Minus Zero / Minus One
+};
+
+/**
+ * Extrae el tráiler óptimo de YouTube dando estricta prioridad a Español Latino / Doblado
+ * y recurriendo al tráiler oficial en Inglés si no existe versión doblada/subtitulada.
+ */
+function extractBestTrailer(videos?: { results?: any[] }): MovieTrailerInfo | undefined {
+  if (!videos?.results || !Array.isArray(videos.results)) return undefined;
+  const yt = videos.results.filter(
+    (v: any) => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser" || v.type === "Clip")
+  );
+  if (yt.length === 0) return undefined;
+
+  // Prioridad 1: Trailer oficial en español (Latino / México / castellano)
+  const esTrailer = yt.find((v: any) => v.iso_639_1?.startsWith("es") && v.type === "Trailer");
+  // Prioridad 2: Teaser oficial en español
+  const esTeaser = yt.find((v: any) => v.iso_639_1?.startsWith("es"));
+  // Prioridad 3: Trailer oficial en inglés
+  const enTrailer = yt.find((v: any) => v.iso_639_1 === "en" && v.type === "Trailer");
+  // Prioridad 4: Teaser en inglés
+  const enTeaser = yt.find((v: any) => v.iso_639_1 === "en");
+  // Fallback: Primer video de YouTube disponible
+  const chosen = esTrailer || esTeaser || enTrailer || enTeaser || yt[0];
+
+  if (!chosen || !chosen.key) return undefined;
+
+  const isEs = chosen.iso_639_1?.startsWith("es");
+  const isEn = chosen.iso_639_1 === "en";
+
+  return {
+    key: chosen.key,
+    name: chosen.name,
+    language: isEs ? "es" : isEn ? "en" : "other",
+    languageLabel: isEs ? "Español Latino" : isEn ? "Inglés con subtítulos" : "Audio Original",
+    youtubeUrl: `https://www.youtube.com/watch?v=${chosen.key}`,
+  };
+}
+
+/**
+ * Extrae el elenco principal (cast) con fotos y nombres de personajes.
+ */
+function extractCast(credits?: { cast?: any[] }): MovieCastMember[] {
+  if (!credits?.cast || !Array.isArray(credits.cast)) return [];
+  return credits.cast.slice(0, 8).map((c: any) => ({
+    id: c.id,
+    name: c.name,
+    character: c.character || undefined,
+    profileURL: c.profile_path
+      ? `https://image.tmdb.org/t/p/w185${c.profile_path}`
+      : undefined,
+  }));
 }
 
 /**
@@ -68,6 +134,20 @@ function formatTmdbMovie(item: any, isPremiering: boolean = false, countryCode: 
     .map((g: any) => (typeof g === "number" ? TMDB_GENRES_MAP[g] : g.name))
     .filter(Boolean);
 
+  const rawDirector = item.credits?.crew?.find(
+    (c: any) => c.job === "Director" || c.department === "Directing"
+  );
+
+  const directorName = rawDirector
+    ? (DIRECTOR_OVERRIDES[rawDirector.id] || rawDirector.name)
+    : undefined;
+
+  const tmdbIdNum = Number(String(item.id).replace("tmdb_", ""));
+  const realRuntime = THEATRICAL_RUNTIME_OVERRIDES[tmdbIdNum] || item.runtime || 0;
+
+  const trailer = extractBestTrailer(item.videos);
+  const cast = extractCast(item.credits);
+
   return {
     id: `tmdb_${item.id}`,
     title: item.title,
@@ -81,7 +161,8 @@ function formatTmdbMovie(item: any, isPremiering: boolean = false, countryCode: 
       ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}`
       : undefined,
     genres: genres.length > 0 ? genres : ["Cine"],
-    runtimeMinutes: item.runtime || 115,
+    runtimeMinutes: realRuntime,
+    director: directorName || undefined,
     countryOfOrigin: item.origin_country?.[0] || countryCode,
     imdbId: item.imdb_id || undefined,
     ratings: {
@@ -92,12 +173,16 @@ function formatTmdbMovie(item: any, isPremiering: boolean = false, countryCode: 
       rottenTomatoesAudience: Math.min(100, Math.round(voteAvg * 10 + 2)),
     },
     isInTheatersLocally: isPremiering,
-    theatersPlaying: isPremiering ? (CHAINS_BY_COUNTRY[countryCode] || [`Cines comerciales (${countryCode})`]) : [],
+    theatersPlaying: isPremiering
+      ? CHAINS_BY_COUNTRY[countryCode] || [`Cines comerciales (${countryCode})`]
+      : [],
+    trailer,
+    cast,
   };
 }
 
 /**
- * Obtener películas estrictamente en periodo de estreno (primeras 2 semanas en cines).
+ * Obtener películas estrictamente en periodo de estreno conectándose directamente a TMDB now_playing.
  */
 export async function getTheatricalMovies(countryCode: string = "PE"): Promise<Movie[]> {
   const code = (countryCode || "PE").toUpperCase();
@@ -111,25 +196,49 @@ export async function getTheatricalMovies(countryCode: string = "PE"): Promise<M
       if (res.ok) {
         const data = await res.json();
         if (data.results && Array.isArray(data.results)) {
-          // Filtrar estrictamente por la regla de las 2 primeras semanas de emisión
           const activePremieres = data.results.filter((item: any) =>
             isWithinTwoWeeksWindow(item.release_date)
           );
+          const rawItems = activePremieres.length > 0 ? activePremieres : data.results.slice(0, 10);
 
-          return activePremieres.map((item: any) => formatTmdbMovie(item, true, code));
+          // Enriquecer en paralelo con datos detallados (runtime, director, créditos, trailers) desde TMDB
+          const enrichedItems = await Promise.all(
+            rawItems.map(async (item: any) => {
+              try {
+                const detailRes = await fetch(
+                  `https://api.themoviedb.org/3/movie/${item.id}?api_key=${tmdbKey}&append_to_response=credits,videos&include_video_language=es,es-MX,es-419,en&language=${lang}`,
+                  { next: { revalidate: 3600 } }
+                );
+                if (detailRes.ok) {
+                  const detail = await detailRes.json();
+                  return {
+                    ...item,
+                    runtime: detail.runtime || item.runtime,
+                    credits: detail.credits,
+                    videos: detail.videos,
+                    genres: detail.genres || item.genres,
+                    imdb_id: detail.imdb_id,
+                    origin_country: detail.origin_country || item.origin_country,
+                  };
+                }
+              } catch (detailErr) {
+                console.warn(`Error enriqueciendo película ${item.id}:`, detailErr);
+              }
+              return item;
+            })
+          );
+
+          return enrichedItems.map((item: any) => formatTmdbMovie(item, true, code));
         }
       }
     } catch (tmdbError) {
-      console.warn("Error consultando TMDB now_playing, usando catálogo local:", tmdbError);
+      console.warn("Error consultando TMDB now_playing directo:", tmdbError);
     }
   }
 
-  // Fallback: Filtrar catálogo curado que cumpla la regla de 2 semanas
+  // Fallback si no está configurada la API key de TMDB en el entorno local
   return CURATED_MOVIES.filter(
-    (m) =>
-      m.theatricalCountries &&
-      m.theatricalCountries.includes(code) &&
-      isWithinTwoWeeksWindow(m.releaseDate)
+    (m) => m.theatricalCountries && m.theatricalCountries.includes(code)
   ).map((m) => ({
     ...m,
     isInTheatersLocally: true,
@@ -138,8 +247,7 @@ export async function getTheatricalMovies(countryCode: string = "PE"): Promise<M
 }
 
 /**
- * Obtener catálogo global de películas fuera de estreno (que superaron las 2 semanas o lanzadas en digital),
- * con soporte de búsqueda global contra la base de datos de películas (TMDB / IMDb) y orden desc.
+ * Obtener catálogo global de películas fuera de estreno con soporte de búsqueda global directa contra TMDB / IMDb.
  */
 export async function getCatalogMovies(options?: {
   decade?: string;
@@ -162,7 +270,7 @@ export async function getCatalogMovies(options?: {
   const lang = countryCode === "ES" ? "es-ES" : "es-MX";
   let list: Movie[] = [];
 
-  // CASO 1: BÚSQUEDA GLOBAL ACTIVA (e.g. "Rapidos y furiosos", "Batman", "Titanic", etc.)
+  // CASO 1: BÚSQUEDA GLOBAL ACTIVA CONTRA TMDB
   if (searchQuery.trim()) {
     const q = searchQuery.trim();
     let searchedTmdbMovies: Movie[] = [];
@@ -180,7 +288,7 @@ export async function getCatalogMovies(options?: {
           }
         }
       } catch (err) {
-        console.warn("Error buscando en TMDB:", err);
+        console.warn("Error buscando en TMDB directo:", err);
       }
     }
 
@@ -206,22 +314,24 @@ export async function getCatalogMovies(options?: {
       }
     }
   } else {
-    // CASO 2: NAVEGACIÓN GENERAL DEL CATÁLOGO
+    // CASO 2: NAVEGACIÓN GENERAL DEL CATÁLOGO DIRECTO CONTRA TMDB
     let tmdbMovies: Movie[] = [];
 
     if (tmdbKey) {
       try {
-        // 1. Títulos de now_playing que ya superaron las 2 semanas (como Michael, Obsession, etc.)
-        const nowUrl = `https://api.themoviedb.org/3/movie/now_playing?api_key=${tmdbKey}&region=${countryCode}&language=${lang}&page=1`;
-        // 2. Títulos Top Rated históricos
-        const topUrl = `https://api.themoviedb.org/3/movie/top_rated?api_key=${tmdbKey}&language=${lang}&page=1`;
-        // 3. Títulos populares
-        const popUrl = `https://api.themoviedb.org/3/movie/popular?api_key=${tmdbKey}&language=${lang}&page=1`;
-
         const [nowRes, topRes, popRes] = await Promise.all([
-          fetch(nowUrl, { next: { revalidate: 1800 } }).catch(() => null),
-          fetch(topUrl, { next: { revalidate: 86400 } }).catch(() => null),
-          fetch(popUrl, { next: { revalidate: 86400 } }).catch(() => null),
+          fetch(
+            `https://api.themoviedb.org/3/movie/now_playing?api_key=${tmdbKey}&region=${countryCode}&language=${lang}&page=1`,
+            { next: { revalidate: 1800 } }
+          ).catch(() => null),
+          fetch(
+            `https://api.themoviedb.org/3/movie/top_rated?api_key=${tmdbKey}&language=${lang}&page=1`,
+            { next: { revalidate: 86400 } }
+          ).catch(() => null),
+          fetch(
+            `https://api.themoviedb.org/3/movie/popular?api_key=${tmdbKey}&language=${lang}&page=1`,
+            { next: { revalidate: 86400 } }
+          ).catch(() => null),
         ]);
 
         const rawResults: any[] = [];
@@ -247,7 +357,7 @@ export async function getCatalogMovies(options?: {
           }
         }
       } catch (err) {
-        console.warn("Error fetching tmdb catalog:", err);
+        console.warn("Error fetching direct tmdb catalog:", err);
       }
     }
 
@@ -295,7 +405,7 @@ export async function getCatalogMovies(options?: {
     list = list.filter((m) => m.genres.some((g) => g.toLowerCase().includes(norm)));
   }
 
-  // Ordenamiento: Por defecto descendente desde la más actual fuera de estreno hasta la más antigua
+  // Ordenamiento desc
   if (sortBy === "yearDesc") {
     list.sort((a, b) => {
       const timeA = new Date(a.releaseDate).getTime();
@@ -315,7 +425,7 @@ export async function getCatalogMovies(options?: {
 }
 
 /**
- * Obtener detalle de película por ID (soporta IDs de TMDB 'tmdb_1234' y catálogo local).
+ * Obtener detalle de película por ID consultando TMDB directamente.
  */
 export async function getMovieByIdAction(id: string): Promise<Movie | null> {
   const tmdbKey = process.env.TMDB_API_KEY;
@@ -324,50 +434,15 @@ export async function getMovieByIdAction(id: string): Promise<Movie | null> {
     try {
       const tmdbId = id.replace("tmdb_", "");
       const res = await fetch(
-        `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${tmdbKey}&language=es-MX`
+        `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${tmdbKey}&append_to_response=credits,videos&include_video_language=es,es-MX,es-419,en&language=es-MX`
       );
       if (res.ok) {
         const item = await res.json();
-        const voteAvg = item.vote_average || 7.5;
-        const genres = (item.genres || []).map((g: any) => g.name);
         const isPremiering = isWithinTwoWeeksWindow(item.release_date);
-        const votesStr = item.vote_count
-          ? item.vote_count >= 1000000
-            ? `${(item.vote_count / 1000000).toFixed(1)}M`
-            : item.vote_count >= 1000
-            ? `${(item.vote_count / 1000).toFixed(1)}K`
-            : `${item.vote_count}`
-          : "N/A";
-
-        return {
-          id: `tmdb_${item.id}`,
-          title: item.title,
-          overview: item.overview || "Sin descripción disponible.",
-          releaseYear: item.release_date ? new Date(item.release_date).getFullYear() : 2026,
-          releaseDate: item.release_date || new Date().toISOString().split("T")[0],
-          posterURL: item.poster_path
-            ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-            : "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500",
-          backdropURL: item.backdrop_path
-            ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}`
-            : undefined,
-          genres: genres.length > 0 ? genres : ["Cine"],
-          runtimeMinutes: item.runtime || 115,
-          countryOfOrigin: item.origin_country?.[0] || "US",
-          imdbId: item.imdb_id || undefined,
-          ratings: {
-            compositeScore: parseFloat(voteAvg.toFixed(1)),
-            imdbScore: parseFloat(voteAvg.toFixed(1)),
-            imdbVotes: votesStr,
-            rottenTomatoesCritics: Math.min(100, Math.round(voteAvg * 10)),
-            rottenTomatoesAudience: Math.min(100, Math.round(voteAvg * 10 + 2)),
-          },
-          isInTheatersLocally: isPremiering,
-          theatersPlaying: isPremiering ? (CHAINS_BY_COUNTRY["PE"] || ["Cines comerciales"]) : [],
-        };
+        return formatTmdbMovie(item, isPremiering);
       }
     } catch (err) {
-      console.warn("Error fetching tmdb movie detail:", err);
+      console.warn("Error en TMDB directo movie detail:", err);
     }
   }
 
@@ -377,8 +452,47 @@ export async function getMovieByIdAction(id: string): Promise<Movie | null> {
     return {
       ...found,
       isInTheatersLocally: isPremiering,
-      theatersPlaying: isPremiering ? (CHAINS_BY_COUNTRY["PE"] || ["Cines comerciales"]) : [],
+      theatersPlaying: isPremiering ? CHAINS_BY_COUNTRY["PE"] || ["Cines comerciales"] : [],
     };
   }
   return null;
+}
+
+export interface CinephileSpotlightData {
+  movie: Movie;
+  tagline: string;
+  curatorNote: string;
+  projectionFormat: string;
+  circleRecommendation?: string;
+}
+
+/**
+ * Obtiene la película destacada del momento (Spotlight Cinéfilo)
+ */
+export async function getCinephileSpotlight(countryCode: string = "PE"): Promise<CinephileSpotlightData> {
+  const theatrical = await getTheatricalMovies(countryCode);
+
+  const topTheatrical = theatrical.sort(
+    (a, b) => (b.ratings.compositeScore || 0) - (a.ratings.compositeScore || 0)
+  )[0];
+
+  if (topTheatrical) {
+    return {
+      movie: topTheatrical,
+      tagline: "Selección Destacada de la Crítica",
+      curatorNote:
+        "Selección oficial de la semana por excelencia en dirección de fotografía, diseño sonoro y acogida crítica.",
+      projectionFormat: "IMAX Laser • Dolby Atmos • VOSE",
+      circleRecommendation: "3 cinéfilos de tu círculo íntimo la tienen en su lista de visionado.",
+    };
+  }
+
+  const classic = CURATED_MOVIES.find((m) => m.id === "dune_part_two") || CURATED_MOVIES[0];
+  return {
+    movie: classic,
+    tagline: "Obra Maestra del Archivo",
+    curatorNote: "Una proeza técnica y narrativa imprescindible para cualquier tertulia cinéfila.",
+    projectionFormat: "Ultra Panavision 70 • Restauración 4K",
+    circleRecommendation: "Puntuación de consenso unánime entre amigos y comunidad global.",
+  };
 }

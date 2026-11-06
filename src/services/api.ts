@@ -14,7 +14,10 @@ import {
   CITY_SHOWTIMES,
   AVAILABLE_CITIES,
 } from '../data/curatedMovies';
-import { getTheatricalMovies, getCatalogMovies, getMovieByIdAction } from '@/actions/movies';
+import { getTheatricalMovies, getCatalogMovies, getMovieByIdAction, getCinephileSpotlight, CinephileSpotlightData } from '@/actions/movies';
+import { getMovieReviewStats, getReviews as getDbReviews, submitReview as submitDbReview } from '@/actions/reviews';
+import { getFriends as getDbFriends, addFriend as addDbFriend } from '@/actions/friends';
+import { getGroups as getDbGroups, createGroup as createDbGroup } from '@/actions/chats';
 
 const API_BASE = '/api';
 
@@ -266,6 +269,17 @@ class MovieSocialAPI {
 
   // --- Reseñas ---
   async getReviews(movieId?: string): Promise<Review[]> {
+    try {
+      const dbRevs = await getDbReviews(movieId);
+      if (dbRevs && dbRevs.length > 0) {
+        const localOnly = this.reviews.filter((lr) => !dbRevs.some((dr) => dr.id === lr.id));
+        return [...localOnly, ...dbRevs].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      }
+    } catch (err) {
+      console.warn('Error fetching DB reviews:', err);
+    }
     let revs = [...this.reviews];
     if (movieId) {
       revs = revs.filter((r) => r.movieId === movieId);
@@ -304,25 +318,23 @@ class MovieSocialAPI {
       isLikedByMe: false,
     };
 
-    // Intentar guardar en backend REST
+    // Guardar en Neon DB mediante server action
     try {
-      fetch(`${API_BASE}/reviews`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: newRev.id,
-          movieId: newRev.movieId,
-          movieTitle: newRev.movieTitle,
-          moviePosterURL: newRev.moviePosterUrl,
-          movieReleaseYear: newRev.movieReleaseYear,
-          userId: newRev.userId,
-          userName: newRev.userName,
-          rating: newRev.rating,
-          comment: newRev.comment,
-          isCommunity: newRev.isCommunity,
-        }),
-      }).catch(() => {});
-    } catch {}
+      await submitDbReview({
+        movieId: newRev.movieId,
+        movieTitle: newRev.movieTitle,
+        moviePosterUrl: newRev.moviePosterUrl,
+        movieReleaseYear: newRev.movieReleaseYear,
+        userId: newRev.userId,
+        userName: newRev.userName,
+        userAvatarUrl: newRev.userAvatarUrl,
+        rating: newRev.rating,
+        comment: newRev.comment,
+        isCommunity: newRev.isCommunity,
+      });
+    } catch (err) {
+      console.warn('Error saving review to Neon DB:', err);
+    }
 
     this.reviews = [newRev, ...this.reviews];
     setLocalItem('reviews', this.reviews);
@@ -369,10 +381,26 @@ class MovieSocialAPI {
 
   // --- Amigos ---
   async getFriends(): Promise<Friend[]> {
+    try {
+      const dbFriends = await getDbFriends();
+      if (dbFriends && dbFriends.length > 0) {
+        return dbFriends;
+      }
+    } catch (err) {
+      console.warn('Error fetching DB friends:', err);
+    }
     return this.friends;
   }
 
   async addFriend(username: string): Promise<Friend> {
+    try {
+      const created = await addDbFriend(username);
+      this.friends.push(created);
+      setLocalItem('friends', this.friends);
+      return created;
+    } catch (err) {
+      console.warn('Error adding DB friend, using local fallback:', err);
+    }
     const cleanUser = username.trim().startsWith('@') ? username.trim() : `@${username.trim()}`;
     const newFriend: Friend = {
       id: `friend_${Date.now()}`,
@@ -383,20 +411,6 @@ class MovieSocialAPI {
       mutualMoviesCount: 1,
       bio: 'Cinéfilo recién agregado a tu círculo de amigos.',
     };
-
-    // Intentar backend
-    try {
-      fetch(`${API_BASE}/friends`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: newFriend.id,
-          displayName: newFriend.displayName,
-          username: newFriend.username,
-          avatarURL: newFriend.avatarUrl,
-        }),
-      }).catch(() => {});
-    } catch {}
 
     this.friends.push(newFriend);
     setLocalItem('friends', this.friends);
@@ -410,6 +424,17 @@ class MovieSocialAPI {
 
   // --- Cineclubs / Grupos ---
   async getGroups(): Promise<MovieGroup[]> {
+    try {
+      const res = await fetch(`${API_BASE}/chats/groups`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.groups && Array.isArray(data.groups)) {
+          return data.groups;
+        }
+      }
+    } catch (err) {
+      console.warn('Error fetching API groups:', err);
+    }
     return this.groups;
   }
 
@@ -417,85 +442,55 @@ class MovieSocialAPI {
     if (!this.user) {
       throw new Error('Debes iniciar sesión para crear un cineclub.');
     }
-    const grpId = `grp_${Date.now()}`;
-    const code = `CINE-${grpId.slice(-6).toUpperCase()}`;
-    const newGroup: MovieGroup = {
-      id: grpId,
-      name,
-      description,
-      iconEmoji: iconEmoji || '🎬',
-      creatorId: this.user.id,
-      creatorName: this.user.displayName,
-      inviteCode: code,
-      messagesCount: 1,
-      membersCount: 1,
-      createdAt: new Date().toISOString(),
-    };
 
-    try {
-      fetch(`${API_BASE}/groups`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: newGroup.id,
-          name: newGroup.name,
-          description: newGroup.description,
-          iconEmoji: newGroup.iconEmoji,
-          creatorId: newGroup.creatorId,
-          creatorName: newGroup.creatorName,
-          inviteCode: newGroup.inviteCode,
-        }),
-      }).catch(() => {});
-    } catch {}
+    const res = await fetch(`${API_BASE}/chats/groups`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        description,
+        iconEmoji,
+        creatorId: this.user.id,
+        creatorName: this.user.displayName,
+      }),
+    });
 
-    this.groups.unshift(newGroup);
-    setLocalItem('groups', this.groups);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      const err = new Error(errData.message || 'Error al crear cineclub');
+      (err as any).requiresPro = errData.requiresPro;
+      (err as any).code = errData.error;
+      throw err;
+    }
 
-    // Mensaje de bienvenida inicial
-    this.groupMessages[grpId] = [
-      {
-        id: `gmsg_${Date.now()}`,
-        groupId: grpId,
-        senderId: this.user.id,
-        senderName: this.user.displayName,
-        text: `¡Bienvenidos al cineclub "${name}"! Usa el código de invitación ${code} para sumar amigos.`,
-        messageType: 'text',
-        createdAt: new Date().toISOString(),
-      },
-    ];
-    setLocalItem('group_messages', this.groupMessages);
-
-    return newGroup;
+    const data = await res.json();
+    return data.group;
   }
 
   async joinGroupByCode(code: string): Promise<MovieGroup | null> {
     const norm = code.trim().toUpperCase();
-    const found = this.groups.find((g) => g.inviteCode.toUpperCase() === norm);
+    const groups = await this.getGroups();
+    const found = groups.find((g) => g.inviteCode.toUpperCase() === norm);
     if (found) {
-      found.membersCount = (found.membersCount || 1) + 1;
-      setLocalItem('groups', this.groups);
       return found;
     }
-    // Si no está local, crear uno ficticio con el código
-    const joined: MovieGroup = {
-      id: `grp_joined_${Date.now()}`,
-      name: `Cineclub ${norm}`,
-      description: 'Grupo cinéfilo unido por código de invitación.',
-      iconEmoji: '🎟️',
-      creatorId: 'external_user',
-      creatorName: 'Comunidad',
-      inviteCode: norm,
-      messagesCount: 1,
-      membersCount: 4,
-      createdAt: new Date().toISOString(),
-    };
-    this.groups.push(joined);
-    setLocalItem('groups', this.groups);
-    return joined;
+    return null;
   }
 
-  async getGroupMessages(groupId: string): Promise<ChatMessage[]> {
-    return this.groupMessages[groupId] || [];
+  async getGroupMessages(groupId: string, after?: string): Promise<ChatMessage[]> {
+    try {
+      const url = after
+        ? `${API_BASE}/chats/groups/${groupId}/messages?after=${encodeURIComponent(after)}`
+        : `${API_BASE}/chats/groups/${groupId}/messages`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        return data.messages || [];
+      }
+    } catch (err) {
+      console.warn('Error fetching group messages:', err);
+    }
+    return [];
   }
 
   async sendGroupMessage(groupId: string, message: {
@@ -506,92 +501,141 @@ class MovieSocialAPI {
     if (!this.user) {
       throw new Error('Debes iniciar sesión para enviar mensajes.');
     }
-    const newMsg: ChatMessage = {
-      id: `gmsg_${Date.now()}`,
-      groupId,
-      senderId: this.user.id,
-      senderName: this.user.displayName,
-      text: message.text,
-      messageType: message.messageType || 'text',
-      sharedMovieId: message.sharedMovie?.id,
-      sharedMovieTitle: message.sharedMovie?.title,
-      sharedMoviePosterUrl: message.sharedMovie?.posterURL,
-      sharedMovieScore: message.sharedMovie?.ratings.compositeScore || undefined,
-      createdAt: new Date().toISOString(),
-    };
 
-    const list = this.groupMessages[groupId] || [];
-    this.groupMessages[groupId] = [...list, newMsg];
-    setLocalItem('group_messages', this.groupMessages);
+    const res = await fetch(`${API_BASE}/chats/groups/${groupId}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: this.user.id,
+        userName: this.user.displayName,
+        text: message.text,
+        messageType: message.messageType || 'text',
+        sharedMovieId: message.sharedMovie?.id,
+        sharedMovieTitle: message.sharedMovie?.title,
+      }),
+    });
 
-    // Actualizar conteo de mensajes
-    const grp = this.groups.find((g) => g.id === groupId);
-    if (grp) {
-      grp.messagesCount += 1;
-      setLocalItem('groups', this.groups);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      const err = new Error(errData.message || 'Error al enviar mensaje en cineclub');
+      (err as any).requiresPro = errData.requiresPro;
+      (err as any).code = errData.error;
+      throw err;
     }
 
-    return newMsg;
+    const data = await res.json();
+    return data.message;
   }
 
   // --- Chats Directos 1 a 1 ---
   async getDirectConversations(): Promise<DirectConversation[]> {
-    return this.directConversations;
+    try {
+      const res = await fetch(`${API_BASE}/chats/direct`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.conversations && Array.isArray(data.conversations)) {
+          return data.conversations;
+        }
+      }
+    } catch (err) {
+      console.warn('Error fetching direct conversations:', err);
+    }
+    return [];
   }
 
-  async getOrCreateDirectConversation(friend: Friend): Promise<DirectConversation> {
-    const existing = this.directConversations.find((c) => c.participant.id === friend.id);
-    if (existing) return existing;
+  async getOrCreateDirectConversation(participant: Friend | { id: string; displayName: string; username: string; avatarUrl?: string }): Promise<DirectConversation> {
+    if (!this.user) {
+      throw new Error('Debes iniciar sesión para abrir un chat directo.');
+    }
 
-    const newConvo: DirectConversation = {
-      id: `conv_${friend.id}`,
-      participant: friend,
-      unreadCount: 0,
-      updatedAt: new Date().toISOString(),
-    };
-    this.directConversations.unshift(newConvo);
-    setLocalItem('direct_convos', this.directConversations);
-    return newConvo;
+    const res = await fetch(`${API_BASE}/chats/direct`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        senderId: this.user.id,
+        participantId: participant.id,
+      }),
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      const err = new Error(errData.message || 'Error al abrir chat directo');
+      (err as any).requiresPro = errData.requiresPro;
+      (err as any).code = errData.error;
+      throw err;
+    }
+
+    const data = await res.json();
+    return data.conversation;
   }
 
-  async getDirectMessages(conversationId: string): Promise<ChatMessage[]> {
-    return this.directMessages[conversationId] || [];
+  async getDirectMessages(conversationId: string, after?: string): Promise<ChatMessage[]> {
+    try {
+      const url = after
+        ? `${API_BASE}/chats/direct/${conversationId}/messages?after=${encodeURIComponent(after)}`
+        : `${API_BASE}/chats/direct/${conversationId}/messages`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        return data.messages || [];
+      }
+    } catch (err) {
+      console.warn('Error fetching direct messages:', err);
+    }
+    return [];
   }
 
   async sendDirectMessage(conversationId: string, message: {
     text: string;
     messageType?: 'text' | 'movie';
     sharedMovie?: Movie;
+    recipientId?: string;
   }): Promise<ChatMessage> {
     if (!this.user) {
       throw new Error('Debes iniciar sesión para enviar mensajes.');
     }
-    const newMsg: ChatMessage = {
-      id: `dmsg_${Date.now()}`,
-      conversationId,
-      senderId: this.user.id,
-      senderName: this.user.displayName,
-      text: message.text,
-      messageType: message.messageType || 'text',
-      sharedMovieId: message.sharedMovie?.id,
-      sharedMovieTitle: message.sharedMovie?.title,
-      sharedMoviePosterUrl: message.sharedMovie?.posterURL,
-      sharedMovieScore: message.sharedMovie?.ratings.compositeScore || undefined,
-      createdAt: new Date().toISOString(),
-    };
 
-    const msgs = this.directMessages[conversationId] || [];
-    this.directMessages[conversationId] = [...msgs, newMsg];
-    setLocalItem('direct_messages', this.directMessages);
+    const res = await fetch(`${API_BASE}/chats/direct/${conversationId}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        senderId: this.user.id,
+        senderName: this.user.displayName,
+        senderAvatarUrl: this.user.avatarUrl,
+        recipientId: message.recipientId,
+        text: message.text,
+        messageType: message.messageType || 'text',
+        sharedMovieId: message.sharedMovie?.id,
+        sharedMovieTitle: message.sharedMovie?.title,
+      }),
+    });
 
-    const convo = this.directConversations.find((c) => c.id === conversationId);
-    if (convo) {
-      convo.lastMessage = newMsg;
-      convo.updatedAt = newMsg.createdAt;
-      setLocalItem('direct_convos', this.directConversations);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      const err = new Error(errData.message || 'Error al enviar mensaje');
+      (err as any).requiresPro = errData.requiresPro;
+      (err as any).code = errData.error;
+      throw err;
     }
 
-    return newMsg;
+    const data = await res.json();
+    return data.message;
+  }
+
+  async getFriendsAndCommunity(): Promise<{ friends: Friend[]; community: (Friend & { isFriend: boolean; isPremium?: boolean })[] }> {
+    try {
+      const res = await fetch(`${API_BASE}/friends`);
+      if (res.ok) {
+        const data = await res.json();
+        return {
+          friends: data.friends || [],
+          community: data.community || [],
+        };
+      }
+    } catch (err) {
+      console.warn('Error fetching friends and community:', err);
+    }
+    return { friends: [], community: [] };
   }
 
   // --- Perfil y Ubicación ---
@@ -634,6 +678,64 @@ class MovieSocialAPI {
 
   getAvailableCities(): UserLocation[] {
     return AVAILABLE_CITIES;
+  }
+
+  async getSpotlight(countryCode: string = 'PE'): Promise<CinephileSpotlightData> {
+    try {
+      return await getCinephileSpotlight(countryCode);
+    } catch {
+      const fallback = CURATED_MOVIES[0];
+      return {
+        movie: fallback,
+        tagline: "Selección Oficial",
+        curatorNote: "Cine imprescindible de culto recomendado por la crítica internacional.",
+        projectionFormat: "IMAX • VOSE",
+        circleRecommendation: "Aclamada por tu círculo cinéfilo.",
+      };
+    }
+  }
+
+  async getReviewStats(movieId: string) {
+    return await getMovieReviewStats(movieId);
+  }
+
+  // --- Watchlist ---
+  async getWatchlist(userId?: string): Promise<string[]> {
+    const targetUserId = userId || this.user?.id;
+    if (!targetUserId) return [];
+    try {
+      const res = await fetch(`${API_BASE}/watchlist?userId=${encodeURIComponent(targetUserId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        return data.movieIds || [];
+      }
+    } catch (err) {
+      console.warn('Error fetching watchlist:', err);
+    }
+    return [];
+  }
+
+  async toggleWatchlist(movie: Movie, userId?: string): Promise<{ inWatchlist: boolean; movieIds: string[] }> {
+    const targetUserId = userId || this.user?.id;
+    if (!targetUserId) {
+      throw new Error('Debes iniciar sesión para guardar películas en tu Watchlist.');
+    }
+    const res = await fetch(`${API_BASE}/watchlist`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: targetUserId,
+        movieId: movie.id,
+        movieTitle: movie.title,
+        moviePosterUrl: movie.posterURL,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Error al actualizar tu Watchlist');
+    }
+    const data = await res.json();
+    return data;
   }
 }
 

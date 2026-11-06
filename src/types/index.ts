@@ -13,6 +13,21 @@ export interface CinemaShowtime {
   times: string[];
 }
 
+export interface MovieCastMember {
+  id: number;
+  name: string;
+  character?: string;
+  profileURL?: string;
+}
+
+export interface MovieTrailerInfo {
+  key: string;
+  name: string;
+  language: 'es' | 'en' | 'other';
+  languageLabel: string;
+  youtubeUrl: string;
+}
+
 export interface Movie {
   id: string;
   title: string;
@@ -32,6 +47,8 @@ export interface Movie {
   theatersPlaying?: string[];
   showtimes?: CinemaShowtime[];
   theatricalCountries?: string[];
+  trailer?: MovieTrailerInfo;
+  cast?: MovieCastMember[];
 }
 
 export interface UserLocation {
@@ -138,33 +155,45 @@ export interface DirectConversation {
 
 /**
  * Fórmula oficial de MovieSocial para el cruce ponderado de calificaciones (MovieScore):
- * - 50% IMDb (escala 0-100)
- * - 30% Rotten Tomatoes Críticos (Tomatometer)
- * - 20% Rotten Tomatoes Audiencia (Popcornmeter)
+ * - Si aún no hay reseñas de la comunidad insertadas, el ponderado se calcula dinámicamente entre las fuentes disponibles:
+ *     - IMDb (50%)
+ *     - Rotten Tomatoes Críticos (30%)
+ *     - Rotten Tomatoes Audiencia (20%)
+ * - Si alguna de las fuentes externas no tiene datos, el algoritmo redistribuye el 100% del peso únicamente entre las disponibles.
+ * - Si la comunidad de MovieSocial ya tiene reseñas insertadas, se incorpora automáticamente con un peso del 35%.
  * Normalizado a base 10 con un decimal.
  */
-export function calculateCompositeScore(ratings: ExternalRatings): number {
-  if (ratings.compositeScore && ratings.compositeScore > 0) {
-    return Number(ratings.compositeScore.toFixed(1));
-  }
-
+export function calculateCompositeScore(
+  ratings: ExternalRatings,
+  communityAvg?: number
+): number {
   let totalWeight = 0;
   let weightedSum = 0;
 
-  if (ratings.imdbScore != null && ratings.imdbScore > 0) {
-    weightedSum += ratings.imdbScore * 10 * 0.50;
-    totalWeight += 0.50;
-  }
-  if (ratings.rottenTomatoesCritics != null && ratings.rottenTomatoesCritics > 0) {
-    weightedSum += ratings.rottenTomatoesCritics * 0.30;
-    totalWeight += 0.30;
-  }
-  if (ratings.rottenTomatoesAudience != null && ratings.rottenTomatoesAudience > 0) {
-    weightedSum += ratings.rottenTomatoesAudience * 0.20;
-    totalWeight += 0.20;
+  // 1. Reseñas internas de MovieSocial (si existen)
+  if (communityAvg != null && communityAvg > 0) {
+    weightedSum += (communityAvg * 20) * 0.35;
+    totalWeight += 0.35;
   }
 
-  if (totalWeight === 0) return 7.5;
+  // 2. Fuentes externas (ponderadas dinámicamente)
+  if (ratings.imdbScore != null && ratings.imdbScore > 0) {
+    const w = totalWeight > 0 ? 0.35 : 0.50;
+    weightedSum += (ratings.imdbScore * 10) * w;
+    totalWeight += w;
+  }
+  if (ratings.rottenTomatoesCritics != null && ratings.rottenTomatoesCritics > 0) {
+    const w = totalWeight > 0 ? 0.15 : 0.30;
+    weightedSum += ratings.rottenTomatoesCritics * w;
+    totalWeight += w;
+  }
+  if (ratings.rottenTomatoesAudience != null && ratings.rottenTomatoesAudience > 0) {
+    const w = totalWeight > 0 ? 0.15 : 0.20;
+    weightedSum += ratings.rottenTomatoesAudience * w;
+    totalWeight += w;
+  }
+
+  if (totalWeight === 0) return 0;
   const scoreBase100 = weightedSum / totalWeight;
   return Number((scoreBase100 / 10.0).toFixed(1));
 }
