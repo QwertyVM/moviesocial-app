@@ -170,7 +170,7 @@ export interface DirectConversation {
 }
 
 /**
- * Fórmula oficial de MovieSocial para el cruce ponderado de calificaciones (MovieScore):
+ * Fórmula para el cruce ponderado del Rating Oficial (Consenso Externo de la Industria):
  * - Si aún no hay reseñas de la comunidad insertadas, el ponderado se calcula dinámicamente entre las fuentes disponibles:
  *     - IMDb (50%)
  *     - Rotten Tomatoes Críticos (30%)

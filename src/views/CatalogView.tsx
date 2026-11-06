@@ -253,7 +253,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://moviesocial.app';
     const text =
       `🎬 *${activeMovie.title}* (${activeMovie.releaseYear})\n` +
-      `⭐ MovieScore Oficial: ${compositeScore.toFixed(1)} / 10\n` +
+      `⭐ Rating Oficial: ${compositeScore.toFixed(1)} / 10\n` +
       (rtCritics != null ? `🍅 Tomatometer: ${rtCritics}% Crítica\n` : '') +
       `\n¡Hola! Te recomiendo ver este estreno en cartelera. ¿Coordinamos para ir al cine? 🍿\n` +
       `${origin}/?q=${encodeURIComponent(activeMovie.title)}`;
@@ -277,41 +277,41 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   };
 
   return (
-    <div className="w-full max-w-[1780px] mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 flex flex-col justify-between min-h-[calc(100vh-5rem)] py-3 sm:py-5">
+    <div className="w-full max-w-[1780px] mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 flex flex-col justify-between h-full max-h-[calc(100vh-4rem)] overflow-hidden py-1 sm:py-2">
       
       {/* ============================================================== */}
-      {/* 1. SECCIÓN PRINCIPAL: ESCENARIO DE ESTRENO (1080P PROPORCIONAL) */}
+      {/* 1. SECCIÓN PRINCIPAL: ESCENARIO DE ESTRENO (SIN SCROLL VERTICAL) */}
       {/* ============================================================== */}
-      <section className="flex flex-col justify-between flex-grow gap-4">
+      <section className="flex flex-col justify-between flex-grow h-full overflow-hidden gap-2 sm:gap-3">
         
         {/* Cabecera sutil de cartelera */}
-        <div className="flex items-center justify-between gap-3 pb-2.5 border-b border-cinema-border/50 flex-shrink-0">
+        <div className="flex items-center justify-between gap-3 pb-1.5 border-b border-cinema-border/50 flex-shrink-0">
           <div className="flex items-center gap-2.5">
-            <span className="flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-xs font-bold shadow-sm">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="flex items-center gap-2 px-3 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-[11px] font-bold shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>EN SALAS DE CINE</span>
             </span>
-            <span className="text-xs sm:text-sm text-cinema-textMuted font-mono">
+            <span className="text-xs text-cinema-textMuted font-mono">
               {activeLocation.country} • Cartelera Oficial
             </span>
           </div>
 
-          <span className="text-xs font-mono text-cinema-textMuted hidden sm:inline">
-            Desliza o usa flechas ← → para cambiar de estreno
+          <span className="text-[11px] font-mono text-cinema-textMuted hidden sm:inline">
+            Desliza o usa flechas ← → para rotar estrenos
           </span>
         </div>
 
         {/* ESCENARIO DE ESTRENO: MUBI / APPLE TV+ SPLIT HORIZONTAL */}
         {loading ? (
           <div className="flex items-center justify-center my-auto py-16">
-            <div className="w-full max-w-5xl h-[58vh] rounded-3xl bg-cinema-card border border-cinema-border animate-pulse shadow-2xl" />
+            <div className="w-full max-w-5xl h-[54vh] rounded-3xl bg-cinema-card border border-cinema-border animate-pulse shadow-2xl" />
           </div>
         ) : activeMovie ? (
           <div
             onWheel={handleWheelLoop}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
-            className="relative flex flex-col justify-between my-auto flex-grow gap-4 overflow-hidden select-none py-2"
+            className="relative flex flex-col justify-between my-auto flex-grow gap-2 sm:gap-3 overflow-hidden select-none py-1"
           >
             {/* Resplandor Ambiental Cinematográfico de Gran Escala */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
@@ -323,14 +323,14 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             </div>
 
             {/* ESCENARIO PRINCIPAL: SPLIT HORIZONTAL 2 COLUMNAS (1080P) */}
-            <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-14 xl:gap-20 items-center my-auto w-full px-2 sm:px-6">
+            <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-10 xl:gap-14 items-center my-auto w-full px-2 sm:px-4">
               
               {/* COLUMNA IZQUIERDA: AFICHE TEATRAL IMPONENTE (5 COLS) */}
               {/* 'Ver Ficha Cinéfila' aparece ÚNICAMENTE al hacer hover sobre este elemento de contexto */}
               <div className="md:col-span-5 flex flex-col items-center justify-center">
                 <div
                   onClick={() => onSelectMovie(activeMovie)}
-                  className="relative group/poster cursor-pointer h-[48vh] sm:h-[56vh] md:h-[62vh] lg:h-[70vh] max-h-[620px] aspect-[2/3] rounded-3xl overflow-hidden border-2 border-cinema-gold/80 shadow-[0_30px_90px_-10px_rgba(0,0,0,0.98),0_0_60px_-10px_rgba(229,169,60,0.3)] ring-2 ring-black/80 transition-all duration-500 transform hover:scale-[1.02]"
+                  className="relative group/poster cursor-pointer h-[36vh] sm:h-[44vh] md:h-[48vh] lg:h-[53vh] max-h-[490px] aspect-[2/3] rounded-3xl overflow-hidden border-2 border-cinema-gold/80 shadow-[0_30px_90px_-10px_rgba(0,0,0,0.98),0_0_60px_-10px_rgba(229,169,60,0.3)] ring-2 ring-black/80 transition-all duration-500 transform hover:scale-[1.02]"
                 >
                   <img
                     src={activeMovie.posterURL}
@@ -339,7 +339,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                   />
                   {/* Hover Interactivo: Solo en el Afiche */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/poster:opacity-100 transition-opacity duration-300 bg-black/50 backdrop-blur-[2px]">
-                    <span className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-cinema-gold text-black font-black text-xs sm:text-sm tracking-wide shadow-2xl flex items-center gap-2.5 transform scale-95 group-hover/poster:scale-100 transition-transform">
+                    <span className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-cinema-gold text-black font-black text-xs sm:text-sm tracking-wide shadow-2xl flex items-center gap-2 transform scale-95 group-hover/poster:scale-100 transition-transform">
                       <Clapperboard className="w-4 h-4" />
                       <span>Ver Ficha Cinéfila</span>
                     </span>
@@ -348,12 +348,12 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               </div>
 
               {/* COLUMNA DERECHA: EDICIÓN CINÉFILA & ACCIONES (7 COLS) */}
-              <div className="md:col-span-7 flex flex-col justify-center text-left gap-4 sm:gap-5 max-w-3xl">
+              <div className="md:col-span-7 flex flex-col justify-center text-left gap-3 sm:gap-4 max-w-3xl">
                 
                 {/* Spotlight Tagline si existe */}
                 {isSpotlight && spotlight?.tagline && (
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-amber-300 font-sans font-semibold flex items-center gap-1.5 text-xs bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/25">
+                    <span className="text-amber-300 font-sans font-semibold flex items-center gap-1.5 text-xs bg-amber-500/10 px-3 py-0.5 rounded-full border border-amber-500/25">
                       <Award className="w-3.5 h-3.5 text-cinema-gold" />
                       {spotlight.tagline}
                     </span>
@@ -363,13 +363,13 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 {/* Título de la Película (Clickeable con cursor-pointer y hover) */}
                 <h1
                   onClick={() => onSelectMovie(activeMovie)}
-                  className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white tracking-tight uppercase leading-none line-clamp-2 cursor-pointer hover:text-cinema-gold transition-colors"
+                  className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight uppercase leading-none line-clamp-2 cursor-pointer hover:text-cinema-gold transition-colors"
                 >
                   {activeMovie.title}
                 </h1>
 
                 {/* Metadatos Principales */}
-                <div className="flex flex-wrap items-center gap-2.5 text-xs sm:text-base text-gray-300 font-medium">
+                <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-gray-300 font-medium">
                   {activeMovie.director && (
                     <>
                       <span className="text-white font-bold">Dirección: {activeMovie.director}</span>
@@ -378,8 +378,8 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                   )}
                   <span className="font-mono text-cinema-textMuted">{activeMovie.releaseYear}</span>
                   <span className="text-cinema-border">•</span>
-                  <span className="text-cinema-gold font-mono font-bold flex items-center gap-1.5">
-                    <Clock className="w-4 h-4" />
+                  <span className="text-cinema-gold font-mono font-bold flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" />
                     {formatDuration(activeMovie.runtimeMinutes)}
                   </span>
                   {activeMovie.productionCompany && (
@@ -391,11 +391,11 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 </div>
 
                 {/* Categorías Temáticas (Sin hashtag) */}
-                <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   {(activeMovie.genres || ['Cine de Autor']).slice(0, 4).map((g) => (
                     <span
                       key={g}
-                      className="px-3.5 py-1 rounded-full bg-white/5 border border-white/10 hover:border-cinema-gold/40 text-cinema-gold text-xs font-semibold tracking-wide transition-colors"
+                      className="px-3 py-0.5 rounded-full bg-white/5 border border-white/10 hover:border-cinema-gold/40 text-cinema-gold text-xs font-semibold tracking-wide transition-colors"
                     >
                       {g}
                     </span>
@@ -405,68 +405,68 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 {/* Sinopsis de Impacto (Clickeable) */}
                 <p
                   onClick={() => onSelectMovie(activeMovie)}
-                  className="text-sm sm:text-base text-gray-200/90 leading-relaxed line-clamp-3 font-normal max-w-2xl cursor-pointer hover:text-white transition-colors"
+                  className="text-xs sm:text-sm text-gray-200/90 leading-relaxed line-clamp-2 sm:line-clamp-3 font-normal max-w-2xl cursor-pointer hover:text-white transition-colors"
                 >
                   {activeMovie.overview || 'Una de las propuestas más esperadas de la cartelera de autor de esta temporada.'}
                 </p>
 
                 {/* MATRIZ DE CALIFICACIONES OFICIALES */}
-                <div className="flex items-center gap-3 sm:gap-4 flex-wrap pt-1">
-                  {/* MovieScore Oficial */}
+                <div className="flex items-center gap-2.5 sm:gap-3.5 flex-wrap pt-0.5">
+                  {/* Rating Oficial */}
                   <div
-                    title="MovieScore Oficial (Ponderado de Crítica y Audiencia)"
-                    className="flex items-center gap-2.5 py-2 px-4 rounded-2xl bg-amber-500/15 border border-cinema-gold/50 text-cinema-gold shadow-md"
+                    title="Rating Oficial (Ponderado de Crítica Internacional y Audiencia)"
+                    className="flex items-center gap-2.5 py-1.5 px-3.5 rounded-2xl bg-amber-500/15 border border-cinema-gold/50 text-cinema-gold shadow-md"
                   >
-                    <Sparkles className="w-5 h-5 fill-cinema-gold flex-shrink-0" />
+                    <Sparkles className="w-4 h-4 fill-cinema-gold flex-shrink-0" />
                     <div className="flex flex-col leading-none">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-cinema-gold/80">MovieScore</span>
-                      <span className="font-mono font-black text-lg sm:text-xl text-white">{compositeScore.toFixed(1)}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-cinema-gold/80">Rating Oficial</span>
+                      <span className="font-mono font-black text-base sm:text-lg text-white">{compositeScore.toFixed(1)}</span>
                     </div>
                   </div>
 
                   {/* Tomatometer */}
                   <div
                     title={`Tomatometer: ${rtCritics ?? 'N/A'}% Crítica`}
-                    className="flex items-center gap-2 py-2 px-3.5 rounded-2xl bg-white/5 border border-white/10 text-cinema-textSecondary"
+                    className="flex items-center gap-2 py-1.5 px-3 rounded-2xl bg-white/5 border border-white/10 text-cinema-textSecondary"
                   >
-                    <span className="text-base">🍅</span>
+                    <span className="text-sm">🍅</span>
                     <div className="flex flex-col leading-none">
                       <span className="text-[10px] uppercase font-bold text-cinema-textMuted">Crítica</span>
-                      <span className="font-mono font-bold text-sm text-white">{rtCritics != null ? `${rtCritics}%` : '-'}</span>
+                      <span className="font-mono font-bold text-xs sm:text-sm text-white">{rtCritics != null ? `${rtCritics}%` : '-'}</span>
                     </div>
                   </div>
 
                   {/* Popcornmeter */}
                   <div
                     title={`Popcornmeter: ${rtAudience ?? 'N/A'}% Audiencia`}
-                    className="flex items-center gap-2 py-2 px-3.5 rounded-2xl bg-white/5 border border-white/10 text-cinema-textSecondary"
+                    className="flex items-center gap-2 py-1.5 px-3 rounded-2xl bg-white/5 border border-white/10 text-cinema-textSecondary"
                   >
-                    <span className="text-base">🍿</span>
+                    <span className="text-sm">🍿</span>
                     <div className="flex flex-col leading-none">
                       <span className="text-[10px] uppercase font-bold text-cinema-textMuted">Audiencia</span>
-                      <span className="font-mono font-bold text-sm text-white">{rtAudience != null ? `${rtAudience}%` : '-'}</span>
+                      <span className="font-mono font-bold text-xs sm:text-sm text-white">{rtAudience != null ? `${rtAudience}%` : '-'}</span>
                     </div>
                   </div>
 
                   {/* IMDb */}
                   <div
                     title={`IMDb: ${imdbScore ? imdbScore.toFixed(1) : 'N/A'}/10`}
-                    className="flex items-center gap-2 py-2 px-3.5 rounded-2xl bg-white/5 border border-white/10 text-cinema-textSecondary"
+                    className="flex items-center gap-2 py-1.5 px-3 rounded-2xl bg-white/5 border border-white/10 text-cinema-textSecondary"
                   >
-                    <span className="text-[10px] bg-cinema-imdb text-black px-1.5 rounded font-black font-sans leading-none py-0.5">IMDb</span>
+                    <span className="text-[9px] bg-cinema-imdb text-black px-1.5 rounded font-black font-sans leading-none py-0.5">IMDb</span>
                     <div className="flex flex-col leading-none">
                       <span className="text-[10px] uppercase font-bold text-cinema-textMuted">Puntuación</span>
-                      <span className="font-mono font-bold text-sm text-white">{imdbScore != null ? `${imdbScore.toFixed(1)}/10` : '-'}</span>
+                      <span className="font-mono font-bold text-xs sm:text-sm text-white">{imdbScore != null ? `${imdbScore.toFixed(1)}/10` : '-'}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* ACCIONES PRINCIPALES: BOTÓN VER FICHA + GUARDAR + TRÁILER Y COMPARTIR */}
-                <div className="flex items-center gap-3 pt-2.5 flex-wrap">
+                <div className="flex items-center gap-2.5 pt-1.5 flex-wrap">
                   {/* Botón Principal: Ver Ficha Cinéfila (Directo y Destacado) */}
                   <button
                     onClick={() => onSelectMovie(activeMovie)}
-                    className="px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-cinema-gold hover:from-amber-400 hover:to-amber-500 text-black font-black text-xs sm:text-sm flex items-center gap-2 shadow-xl shadow-amber-950/40 transition-all hover:scale-105 active:scale-95"
+                    className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-cinema-gold hover:from-amber-400 hover:to-amber-500 text-black font-black text-xs sm:text-sm flex items-center gap-2 shadow-xl shadow-amber-950/40 transition-all hover:scale-105 active:scale-95"
                     title="Abrir la ficha cinéfila completa con calificaciones y reparto"
                   >
                     <Clapperboard className="w-4 h-4" />
@@ -477,7 +477,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                   <button
                     onClick={handleToggleWatchlist}
                     disabled={savingWatchlist}
-                    className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 flex items-center gap-2.5 shadow-xl ${
+                    className={`px-4 py-2.5 rounded-2xl font-bold text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 flex items-center gap-2 shadow-xl ${
                       isInWatchlist
                         ? 'bg-amber-500/25 text-cinema-gold border-2 border-cinema-gold/70 shadow-amber-950/50'
                         : 'bg-cinema-surface hover:bg-cinema-card border border-cinema-border hover:border-cinema-gold/40 text-white'
@@ -503,20 +503,20 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                       href={activeMovie.trailer.youtubeUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-3 sm:p-3.5 rounded-2xl bg-red-600 hover:bg-red-500 text-white shadow-xl shadow-red-950/50 transition-all hover:scale-110 active:scale-95 flex items-center justify-center flex-shrink-0"
+                      className="p-2.5 sm:p-3 rounded-2xl bg-red-600 hover:bg-red-500 text-white shadow-xl shadow-red-950/50 transition-all hover:scale-110 active:scale-95 flex items-center justify-center flex-shrink-0"
                       title={`Ver tráiler oficial en la App de YouTube (${activeMovie.trailer.languageLabel})`}
                     >
-                      <YouTubeIcon className="w-5 h-5 text-white" />
+                      <YouTubeIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-white" />
                     </a>
                   )}
 
                   {/* Botón 4: Compartir (Solo Icono) */}
                   <button
                     onClick={handleOpenShareModal}
-                    className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-black shadow-xl shadow-emerald-950/50 transition-all hover:scale-110 active:scale-95 flex items-center justify-center flex-shrink-0"
+                    className="p-2.5 sm:p-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-black shadow-xl shadow-emerald-950/50 transition-all hover:scale-110 active:scale-95 flex items-center justify-center flex-shrink-0"
                     title="Compartir por WhatsApp o Chat interno"
                   >
-                    <Share2 className="w-5 h-5 text-black" />
+                    <Share2 className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-black" />
                   </button>
                 </div>
               </div>
@@ -530,27 +530,27 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               onWheel={handleWheelLoop}
               onTouchStart={handleReelTouchStart}
               onTouchEnd={handleReelTouchEnd}
-              className="flex-shrink-0 pt-3 pb-1 border-t border-cinema-border/50"
+              className="flex-shrink-0 pt-2 pb-0.5 border-t border-cinema-border/50"
             >
-              <div className="flex items-center justify-between mb-2 px-1 max-w-4xl mx-auto">
-                <span className="text-xs font-bold uppercase tracking-wider text-cinema-textMuted flex items-center gap-2">
+              <div className="flex items-center justify-between mb-1 px-1 max-w-4xl mx-auto">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-cinema-textMuted flex items-center gap-1.5">
                   <Film className="w-3.5 h-3.5 text-cinema-gold" />
                   Estrenos en Cartelera
                 </span>
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={goToPrev}
-                    className="p-1.5 rounded-lg bg-cinema-card hover:bg-cinema-surface border border-cinema-border text-cinema-textMuted hover:text-white transition-colors"
+                    className="p-1 rounded-lg bg-cinema-card hover:bg-cinema-surface border border-cinema-border text-cinema-textMuted hover:text-white transition-colors"
                     title="Estreno anterior"
                   >
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={goToNext}
-                    className="p-1.5 rounded-lg bg-cinema-card hover:bg-cinema-surface border border-cinema-border text-cinema-textMuted hover:text-white transition-colors"
+                    className="p-1 rounded-lg bg-cinema-card hover:bg-cinema-surface border border-cinema-border text-cinema-textMuted hover:text-white transition-colors"
                     title="Siguiente estreno"
                   >
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -559,7 +559,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               <div className="w-full flex items-center justify-center overflow-hidden">
                 <div
                   ref={reelContainerRef}
-                  className="flex items-center justify-center gap-2 sm:gap-2.5 overflow-x-auto py-1 scrollbar-none scroll-smooth max-w-full"
+                  className="flex items-center justify-center gap-2 sm:gap-2.5 overflow-x-auto py-0.5 scrollbar-none scroll-smooth max-w-full"
                 >
                   {movies.map((m, idx) => {
                     const isActive = idx === activeIdx;
@@ -568,7 +568,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                         key={m.id}
                         ref={isActive ? activeThumbRef : null}
                         onClick={() => setActiveIdx(idx)}
-                        className={`relative flex-shrink-0 w-14 sm:w-16 md:w-20 aspect-[2/3] rounded-xl overflow-hidden transition-all duration-300 text-left ${
+                        className={`relative flex-shrink-0 w-12 sm:w-14 md:w-16 aspect-[2/3] rounded-xl overflow-hidden transition-all duration-300 text-left ${
                           isActive
                             ? 'ring-2 ring-cinema-gold scale-105 shadow-[0_4px_20px_rgba(229,169,60,0.4)] z-10'
                             : 'opacity-50 hover:opacity-90 filter grayscale-[20%] hover:grayscale-0'
@@ -625,7 +625,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 <span className="text-sm font-bold text-white truncate">{activeMovie.title}</span>
                 <span className="text-xs text-cinema-textSecondary font-mono">{activeMovie.releaseYear}</span>
                 <span className="text-xs text-cinema-gold font-mono font-bold mt-1">
-                  ★ MovieScore {compositeScore.toFixed(1)} / 10
+                  ★ Rating Oficial {compositeScore.toFixed(1)} / 10
                 </span>
               </div>
             </div>
@@ -679,7 +679,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                             body: JSON.stringify({
                               senderId: currentUser.id,
                               receiverId: f.id,
-                              initialMessage: `🎬 ¡Te recomiendo ver "${activeMovie.title}" (${activeMovie.releaseYear}) en cartelera! MovieScore: ${compositeScore.toFixed(1)}/10 🍿`,
+                              initialMessage: `🎬 ¡Te recomiendo ver "${activeMovie.title}" (${activeMovie.releaseYear}) en cartelera! Rating Oficial: ${compositeScore.toFixed(1)}/10 🍿`,
                               sharedMovieId: activeMovie.id,
                               sharedMovieTitle: activeMovie.title,
                               sharedMoviePosterUrl: activeMovie.posterURL,

@@ -508,11 +508,11 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
             {/* 3. MATRIZ DE CALIFICACIONES (INCLUYENDO COMUNIDAD MOVIESOCIAL) */}
             {/* ============================================================== */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full">
-              {/* 1. MovieScore Oficial (Ponderado de Crítica Internacional) */}
+              {/* 1. Rating Oficial (Ponderado de Crítica Internacional) */}
               <div className="flex flex-col items-center justify-center p-3.5 rounded-2xl bg-amber-500/10 border border-cinema-gold/40 text-cinema-gold shadow-sm">
                 <span className="text-[11px] sm:text-xs uppercase font-bold tracking-wider text-cinema-gold/90 mb-1 flex items-center gap-1">
                   <Sparkles className="w-3.5 h-3.5 fill-cinema-gold" />
-                  <span>MovieScore Oficial</span>
+                  <span>Rating Oficial</span>
                 </span>
                 <div className="flex items-center gap-1.5">
                   <span className="text-2xl sm:text-3xl font-black font-mono text-white">

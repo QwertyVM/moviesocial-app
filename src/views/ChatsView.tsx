@@ -712,7 +712,7 @@ export const ChatsView: React.FC<ChatsViewProps> = ({
                               </h4>
                               {m.sharedMovieScore && (
                                 <span className="text-[10px] font-mono font-semibold text-cinema-textSecondary mt-0.5">
-                                  MovieScore: ★ {m.sharedMovieScore.toFixed(1)}
+                                  Rating Oficial: ★ {m.sharedMovieScore.toFixed(1)}
                                 </span>
                               )}
                               <span className="text-[10px] font-semibold text-cinema-gold underline mt-1">
@@ -945,7 +945,7 @@ export const ChatsView: React.FC<ChatsViewProps> = ({
                   <div className="flex flex-col flex-grow">
                     <span className="text-xs font-bold text-white">{m.title}</span>
                     <span className="text-[10px] text-cinema-textMuted">
-                      {m.releaseYear} • MovieScore {m.ratings.compositeScore?.toFixed(1)}
+                      {m.releaseYear} • Rating Oficial {m.ratings.compositeScore?.toFixed(1)}
                     </span>
                   </div>
                   <Share2 className="w-4 h-4 text-cinema-gold mr-2" />

@@ -191,7 +191,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
             onChange={(e) => setSortBy(e.target.value as any)}
             className="px-3 py-1.5 rounded-xl bg-cinema-card border border-cinema-border text-xs font-semibold text-white outline-none focus:border-cinema-gold cursor-pointer"
           >
-            <option value="ratingDesc">Mayor MovieScore ★</option>
+            <option value="ratingDesc">Mayor Rating Oficial ★</option>
             <option value="yearDesc">Más Recientes</option>
             <option value="criticsDesc">Tomatometer Crítica 🍅</option>
             <option value="audienceDesc">Popcornmeter Audiencia 🍿</option>

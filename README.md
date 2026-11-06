@@ -13,10 +13,10 @@ Plataforma Web moderna y responsive construida con la misma arquitectura de **ge
 
 1. **Cartelera Local por Ciudad:**
    - Selector interactivo de ciudad (Madrid, Barcelona, Ciudad de México, Bogotá, Buenos Aires, Santiago, Lima) con salas y horarios reales (IMAX, VOSE, Dolby Atmos).
-2. **Clásicos Históricos por MovieScore:**
+2. **Clásicos Históricos por Rating Oficial:**
    - Obras maestras de toda la historia ordenadas por cruce ponderado (50% IMDb + 30% Rotten Tomatoes Críticos + 20% Audiencia) con filtro por décadas (`≤ 60s`, `70s`, `80s`, `90s`, `2000s`, `2010s`, `Todas`).
 3. **Ficha de Película & Reseñas:**
-   - Desglose de calificaciones oficiales (**Tomatometer**, **Popcornmeter**, **IMDb** y **MovieScore**), salas de proyección y opiniones de amigos.
+   - Desglose de calificaciones oficiales (**Tomatometer**, **Popcornmeter**, **IMDb** y **Rating Oficial de la Industria**), salas de proyección y opiniones de amigos.
    - Calificador interactivo con estrellas de 1 a 5 con **medios puntos** (0.5 a 5.0).
 4. **Feed Social & Conexiones:**
    - Feed cronológico de reseñas escritas por tu círculo de amigos con comentarios interactivos y likes.

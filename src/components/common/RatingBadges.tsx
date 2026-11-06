@@ -25,9 +25,9 @@ export const RatingBadges: React.FC<RatingBadgesProps> = ({
   if (size === 'sm') {
     return (
       <div className={`grid grid-cols-4 gap-1 w-full ${className}`}>
-        {/* 1. MovieScore */}
+        {/* 1. Rating Oficial */}
         <div
-          title={`MovieScore: ${composite.toFixed(1)}/10`}
+          title={`Rating Oficial: ${composite.toFixed(1)}/10`}
           className="flex items-center justify-center gap-0.5 px-1 py-1 rounded-lg bg-amber-500/15 text-cinema-gold border border-cinema-gold/30 text-[10px] font-mono font-bold"
         >
           <span className="text-cinema-gold font-sans text-[9px]">★</span>
@@ -72,13 +72,13 @@ export const RatingBadges: React.FC<RatingBadgesProps> = ({
 
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`}>
-      {/* 1. MovieScore (Cruce Ponderado MovieSocial) */}
+      {/* 1. Rating Oficial (Cruce Ponderado de la Industria) */}
       {showMovieScore && (
         <div
-          title="MovieScore: 50% IMDb + 30% RT Críticos + 20% RT Audiencia"
+          title="Rating Oficial: 50% IMDb + 30% RT Críticos + 20% RT Audiencia"
           className={`flex items-center font-bold rounded-xl bg-amber-500/15 text-cinema-gold border border-cinema-gold/40 shadow-sm ${sizeClasses}`}
         >
-          <span className="text-[10px] tracking-wider uppercase opacity-85">MovieScore</span>
+          <span className="text-[10px] tracking-wider uppercase opacity-85">Rating Oficial</span>
           <span className="font-mono font-black text-white">{composite.toFixed(1)}</span>
         </div>
       )}

@@ -154,7 +154,7 @@ class MovieSocialAPI {
         );
       }
 
-      // Ordenar estrenos por MovieScore o año
+      // Ordenar estrenos por Rating Oficial o año
       if (sortBy === 'ratingDesc') {
         list.sort((a, b) => (b.ratings.compositeScore || 0) - (a.ratings.compositeScore || 0));
       } else {
