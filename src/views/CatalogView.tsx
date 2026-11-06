@@ -343,9 +343,13 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             </span>
           </div>
 
-          <span className="text-xs text-cinema-textMuted font-mono hidden sm:inline">
-            Haz clic en la película para abrir su Ficha Cinéfila
-          </span>
+          <button
+            onClick={() => document.getElementById('archivo-mundial')?.scrollIntoView({ behavior: 'smooth' })}
+            className="px-3.5 py-1.5 rounded-full bg-cinema-card hover:bg-cinema-surface border border-cinema-border hover:border-cinema-gold/40 text-cinema-gold hover:text-white font-mono text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
+          >
+            <Search className="w-3.5 h-3.5 text-cinema-gold" />
+            <span>Buscador & Archivo Mundial ↓</span>
+          </button>
         </div>
 
         {/* ESCENARIO DE ESTRENO: MUBI / APPLE TV+ SPLIT HORIZONTAL GIGANTE */}
@@ -582,10 +586,10 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 </div>
               </div>
 
-              {/* Riel de Miniaturas Más Grandes (Desktop 1080p y Móvil) */}
+              {/* Riel de Miniaturas Pequeñas (Estilo Filmstrip Cinematográfico) */}
               <div
                 ref={reelContainerRef}
-                className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-none scroll-smooth"
+                className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto py-1 scrollbar-none scroll-smooth"
               >
                 {movies.map((m, idx) => {
                   const isActive = idx === activeIdx;
@@ -594,24 +598,33 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                       key={m.id}
                       ref={isActive ? activeThumbRef : null}
                       onClick={() => setActiveIdx(idx)}
-                      className={`relative flex-shrink-0 w-28 sm:w-36 md:w-44 aspect-[2/3] rounded-2xl overflow-hidden transition-all duration-300 text-left ${
+                      className={`relative flex-shrink-0 w-14 sm:w-16 md:w-20 aspect-[2/3] rounded-xl overflow-hidden transition-all duration-300 text-left ${
                         isActive
-                          ? 'ring-2 ring-cinema-gold scale-[1.04] shadow-[0_10px_30px_rgba(229,169,60,0.35)] z-10'
-                          : 'opacity-55 hover:opacity-90 filter grayscale-[25%] hover:grayscale-0'
+                          ? 'ring-2 ring-cinema-gold scale-105 shadow-[0_4px_20px_rgba(229,169,60,0.4)] z-10'
+                          : 'opacity-50 hover:opacity-90 filter grayscale-[25%] hover:grayscale-0'
                       }`}
+                      title={`${m.title} (${m.releaseYear})`}
                     >
                       <img src={m.posterURL} alt={m.title} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent flex flex-col justify-end p-2.5">
-                        <span className="text-xs font-bold text-white line-clamp-1 leading-tight">
-                          {m.title}
-                        </span>
-                        <span className="text-[10px] text-cinema-gold font-mono font-bold">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex flex-col justify-end p-1">
+                        <span className="text-[9px] text-cinema-gold font-mono font-bold leading-none">
                           ★ {m.ratings.compositeScore?.toFixed(1) || 'N/A'}
                         </span>
                       </div>
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Botón Indicador para Desplazarse al Archivo Mundial */}
+              <div className="flex justify-center pt-2">
+                <button
+                  onClick={() => document.getElementById('archivo-mundial')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="px-4 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-cinema-textMuted hover:text-white text-xs font-mono flex items-center gap-2 transition-all hover:translate-y-0.5"
+                >
+                  <span>Explorar Archivo Mundial de Películas</span>
+                  <span>↓</span>
+                </button>
               </div>
             </div>
           </div>
@@ -621,7 +634,10 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
       {/* ============================================================== */}
       {/* 2. SECCIÓN NUEVA: BUSCADOR GLOBAL & ARCHIVO MUNDIAL DE CINE    */}
       {/* ============================================================== */}
-      <section className="pt-8 sm:pt-12 border-t border-cinema-border/70 flex flex-col gap-6 sm:gap-8">
+      <section
+        id="archivo-mundial"
+        className="pt-8 sm:pt-12 border-t border-cinema-border/70 flex flex-col gap-6 sm:gap-8 scroll-mt-6"
+      >
         
         {/* Cabecera del Buscador Global */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">

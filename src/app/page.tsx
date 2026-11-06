@@ -155,7 +155,7 @@ export default function Home() {
   };
 
   return (
-    <div className={`bg-[#050608] text-gray-100 flex flex-col ${activeTab === 'catalog' ? 'h-screen overflow-hidden' : 'min-h-screen pb-20 md:pb-8 overflow-x-hidden'} relative selection:bg-amber-500/30 selection:text-amber-200`}>
+    <div className="bg-[#050608] text-gray-100 flex flex-col min-h-screen pb-16 overflow-x-hidden relative selection:bg-amber-500/30 selection:text-amber-200">
       {/* Atmósfera de Sala de Cine: Haz de Luz de Proyector y Resplandor de Gran Pantalla */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
         {/* Foco de Proyector Cenital proyectando sobre la pantalla */}
