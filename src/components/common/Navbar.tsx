@@ -2,7 +2,22 @@
 
 import React, { useState } from 'react';
 import { User, UserLocation } from '../../types';
-import { Film, Users, MessageSquare, User as UserIcon, MapPin, ChevronDown, Check, Sparkles, Database, Navigation, Lock, LogIn, LogOut, UserPlus, Globe } from 'lucide-react';
+import {
+  Film,
+  Users,
+  MessageSquare,
+  User as UserIcon,
+  MapPin,
+  ChevronDown,
+  Check,
+  Sparkles,
+  Navigation,
+  Lock,
+  LogIn,
+  LogOut,
+  UserPlus,
+  Globe,
+} from 'lucide-react';
 import { AVAILABLE_CITIES } from '../../data/curatedMovies';
 
 interface NavbarProps {
@@ -64,7 +79,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           const country = data.address.country || 'Mi País';
           const countryCode = (data.address.country_code || 'PE').toUpperCase();
 
-          // Código bandera emoji
           const codePoints = countryCode
             .split('')
             .map((char: string) => 127397 + char.charCodeAt(0));
@@ -95,58 +109,60 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      {/* Top Header Navbar */}
-      <header className="sticky top-0 z-40 w-full border-b border-cinema-border bg-cinema-bg/90 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      {/* Top Header Navbar - Cinema Dark OLED Aesthetic */}
+      <header className="sticky top-0 z-40 w-full border-b border-white/[0.08] bg-[#07080B]/85 backdrop-blur-2xl transition-colors">
+        <div className="max-w-[1780px] mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 h-16 flex items-center justify-between gap-4">
           
-          {/* Logo & Brand */}
-          <div className="flex items-center gap-6">
+          {/* Logo & City Selector */}
+          <div className="flex items-center gap-4 sm:gap-6">
+            {/* Minimalist Cinephile Brand */}
             <button
               onClick={() => onSelectTab('catalog')}
-              className="flex items-center gap-2.5 group focus:outline-none"
+              className="flex items-center gap-3 group focus:outline-none"
             >
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-cinema-gold flex items-center justify-center shadow-lg shadow-amber-900/30 group-hover:scale-105 transition-transform">
-                <Film className="w-5 h-5 text-black" />
+              <div className="relative w-9 h-9 rounded-xl bg-gradient-to-b from-[#1E222B] to-[#0A0C10] border border-cinema-gold/30 flex items-center justify-center shadow-[0_0_16px_rgba(229,169,60,0.18)] group-hover:border-cinema-gold/60 group-hover:scale-105 transition-all">
+                <Film className="w-4 h-4 text-cinema-gold transition-transform group-hover:rotate-12 duration-300" />
+                <span className="absolute -bottom-1 -right-1 w-2 h-2 rounded-full bg-cinema-gold animate-ping opacity-75" />
+                <span className="absolute -bottom-1 -right-1 w-2 h-2 rounded-full bg-cinema-gold" />
               </div>
               <div className="flex flex-col text-left">
-                <span className="font-bold text-lg tracking-tight text-white flex items-center gap-1.5">
-                  MovieSocial
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-cinema-border text-cinema-textSecondary font-mono uppercase">
-                    Web
-                  </span>
+                <span className="font-black text-sm tracking-[0.18em] text-white group-hover:text-cinema-gold transition-colors">
+                  MOVIESOCIAL
                 </span>
-                <span className="text-[10px] text-cinema-textMuted hidden sm:inline">Cine, Ratings & Amigos</span>
+                <span className="text-[9px] font-mono tracking-widest text-cinema-textMuted uppercase hidden sm:inline">
+                  Filmoteca & Salas
+                </span>
               </div>
             </button>
 
-            {/* City Selector Dropdown */}
+            {/* Location Selector Pill */}
             <div className="relative">
               <button
                 onClick={() => setCityDropdownOpen(!cityDropdownOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cinema-surface hover:bg-cinema-card border border-cinema-border hover:border-cinema-borderHover transition-all text-xs font-medium text-cinema-textPrimary"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-cinema-gold/40 transition-all text-xs font-medium text-gray-200"
                 title="Cambiar tu ciudad para consultar salas y horarios"
                 suppressHydrationWarning
               >
                 <MapPin className="w-3.5 h-3.5 text-cinema-gold" />
                 <span className="mr-0.5" suppressHydrationWarning>{activeLocation.flagEmoji}</span>
-                <span suppressHydrationWarning>{activeLocation.city}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-cinema-textMuted" />
+                <span className="font-mono text-[11px]" suppressHydrationWarning>{activeLocation.city}</span>
+                <ChevronDown className="w-3 h-3 text-cinema-textMuted" />
               </button>
 
               {cityDropdownOpen && (
-                <div className="absolute left-0 mt-2 w-64 rounded-xl bg-cinema-card border border-cinema-border shadow-2xl z-50 p-2 max-h-80 overflow-y-auto">
+                <div className="absolute left-0 mt-2 w-64 rounded-2xl bg-[#0D0F14] border border-white/10 shadow-2xl z-50 p-2 max-h-80 overflow-y-auto backdrop-blur-2xl">
                   {/* Botón GPS */}
                   <button
                     onClick={handleDetectGPS}
                     disabled={gpsLoading}
-                    className="w-full mb-2 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-cinema-gold/15 hover:bg-cinema-gold/25 border border-cinema-gold/40 text-cinema-gold font-semibold text-xs transition-colors"
+                    className="w-full mb-2 flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-cinema-gold/15 hover:bg-cinema-gold/25 border border-cinema-gold/30 text-cinema-gold font-semibold text-xs transition-colors"
                   >
                     <Navigation className={`w-3.5 h-3.5 ${gpsLoading ? 'animate-spin' : ''}`} />
-                    <span>{gpsLoading ? 'Detectando GPS...' : 'Detectar mi ubicación (GPS)'}</span>
+                    <span>{gpsLoading ? 'Detectando GPS...' : 'Detectar mi ubicación'}</span>
                   </button>
 
-                  <div className="px-2 py-1 text-[10px] font-semibold text-cinema-textMuted uppercase tracking-wider">
-                    O selecciona tu país / ciudad:
+                  <div className="px-2 py-1 text-[10px] font-mono text-cinema-textMuted uppercase tracking-wider">
+                    Ciudades Disponibles:
                   </div>
                   {AVAILABLE_CITIES.map((loc) => {
                     const isSelected = loc.city === activeLocation.city;
@@ -157,10 +173,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                           onSelectCity(loc);
                           setCityDropdownOpen(false);
                         }}
-                        className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left transition-colors ${
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs text-left transition-colors ${
                           isSelected
-                            ? 'bg-cinema-gold/15 text-cinema-gold font-semibold'
-                            : 'text-cinema-textPrimary hover:bg-cinema-surface'
+                            ? 'bg-cinema-gold/15 text-cinema-gold font-bold'
+                            : 'text-gray-300 hover:bg-white/5'
                         }`}
                       >
                         <span className="flex items-center gap-2">
@@ -177,134 +193,124 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Center Navigation Tabs (Desktop) */}
-          <div className="hidden lg:flex items-center gap-3">
-            <nav className="flex items-center gap-1 bg-cinema-surface/90 p-1.5 rounded-2xl border border-cinema-border shadow-inner">
+          {/* Center Navigation Tabs (Desktop) - Clean Floating Pill */}
+          <div className="hidden lg:flex items-center">
+            <nav className="flex items-center gap-1 bg-[#0D0F14]/90 p-1 rounded-full border border-white/[0.08] shadow-2xl backdrop-blur-xl">
+              {/* Estrenos */}
               <button
                 onClick={() => onSelectTab('catalog')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs transition-all ${
                   activeTab === 'catalog'
-                    ? 'bg-cinema-card text-cinema-gold shadow-lg shadow-black/80 border border-cinema-gold/40'
-                    : 'text-cinema-textSecondary hover:text-white hover:bg-cinema-card/50'
+                    ? 'bg-amber-500/15 text-cinema-gold font-bold border border-cinema-gold/40 shadow-[0_0_12px_rgba(229,169,60,0.15)]'
+                    : 'text-gray-400 hover:text-white hover:bg-white/[0.04] font-medium'
                 }`}
               >
-                <Film className="w-3.5 h-3.5 text-cinema-gold" />
-                <span>Estrenos en Cartelera</span>
+                <Film className="w-3.5 h-3.5" />
+                <span>Estrenos</span>
               </button>
 
+              {/* Filmoteca Mundial */}
               <button
                 onClick={() => onSelectTab('archive')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs transition-all ${
                   activeTab === 'archive'
-                    ? 'bg-cinema-card text-cinema-gold shadow-lg shadow-black/80 border border-cinema-gold/40'
-                    : 'text-cinema-textSecondary hover:text-white hover:bg-cinema-card/50'
+                    ? 'bg-amber-500/15 text-cinema-gold font-bold border border-cinema-gold/40 shadow-[0_0_12px_rgba(229,169,60,0.15)]'
+                    : 'text-gray-400 hover:text-white hover:bg-white/[0.04] font-medium'
                 }`}
               >
-                <Globe className="w-3.5 h-3.5 text-cinema-gold" />
-                <span>Archivo Mundial</span>
+                <Globe className="w-3.5 h-3.5" />
+                <span>Filmoteca Mundial</span>
               </button>
 
+              {/* La Tertulia */}
               <button
                 onClick={() => onSelectTab('feed')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs transition-all ${
                   activeTab === 'feed'
-                    ? 'bg-cinema-card text-cinema-gold shadow-lg shadow-black/80 border border-cinema-gold/40'
-                    : 'text-cinema-textSecondary hover:text-white hover:bg-cinema-card/50'
+                    ? 'bg-amber-500/15 text-cinema-gold font-bold border border-cinema-gold/40 shadow-[0_0_12px_rgba(229,169,60,0.15)]'
+                    : 'text-gray-400 hover:text-white hover:bg-white/[0.04] font-medium'
                 }`}
               >
-                <Users className="w-3.5 h-3.5 text-indigo-400" />
+                <Users className="w-3.5 h-3.5" />
                 <span>La Tertulia</span>
                 {!currentUser && <Lock className="w-3 h-3 text-cinema-textMuted/70" />}
               </button>
 
+              {/* Cineclubs */}
               <button
                 onClick={() => onSelectTab('chats')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs transition-all ${
                   activeTab === 'chats'
-                    ? 'bg-cinema-card text-cinema-gold shadow-lg shadow-black/80 border border-cinema-gold/40'
-                    : 'text-cinema-textSecondary hover:text-white hover:bg-cinema-card/50'
+                    ? 'bg-amber-500/15 text-cinema-gold font-bold border border-cinema-gold/40 shadow-[0_0_12px_rgba(229,169,60,0.15)]'
+                    : 'text-gray-400 hover:text-white hover:bg-white/[0.04] font-medium'
                 }`}
               >
-                <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Salas & Cineclubs</span>
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Cineclubs</span>
                 {!currentUser && <Lock className="w-3 h-3 text-cinema-textMuted/70" />}
               </button>
 
+              {/* Mi Perfil */}
               <button
                 onClick={() => onSelectTab('profile')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs transition-all ${
                   activeTab === 'profile'
-                    ? 'bg-cinema-card text-cinema-gold shadow-lg shadow-black/80 border border-cinema-gold/40'
-                    : 'text-cinema-textSecondary hover:text-white hover:bg-cinema-card/50'
+                    ? 'bg-amber-500/15 text-cinema-gold font-bold border border-cinema-gold/40 shadow-[0_0_12px_rgba(229,169,60,0.15)]'
+                    : 'text-gray-400 hover:text-white hover:bg-white/[0.04] font-medium'
                 }`}
               >
-                <UserIcon className="w-3.5 h-3.5 text-amber-400" />
-                <span>Mi Filmoteca</span>
+                <UserIcon className="w-3.5 h-3.5" />
+                <span>Mi Perfil</span>
                 {!currentUser && <Lock className="w-3 h-3 text-cinema-textMuted/70" />}
               </button>
             </nav>
           </div>
 
-          {/* Right Side: Auth / User Pill */}
-          <div className="flex items-center gap-2 sm:gap-3">
-
+          {/* Right Side: Auth / User Profile */}
+          <div className="flex items-center gap-2.5">
             {currentUser ? (
               <>
                 {/* Subscription status pill */}
                 <button
                   onClick={() => onOpenSubscriptionModal?.()}
-                  className={`hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all shadow-sm ${
+                  className={`hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
                     currentUser.isPremium
-                      ? 'bg-cinema-gold/15 hover:bg-cinema-gold/25 text-cinema-gold border border-cinema-gold/40'
-                      : 'bg-cinema-surface hover:bg-cinema-card text-cinema-textSecondary border border-cinema-border'
+                      ? 'bg-amber-500/15 hover:bg-amber-500/25 text-cinema-gold border border-cinema-gold/40 shadow-sm'
+                      : 'bg-white/[0.04] hover:bg-white/[0.08] text-gray-300 border border-white/[0.08]'
                   }`}
                   title={
                     currentUser.isPremium
-                      ? 'Suscripción Mensual Activa: Tus comentarios son visibles al mundo'
-                      : 'Plan Base: Solo interacción con amigos. Clic para activar suscripción global'
+                      ? 'Membresía Cinéfilo Pro activa'
+                      : 'Plan Base: Clic para activar suscripción global'
                   }
                 >
-                  {currentUser.isPremium ? (
-                    <>
-                      <Sparkles className="w-3.5 h-3.5 text-cinema-gold fill-cinema-gold" />
-                      <span>Cinéfilo Pro</span>
-                    </>
-                  ) : (
-                    <>
-                      <Users className="w-3.5 h-3.5 text-purple-400" />
-                      <span>Plan Base</span>
-                      <span className="text-[10px] text-cinema-gold font-bold ml-0.5">Mejorar</span>
-                    </>
-                  )}
+                  <Sparkles className="w-3 h-3 text-cinema-gold fill-cinema-gold" />
+                  <span>{currentUser.isPremium ? 'Cinéfilo Pro' : 'Plan Base'}</span>
                 </button>
 
                 {/* User Profile Pill */}
                 <button
                   onClick={() => onSelectTab('profile')}
-                  className="flex items-center gap-2.5 p-1 sm:pr-3 rounded-full bg-cinema-surface hover:bg-cinema-card border border-cinema-border transition-colors group"
+                  className="flex items-center gap-2 p-1 sm:pr-3 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-cinema-gold/40 transition-all group"
                 >
                   <img
                     src={currentUser.avatarUrl}
                     alt={currentUser.displayName}
-                    className="w-8 h-8 rounded-full object-cover border border-cinema-gold/40"
+                    className="w-7 h-7 rounded-full object-cover border border-cinema-gold/40"
                   />
-                  <div className="hidden sm:flex flex-col text-left">
-                    <span className="text-xs font-semibold text-white group-hover:text-cinema-gold transition-colors flex items-center gap-1">
-                      {currentUser.displayName}
-                      {currentUser.isPremium && <Sparkles className="w-3 h-3 text-cinema-gold fill-cinema-gold" />}
-                    </span>
-                    <span className="text-[10px] text-cinema-textMuted">{currentUser.username}</span>
-                  </div>
+                  <span className="hidden sm:inline text-xs font-semibold text-gray-200 group-hover:text-cinema-gold transition-colors">
+                    {currentUser.displayName}
+                  </span>
                 </button>
 
                 {/* Logout Button */}
                 {onLogout && (
                   <button
                     onClick={onLogout}
-                    className="p-2 rounded-xl bg-cinema-surface hover:bg-red-500/15 text-cinema-textMuted hover:text-red-400 border border-cinema-border hover:border-red-500/30 transition-colors"
+                    className="p-1.5 rounded-full bg-white/[0.04] hover:bg-red-500/15 text-gray-400 hover:text-red-400 border border-white/[0.08] hover:border-red-500/30 transition-colors"
                     title="Cerrar Sesión"
                   >
-                    <LogOut className="w-4 h-4" />
+                    <LogOut className="w-3.5 h-3.5" />
                   </button>
                 )}
               </>
@@ -312,19 +318,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => onOpenAuthModal?.('login')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cinema-surface hover:bg-cinema-card border border-cinema-border text-xs font-medium text-cinema-textPrimary hover:text-white transition-colors"
+                  className="px-3.5 py-1.5 rounded-full text-xs font-medium text-gray-300 hover:text-white hover:bg-white/[0.05] transition-colors"
                 >
-                  <LogIn className="w-3.5 h-3.5 text-cinema-gold" />
-                  <span>Iniciar Sesión</span>
+                  <span>Ingresar</span>
                 </button>
 
                 <button
                   onClick={() => onOpenAuthModal?.('register')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cinema-gold hover:bg-amber-400 text-black text-xs font-bold shadow-md shadow-amber-900/30 transition-transform hover:scale-105"
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-cinema-gold hover:bg-amber-400 text-black text-xs font-bold shadow-[0_0_15px_rgba(229,169,60,0.25)] transition-transform hover:scale-105"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Crear Cuenta</span>
-                  <span className="sm:hidden">Registro</span>
+                  <span>Crear Cuenta</span>
                 </button>
               </div>
             )}
@@ -332,12 +336,12 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </header>
 
-      {/* Mobile Bottom Navigation Bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-cinema-bg/95 border-t border-cinema-border backdrop-blur-xl px-2 py-2 flex items-center justify-around">
+      {/* Mobile Bottom Navigation Bar - Minimal Cinema Dark */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#07080B]/95 border-t border-white/[0.08] backdrop-blur-2xl px-2 py-2 flex items-center justify-around">
         <button
           onClick={() => onSelectTab('catalog')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-semibold transition-colors ${
-            activeTab === 'catalog' ? 'text-cinema-gold' : 'text-cinema-textMuted'
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl text-[10px] font-semibold transition-colors ${
+            activeTab === 'catalog' ? 'text-cinema-gold' : 'text-gray-400'
           }`}
         >
           <Film className="w-4 h-4" />
@@ -346,18 +350,18 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         <button
           onClick={() => onSelectTab('archive')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-semibold transition-colors ${
-            activeTab === 'archive' ? 'text-cinema-gold' : 'text-cinema-textMuted'
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl text-[10px] font-semibold transition-colors ${
+            activeTab === 'archive' ? 'text-cinema-gold' : 'text-gray-400'
           }`}
         >
           <Globe className="w-4 h-4" />
-          <span>Archivo</span>
+          <span>Filmoteca</span>
         </button>
 
         <button
           onClick={() => onSelectTab('feed')}
-          className={`relative flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-semibold transition-colors ${
-            activeTab === 'feed' ? 'text-indigo-400' : 'text-cinema-textMuted'
+          className={`relative flex flex-col items-center gap-1 py-1 px-3 rounded-xl text-[10px] font-semibold transition-colors ${
+            activeTab === 'feed' ? 'text-cinema-gold' : 'text-gray-400'
           }`}
         >
           <Users className="w-4 h-4" />
@@ -367,8 +371,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         <button
           onClick={() => onSelectTab('chats')}
-          className={`relative flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-semibold transition-colors ${
-            activeTab === 'chats' ? 'text-emerald-400' : 'text-cinema-textMuted'
+          className={`relative flex flex-col items-center gap-1 py-1 px-3 rounded-xl text-[10px] font-semibold transition-colors ${
+            activeTab === 'chats' ? 'text-cinema-gold' : 'text-gray-400'
           }`}
         >
           <MessageSquare className="w-4 h-4" />
@@ -378,16 +382,15 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         <button
           onClick={() => onSelectTab('profile')}
-          className={`relative flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-semibold transition-colors ${
-            activeTab === 'profile' ? 'text-amber-400' : 'text-cinema-textMuted'
+          className={`relative flex flex-col items-center gap-1 py-1 px-3 rounded-xl text-[10px] font-semibold transition-colors ${
+            activeTab === 'profile' ? 'text-cinema-gold' : 'text-gray-400'
           }`}
         >
           <UserIcon className="w-4 h-4" />
-          <span>Filmoteca</span>
+          <span>Perfil</span>
           {!currentUser && <Lock className="w-2.5 h-2.5 absolute top-1 right-2 text-cinema-gold" />}
         </button>
       </div>
     </>
   );
 };
-

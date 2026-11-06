@@ -284,22 +284,6 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
       {/* ============================================================== */}
       <section className="flex flex-col justify-between flex-grow h-full overflow-hidden gap-2 sm:gap-3">
         
-        {/* Cabecera sutil de cartelera */}
-        <div className="flex items-center justify-between gap-3 pb-1.5 border-b border-cinema-border/50 flex-shrink-0">
-          <div className="flex items-center gap-2.5">
-            <span className="flex items-center gap-2 px-3 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-[11px] font-bold shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>EN SALAS DE CINE</span>
-            </span>
-            <span className="text-xs text-cinema-textMuted font-mono">
-              {activeLocation.country} • Cartelera Oficial
-            </span>
-          </div>
-
-          <span className="text-[11px] font-mono text-cinema-textMuted hidden sm:inline">
-            Desliza o usa flechas ← → para rotar estrenos
-          </span>
-        </div>
 
         {/* ESCENARIO DE ESTRENO: MUBI / APPLE TV+ SPLIT HORIZONTAL */}
         {loading ? (

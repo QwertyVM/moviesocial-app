@@ -193,6 +193,8 @@ function formatTmdbMovie(item: any, isPremiering: boolean = false, countryCode: 
     runtimeMinutes: realRuntime,
     director: directorName || undefined,
     countryOfOrigin: item.origin_country?.[0] || countryCode,
+    originCountry: item.origin_country?.[0] || countryCode,
+    originCountryName: (item.origin_country?.[0] || countryCode) === "PE" ? "Perú" : (item.origin_country?.[0] || countryCode) === "MX" ? "México" : (item.origin_country?.[0] || countryCode) === "AR" ? "Argentina" : (item.origin_country?.[0] || countryCode) === "ES" ? "España" : (item.origin_country?.[0] || countryCode) === "US" ? "Estados Unidos" : undefined,
     imdbId: item.imdb_id || undefined,
     ratings: {
       compositeScore: parseFloat(voteAvg.toFixed(1)),
@@ -292,6 +294,7 @@ export async function getCatalogMovies(options?: {
   sortBy?: "yearDesc" | "ratingDesc" | "criticsDesc" | "audienceDesc";
   searchQuery?: string;
   countryCode?: string;
+  page?: number;
 }): Promise<Movie[]> {
   const {
     decade = "all",
@@ -300,6 +303,7 @@ export async function getCatalogMovies(options?: {
     sortBy = "yearDesc",
     searchQuery = "",
     countryCode = "PE",
+    page = 1,
   } = options || {};
 
   const tmdbKey = process.env.TMDB_API_KEY;
@@ -313,7 +317,7 @@ export async function getCatalogMovies(options?: {
 
     if (tmdbKey) {
       try {
-        const searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${tmdbKey}&query=${encodeURIComponent(q)}&language=${lang}&page=1&include_adult=false`;
+        const searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${tmdbKey}&query=${encodeURIComponent(q)}&language=${lang}&page=${page}&include_adult=false`;
         const res = await fetch(searchUrl, { next: { revalidate: 3600 } });
         if (res.ok) {
           const data = await res.json();
@@ -355,27 +359,18 @@ export async function getCatalogMovies(options?: {
 
     if (tmdbKey) {
       try {
-        const [nowRes, topRes, popRes] = await Promise.all([
+        const [topRes, popRes] = await Promise.all([
           fetch(
-            `https://api.themoviedb.org/3/movie/now_playing?api_key=${tmdbKey}&region=${countryCode}&language=${lang}&page=1`,
-            { next: { revalidate: 1800 } }
-          ).catch(() => null),
-          fetch(
-            `https://api.themoviedb.org/3/movie/top_rated?api_key=${tmdbKey}&language=${lang}&page=1`,
+            `https://api.themoviedb.org/3/movie/top_rated?api_key=${tmdbKey}&language=${lang}&page=${page}`,
             { next: { revalidate: 86400 } }
           ).catch(() => null),
           fetch(
-            `https://api.themoviedb.org/3/movie/popular?api_key=${tmdbKey}&language=${lang}&page=1`,
+            `https://api.themoviedb.org/3/movie/popular?api_key=${tmdbKey}&language=${lang}&page=${page}`,
             { next: { revalidate: 86400 } }
           ).catch(() => null),
         ]);
 
         const rawResults: any[] = [];
-        if (nowRes && nowRes.ok) {
-          const nowData = await nowRes.json();
-          const past = (nowData.results || []).filter((item: any) => !isWithinTwoWeeksWindow(item.release_date));
-          rawResults.push(...past);
-        }
         if (topRes && topRes.ok) {
           const topData = await topRes.json();
           rawResults.push(...(topData.results || []));
@@ -397,13 +392,13 @@ export async function getCatalogMovies(options?: {
       }
     }
 
-    // Combinar con catálogo local de clásicos fuera de estreno
-    const localCatalog = CURATED_MOVIES.filter(
-      (m) => !isWithinTwoWeeksWindow(m.releaseDate)
-    ).map((m) => ({
-      ...m,
-      isInTheatersLocally: false,
-    }));
+    // Combinar con catálogo local de clásicos fuera de estreno (solo en página 1 para evitar duplicación)
+    const localCatalog = page === 1
+      ? CURATED_MOVIES.filter((m) => !isWithinTwoWeeksWindow(m.releaseDate)).map((m) => ({
+          ...m,
+          isInTheatersLocally: false,
+        }))
+      : [];
 
     const seenKeys = new Set<string>();
     for (const m of [...tmdbMovies, ...localCatalog]) {
@@ -436,7 +431,7 @@ export async function getCatalogMovies(options?: {
   }
 
   // Filtro por género
-  if (genre && genre !== "all") {
+  if (genre && genre !== "all" && genre.toLowerCase() !== "todos") {
     const norm = genre.toLowerCase();
     list = list.filter((m) => m.genres.some((g) => g.toLowerCase().includes(norm)));
   }
@@ -466,16 +461,17 @@ export async function getCatalogMovies(options?: {
 export async function getMovieByIdAction(id: string): Promise<Movie | null> {
   const tmdbKey = process.env.TMDB_API_KEY;
 
-  if (id.startsWith("tmdb_") && tmdbKey) {
+  if (tmdbKey && (id.startsWith("tmdb_") || id.startsWith("latam_"))) {
     try {
-      const tmdbId = id.replace("tmdb_", "");
+      const tmdbId = id.replace("tmdb_", "").replace("latam_", "");
       const res = await fetch(
         `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${tmdbKey}&append_to_response=credits,videos&include_video_language=es,es-MX,es-419,en&language=es-MX`
       );
       if (res.ok) {
         const item = await res.json();
         const isPremiering = isWithinTwoWeeksWindow(item.release_date);
-        return formatTmdbMovie(item, isPremiering);
+        const formatted = formatTmdbMovie(item, isPremiering);
+        return { ...formatted, id };
       }
     } catch (err) {
       console.warn("Error en TMDB directo movie detail:", err);
@@ -484,9 +480,34 @@ export async function getMovieByIdAction(id: string): Promise<Movie | null> {
 
   const found = CURATED_MOVIES.find((m) => m.id === id);
   if (found) {
+    let enrichedTrailer = found.trailer;
+    if (!enrichedTrailer && tmdbKey && found.imdbId) {
+      try {
+        const findRes = await fetch(
+          `https://api.themoviedb.org/3/find/${found.imdbId}?api_key=${tmdbKey}&external_source=imdb_id&language=es-MX`
+        );
+        if (findRes.ok) {
+          const findData = await findRes.json();
+          const firstMovie = findData.movie_results?.[0];
+          if (firstMovie?.id) {
+            const vidRes = await fetch(
+              `https://api.themoviedb.org/3/movie/${firstMovie.id}/videos?api_key=${tmdbKey}&include_video_language=es,es-MX,es-419,en&language=es-MX`
+            );
+            if (vidRes.ok) {
+              const vidData = await vidRes.json();
+              enrichedTrailer = extractBestTrailer(vidData);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Error enriching trailer for curated movie:", err);
+      }
+    }
+
     const isPremiering = isWithinTwoWeeksWindow(found.releaseDate);
     return {
       ...found,
+      trailer: enrichedTrailer || found.trailer,
       isInTheatersLocally: isPremiering,
       theatersPlaying: isPremiering ? CHAINS_BY_COUNTRY["PE"] || ["Cines comerciales"] : [],
     };

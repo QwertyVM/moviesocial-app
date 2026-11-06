@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     try {
       // Buscar en DB si otros usuarios la tienen en watchlist o favorita
       const otherUsersRows: any[] = await prisma.$queryRawUnsafe(
-        `SELECT u.id, u.name, u.avatar_url FROM user_movie_interactions i
+        `SELECT u.id, COALESCE(u.display_name, u.username, 'Usuario') AS display_name, u.avatar_url FROM user_movie_interactions i
          JOIN users u ON u.id = i.user_id
          WHERE i.movie_id = $1 AND (i.is_watchlist = TRUE OR i.is_favorite = TRUE)
          ${userId ? "AND i.user_id != $2" : ""}
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
       if (otherUsersRows && otherUsersRows.length > 0) {
         friendsInterested = otherUsersRows.map((r) => ({
           id: r.id,
-          displayName: r.name,
+          displayName: r.display_name,
           avatarUrl: r.avatar_url || undefined,
         }));
       }

@@ -82,6 +82,24 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
   const [showCommentBox, setShowCommentBox] = useState(false);
   const [ratingSuccessMsg, setRatingSuccessMsg] = useState<string | null>(null);
 
+  // Película enriquecida (tráiler completo si venía parcial del catálogo)
+  const [enrichedMovie, setEnrichedMovie] = useState<Movie | null>(movie);
+
+  useEffect(() => {
+    setEnrichedMovie(movie);
+    if (movie) {
+      if (!movie.trailer) {
+        api.getMovieById(movie.id).then((full) => {
+          if (full && full.trailer) {
+            setEnrichedMovie(full);
+          }
+        });
+      }
+    }
+  }, [movie]);
+
+  const activeMovie = enrichedMovie || movie;
+
   // Cargar reseñas, estado personal e interés de amigos
   useEffect(() => {
     if (movie) {
@@ -252,18 +270,18 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
           {/* ============================================================== */}
           {/* 1. CABECERA TEATRAL: BACKDROP O REPRODUCTOR EN 16:9           */}
           {/* ============================================================== */}
-          {isPlayingTrailer && movie.trailer ? (
+          {isPlayingTrailer && (activeMovie?.trailer || movie.trailer) ? (
             <div className="relative w-full aspect-video sm:h-96 bg-black flex flex-col flex-shrink-0">
               <iframe
-                src={`https://www.youtube-nocookie.com/embed/${movie.trailer.key}?autoplay=1&rel=0`}
-                title={movie.trailer.name}
+                src={`https://www.youtube-nocookie.com/embed/${(activeMovie?.trailer || movie.trailer)!.key}?autoplay=1&rel=0`}
+                title={(activeMovie?.trailer || movie.trailer)!.name}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
                 className="w-full h-full border-0"
               />
               <div className="absolute top-4 right-14 z-20 flex items-center gap-2">
                 <a
-                  href={movie.trailer.youtubeUrl}
+                  href={(activeMovie?.trailer || movie.trailer)!.youtubeUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-3.5 py-1.5 rounded-full bg-red-600 hover:bg-red-500 text-white text-xs font-bold border border-red-500/30 backdrop-blur-md transition-colors flex items-center gap-1.5 shadow-lg"
@@ -282,7 +300,7 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
           ) : (
             <div className="relative h-52 sm:h-72 w-full overflow-hidden flex-shrink-0 group">
               <img
-                src={movie.backdropURL || movie.posterURL}
+                src={activeMovie?.backdropURL || movie.backdropURL || activeMovie?.posterURL || movie.posterURL}
                 alt={movie.title}
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src =
@@ -292,15 +310,26 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
               />
               <div className="absolute inset-0 bg-gradient-to-t from-cinema-bg via-cinema-bg/40 to-transparent" />
 
-              {/* Botón Central Play para Tráiler */}
-              {movie.trailer && (
+              {/* Botón Central Play para Tráiler (o Redirección a YouTube si no hay embed directo) */}
+              {(activeMovie?.trailer || movie.trailer) ? (
                 <button
                   onClick={() => setIsPlayingTrailer(true)}
                   className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-red-600/90 hover:bg-red-600 text-white flex items-center justify-center shadow-[0_0_35px_rgba(220,38,38,0.7)] backdrop-blur-sm transition-transform hover:scale-110 group/play z-10"
-                  title={`Reproducir tráiler oficial (${movie.trailer.languageLabel})`}
+                  title={`Reproducir tráiler oficial (${(activeMovie?.trailer || movie.trailer)!.languageLabel})`}
                 >
                   <Play className="w-7 h-7 fill-white translate-x-0.5 group-hover/play:scale-110 transition-transform" />
                 </button>
+              ) : (
+                <a
+                  href={`https://www.youtube.com/results?search_query=${encodeURIComponent(movie.title + ' ' + movie.releaseYear + ' trailer oficial')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute inset-0 m-auto w-auto h-12 max-w-xs px-5 rounded-full bg-red-600/90 hover:bg-red-600 text-white flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(220,38,38,0.6)] backdrop-blur-md transition-transform hover:scale-105 z-10 font-bold text-xs"
+                  title="Ver tráiler oficial en YouTube"
+                >
+                  <Play className="w-4 h-4 fill-white" />
+                  <span>Ver Tráiler en YouTube ↗</span>
+                </a>
               )}
 
               {/* Botón Cerrar Modal */}

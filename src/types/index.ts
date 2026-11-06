@@ -41,6 +41,7 @@ export interface Movie {
   imdbId?: string;
   director?: string;
   countryOfOrigin?: string;
+  originCountry?: string;
   originCountryName?: string;
   ratings: ExternalRatings;
   isInTheatersLocally?: boolean;
