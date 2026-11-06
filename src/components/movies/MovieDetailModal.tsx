@@ -199,15 +199,15 @@ export const MovieDetailModal: React.FC<MovieDetailModalProps> = ({
                   )}
                 </div>
 
-                {/* Temáticas de la Película */}
+                {/* Temáticas de la Película (Sin hashtag) */}
                 {movie.genres && movie.genres.length > 0 && (
                   <div className="flex items-center gap-1.5 flex-wrap pt-1">
                     {movie.genres.map((g) => (
                       <span
                         key={g}
-                        className="px-2.5 py-0.5 rounded-lg bg-white/5 border border-white/10 hover:border-cinema-gold/40 text-cinema-gold text-xs font-semibold tracking-wide transition-colors"
+                        className="px-3 py-1 rounded-full bg-white/5 border border-white/10 hover:border-cinema-gold/40 text-cinema-gold text-xs font-semibold tracking-wide transition-colors"
                       >
-                        #{g}
+                        {g}
                       </span>
                     ))}
                   </div>

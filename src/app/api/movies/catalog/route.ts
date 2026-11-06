@@ -8,7 +8,11 @@ export async function GET(request: NextRequest) {
     const decade = searchParams.get("decade") || "all";
     const genre = searchParams.get("genre") || "all";
     const sortBy = (searchParams.get("sortBy") as any) || "yearDesc";
-    const searchQuery = searchParams.get("q") || searchParams.get("searchQuery") || "";
+    const searchQuery =
+      searchParams.get("q") ||
+      searchParams.get("searchQuery") ||
+      searchParams.get("search") ||
+      "";
     const minRatingParam = searchParams.get("minRating");
     const minRating = minRatingParam ? parseFloat(minRatingParam) : null;
 
