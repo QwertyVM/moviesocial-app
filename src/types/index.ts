@@ -49,6 +49,22 @@ export interface Movie {
   theatricalCountries?: string[];
   trailer?: MovieTrailerInfo;
   cast?: MovieCastMember[];
+  productionCompany?: string; // Casa productora o Distribuidora (ej: A24, Warner Bros.)
+  revenueUSD?: number; // Taquilla mundial en dólares
+  boxOfficeFormatted?: string; // ej: "$124.5M USD"
+  budgetFormatted?: string;
+}
+
+export interface UserMovieStatus {
+  inWatchlist: boolean;
+  isWatched: boolean;
+  isFavorite: boolean;
+  friendsInterested: Array<{
+    id: string;
+    displayName: string;
+    avatarUrl?: string;
+  }>;
+  friendsInterestedCount: number;
 }
 
 export interface UserLocation {

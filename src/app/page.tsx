@@ -5,6 +5,7 @@ import { User, Movie, Friend, UserLocation } from "@/types";
 import { api } from "@/services/api";
 import { Navbar } from "@/components/common/Navbar";
 import { CatalogView } from "@/views/CatalogView";
+import { ArchiveView } from "@/views/ArchiveView";
 import { FriendsFeedView } from "@/views/FriendsFeedView";
 import { ChatsView } from "@/views/ChatsView";
 import { ProfileView } from "@/views/ProfileView";
@@ -26,7 +27,7 @@ export default function Home() {
     area: "Lima",
   });
 
-  const [activeTab, setActiveTab] = useState<"catalog" | "feed" | "chats" | "profile">("catalog");
+  const [activeTab, setActiveTab] = useState<"catalog" | "archive" | "feed" | "chats" | "profile">("catalog");
   const [lens, setLens] = useState<"friends" | "global">("friends");
   const [initialCatalogCategory, setInitialCatalogCategory] = useState<"nowPlaying" | "classics">("nowPlaying");
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
@@ -59,9 +60,8 @@ export default function Home() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab");
-      if (tabParam === "classics") {
-        setActiveTab("catalog");
-        setInitialCatalogCategory("classics");
+      if (tabParam === "classics" || tabParam === "archive") {
+        setActiveTab("archive");
       } else if (tabParam === "feed" || tabParam === "chats" || tabParam === "profile") {
         setActiveTab(tabParam);
       }
@@ -195,6 +195,15 @@ export default function Home() {
             lens={lens}
             onOpenAuthModal={handleOpenAuthModal}
             onOpenChatWithFriend={handleOpenChatWithFriend}
+          />
+        )}
+
+        {activeTab === "archive" && (
+          <ArchiveView
+            currentUser={currentUser}
+            location={currentLocation}
+            onSelectMovie={(movie) => setSelectedMovie(movie)}
+            onOpenAuthModal={handleOpenAuthModal}
           />
         )}
 

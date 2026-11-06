@@ -7,7 +7,6 @@ import { CinephileSpotlightData } from '@/actions/movies';
 import {
   Film,
   Sparkles,
-  Search,
   Clapperboard,
   Award,
   ChevronLeft,
@@ -16,9 +15,6 @@ import {
   Share2,
   Bookmark,
   BookmarkCheck,
-  Globe,
-  ExternalLink,
-  X,
   Send,
   Check,
   Copy,
@@ -97,17 +93,8 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   // Modal para compartir (WhatsApp + Chat Interno + Enlace)
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [friendsList, setFriendsList] = useState<Friend[]>([]);
-  const [friendSearch, setFriendSearch] = useState('');
   const [sendingChatShare, setSendingChatShare] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-
-  // ==============================================================
-  // ESTADOS PARA EL BUSCADOR GLOBAL Y ARCHIVO MUNDIAL
-  // ==============================================================
-  const [globalSearch, setGlobalSearch] = useState('');
-  const [globalResults, setGlobalResults] = useState<Movie[]>([]);
-  const [isSearchingGlobal, setIsSearchingGlobal] = useState(false);
-  const [defaultCatalog, setDefaultCatalog] = useState<Movie[]>([]);
 
   // Refs para gestos e interacción infinita
   const touchStartX = useRef<number | null>(null);
@@ -147,40 +134,6 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   useEffect(() => {
     loadPremiereMovies();
   }, [activeLocation.countryCode, activeLocation.city]);
-
-  // Cargar catálogo inicial destacado para el archivo mundial
-  useEffect(() => {
-    api.getMovies({ category: 'catalog', sortBy: 'ratingDesc' }).then((res) => {
-      setDefaultCatalog(res.slice(0, 18));
-    });
-  }, [activeLocation.countryCode]);
-
-  // Búsqueda global reactiva con debounce contra TMDB / Catálogo
-  useEffect(() => {
-    const q = globalSearch.trim();
-    if (!q) {
-      setGlobalResults([]);
-      setIsSearchingGlobal(false);
-      return;
-    }
-
-    setIsSearchingGlobal(true);
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/movies/catalog?q=${encodeURIComponent(q)}&country=${activeLocation.countryCode}`);
-        if (res.ok) {
-          const data = await res.json();
-          setGlobalResults(data.movies || []);
-        }
-      } catch (err) {
-        console.warn('Error en búsqueda global:', err);
-      } finally {
-        setIsSearchingGlobal(false);
-      }
-    }, 350);
-
-    return () => clearTimeout(timer);
-  }, [globalSearch, activeLocation.countryCode]);
 
   const n = movies.length;
   const activeMovie = n > 0 ? movies[Math.min(activeIdx, n - 1)] : null;
@@ -324,15 +277,15 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   };
 
   return (
-    <div className="w-full max-w-[1780px] mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 flex flex-col gap-10 sm:gap-14 py-4 sm:py-6 overflow-y-auto">
+    <div className="w-full max-w-[1780px] mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 flex flex-col justify-between min-h-[calc(100vh-5rem)] py-3 sm:py-5">
       
       {/* ============================================================== */}
-      {/* 1. SECCIÓN PRINCIPAL DE ESTRENOS EN CARTELERA (1080P HERO)     */}
+      {/* 1. SECCIÓN PRINCIPAL: ESCENARIO DE ESTRENO (1080P PROPORCIONAL) */}
       {/* ============================================================== */}
-      <section className="min-h-[82vh] flex flex-col justify-between gap-4">
+      <section className="flex flex-col justify-between flex-grow gap-4">
         
-        {/* Cabecera sutil de salas */}
-        <div className="flex items-center justify-between gap-3 pb-3 border-b border-cinema-border/60 flex-shrink-0">
+        {/* Cabecera sutil de cartelera */}
+        <div className="flex items-center justify-between gap-3 pb-2.5 border-b border-cinema-border/50 flex-shrink-0">
           <div className="flex items-center gap-2.5">
             <span className="flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-xs font-bold shadow-sm">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -343,16 +296,12 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             </span>
           </div>
 
-          <button
-            onClick={() => document.getElementById('archivo-mundial')?.scrollIntoView({ behavior: 'smooth' })}
-            className="px-3.5 py-1.5 rounded-full bg-cinema-card hover:bg-cinema-surface border border-cinema-border hover:border-cinema-gold/40 text-cinema-gold hover:text-white font-mono text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
-          >
-            <Search className="w-3.5 h-3.5 text-cinema-gold" />
-            <span>Buscador & Archivo Mundial ↓</span>
-          </button>
+          <span className="text-xs font-mono text-cinema-textMuted hidden sm:inline">
+            Desliza o usa flechas ← → para cambiar de estreno
+          </span>
         </div>
 
-        {/* ESCENARIO DE ESTRENO: MUBI / APPLE TV+ SPLIT HORIZONTAL GIGANTE */}
+        {/* ESCENARIO DE ESTRENO: MUBI / APPLE TV+ SPLIT HORIZONTAL */}
         {loading ? (
           <div className="flex items-center justify-center my-auto py-16">
             <div className="w-full max-w-5xl h-[58vh] rounded-3xl bg-cinema-card border border-cinema-border animate-pulse shadow-2xl" />
@@ -362,8 +311,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             onWheel={handleWheelLoop}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
-            onClick={() => onSelectMovie(activeMovie)}
-            className="relative flex flex-col justify-between my-auto flex-grow gap-4 overflow-hidden select-none py-2 cursor-pointer group"
+            className="relative flex flex-col justify-between my-auto flex-grow gap-4 overflow-hidden select-none py-2"
           >
             {/* Resplandor Ambiental Cinematográfico de Gran Escala */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
@@ -374,20 +322,24 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               />
             </div>
 
-            {/* ESCENARIO PRINCIPAL: SPLIT HORIZONTAL 2 COLUMNAS (1080P PROPORCIONAL) */}
+            {/* ESCENARIO PRINCIPAL: SPLIT HORIZONTAL 2 COLUMNAS (1080P) */}
             <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-14 xl:gap-20 items-center my-auto w-full px-2 sm:px-6">
               
               {/* COLUMNA IZQUIERDA: AFICHE TEATRAL IMPONENTE (5 COLS) */}
+              {/* 'Ver Ficha Cinéfila' aparece ÚNICAMENTE al hacer hover sobre este elemento de contexto */}
               <div className="md:col-span-5 flex flex-col items-center justify-center">
-                <div className="relative h-[48vh] sm:h-[56vh] md:h-[62vh] lg:h-[70vh] max-h-[620px] aspect-[2/3] rounded-3xl overflow-hidden border-2 border-cinema-gold/80 shadow-[0_30px_90px_-10px_rgba(0,0,0,0.98),0_0_60px_-10px_rgba(229,169,60,0.3)] ring-2 ring-black/80 transition-all duration-500 transform group-hover:scale-[1.02]">
+                <div
+                  onClick={() => onSelectMovie(activeMovie)}
+                  className="relative group/poster cursor-pointer h-[48vh] sm:h-[56vh] md:h-[62vh] lg:h-[70vh] max-h-[620px] aspect-[2/3] rounded-3xl overflow-hidden border-2 border-cinema-gold/80 shadow-[0_30px_90px_-10px_rgba(0,0,0,0.98),0_0_60px_-10px_rgba(229,169,60,0.3)] ring-2 ring-black/80 transition-all duration-500 transform hover:scale-[1.02]"
+                >
                   <img
                     src={activeMovie.posterURL}
                     alt={activeMovie.title}
-                    className="w-full h-full object-cover filter brightness-100 group-hover:brightness-105 transition-all duration-500"
+                    className="w-full h-full object-cover filter brightness-100 group-hover/poster:brightness-105 transition-all duration-500"
                   />
-                  {/* Hover Interactivo */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/45 backdrop-blur-[2px]">
-                    <span className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-cinema-gold text-black font-black text-xs sm:text-sm tracking-wide shadow-2xl flex items-center gap-2.5">
+                  {/* Hover Interactivo: Solo en el Afiche */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/poster:opacity-100 transition-opacity duration-300 bg-black/50 backdrop-blur-[2px]">
+                    <span className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-cinema-gold text-black font-black text-xs sm:text-sm tracking-wide shadow-2xl flex items-center gap-2.5 transform scale-95 group-hover/poster:scale-100 transition-transform">
                       <Clapperboard className="w-4 h-4" />
                       <span>Ver Ficha Cinéfila</span>
                     </span>
@@ -408,8 +360,11 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                   </div>
                 )}
 
-                {/* Título de la Película (Grande y Protagónico) */}
-                <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white tracking-tight uppercase leading-none line-clamp-2 group-hover:text-cinema-gold transition-colors">
+                {/* Título de la Película (Clickeable con cursor-pointer y hover) */}
+                <h1
+                  onClick={() => onSelectMovie(activeMovie)}
+                  className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white tracking-tight uppercase leading-none line-clamp-2 cursor-pointer hover:text-cinema-gold transition-colors"
+                >
                   {activeMovie.title}
                 </h1>
 
@@ -427,6 +382,12 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                     <Clock className="w-4 h-4" />
                     {formatDuration(activeMovie.runtimeMinutes)}
                   </span>
+                  {activeMovie.productionCompany && (
+                    <>
+                      <span className="text-cinema-border">•</span>
+                      <span className="text-gray-400 font-medium">{activeMovie.productionCompany}</span>
+                    </>
+                  )}
                 </div>
 
                 {/* Categorías Temáticas (Sin hashtag) */}
@@ -441,13 +402,16 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                   ))}
                 </div>
 
-                {/* Sinopsis de Impacto */}
-                <p className="text-sm sm:text-base text-gray-200/90 leading-relaxed line-clamp-3 font-normal max-w-2xl">
+                {/* Sinopsis de Impacto (Clickeable) */}
+                <p
+                  onClick={() => onSelectMovie(activeMovie)}
+                  className="text-sm sm:text-base text-gray-200/90 leading-relaxed line-clamp-3 font-normal max-w-2xl cursor-pointer hover:text-white transition-colors"
+                >
                   {activeMovie.overview || 'Una de las propuestas más esperadas de la cartelera de autor de esta temporada.'}
                 </p>
 
-                {/* MATRIZ DE CALIFICACIONES OFICIALES (GRANDES) */}
-                <div className="flex items-center gap-3 sm:gap-4 flex-wrap pt-2">
+                {/* MATRIZ DE CALIFICACIONES OFICIALES */}
+                <div className="flex items-center gap-3 sm:gap-4 flex-wrap pt-1">
                   {/* MovieScore Oficial */}
                   <div
                     title="MovieScore Oficial (Ponderado de Crítica y Audiencia)"
@@ -497,14 +461,21 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                   </div>
                 </div>
 
-                {/* ACCIONES PRINCIPALES: GUARDAR A LA IZQUIERDA + TRÁILER E ICONO COMPARTIR */}
-                <div className="flex items-center gap-3 pt-3 flex-wrap">
-                  {/* Botón 1 (Izquierda): Guardar en Watchlist */}
+                {/* ACCIONES PRINCIPALES: BOTÓN VER FICHA + GUARDAR + TRÁILER Y COMPARTIR */}
+                <div className="flex items-center gap-3 pt-2.5 flex-wrap">
+                  {/* Botón Principal: Ver Ficha Cinéfila (Directo y Destacado) */}
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleWatchlist();
-                    }}
+                    onClick={() => onSelectMovie(activeMovie)}
+                    className="px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-cinema-gold hover:from-amber-400 hover:to-amber-500 text-black font-black text-xs sm:text-sm flex items-center gap-2 shadow-xl shadow-amber-950/40 transition-all hover:scale-105 active:scale-95"
+                    title="Abrir la ficha cinéfila completa con calificaciones y reparto"
+                  >
+                    <Clapperboard className="w-4 h-4" />
+                    <span>Ver Ficha Cinéfila</span>
+                  </button>
+
+                  {/* Botón 2: Guardar en Watchlist */}
+                  <button
+                    onClick={handleToggleWatchlist}
                     disabled={savingWatchlist}
                     className={`px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 flex items-center gap-2.5 shadow-xl ${
                       isInWatchlist
@@ -526,13 +497,12 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                     )}
                   </button>
 
-                  {/* Botón 2: Tráiler Oficial en YouTube (Solo Icono) */}
+                  {/* Botón 3: Tráiler Oficial en YouTube (Solo Icono) */}
                   {activeMovie.trailer && (
                     <a
                       href={activeMovie.trailer.youtubeUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
                       className="p-3 sm:p-3.5 rounded-2xl bg-red-600 hover:bg-red-500 text-white shadow-xl shadow-red-950/50 transition-all hover:scale-110 active:scale-95 flex items-center justify-center flex-shrink-0"
                       title={`Ver tráiler oficial en la App de YouTube (${activeMovie.trailer.languageLabel})`}
                     >
@@ -540,12 +510,9 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                     </a>
                   )}
 
-                  {/* Botón 3: Compartir (Solo Icono) */}
+                  {/* Botón 4: Compartir (Solo Icono) */}
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenShareModal();
-                    }}
+                    onClick={handleOpenShareModal}
                     className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-black shadow-xl shadow-emerald-950/50 transition-all hover:scale-110 active:scale-95 flex items-center justify-center flex-shrink-0"
                     title="Compartir por WhatsApp o Chat interno"
                   >
@@ -555,18 +522,20 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               </div>
             </div>
 
-            {/* BANDA INFERIOR: CARRETE DE ESTRENOS EN CARTELERA CON ROTACIÓN INFINITA */}
+            {/* ============================================================== */}
+            {/* BANDA INFERIOR: CARRETE DE ESTRENOS CENTRADO HORIZONTALMENTE    */}
+            {/* Solo rota y cambia la película activa; NO muestra ficha hover   */}
+            {/* ============================================================== */}
             <div
               onWheel={handleWheelLoop}
               onTouchStart={handleReelTouchStart}
               onTouchEnd={handleReelTouchEnd}
-              onClick={(e) => e.stopPropagation()}
               className="flex-shrink-0 pt-3 pb-1 border-t border-cinema-border/50"
             >
-              <div className="flex items-center justify-between mb-2 px-1">
+              <div className="flex items-center justify-between mb-2 px-1 max-w-4xl mx-auto">
                 <span className="text-xs font-bold uppercase tracking-wider text-cinema-textMuted flex items-center gap-2">
                   <Film className="w-3.5 h-3.5 text-cinema-gold" />
-                  Estrenos en Cartelera • Rota con la rueda o desliza
+                  Estrenos en Cartelera
                 </span>
                 <div className="flex items-center gap-1.5">
                   <button
@@ -586,161 +555,41 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 </div>
               </div>
 
-              {/* Riel de Miniaturas Pequeñas (Estilo Filmstrip Cinematográfico) */}
-              <div
-                ref={reelContainerRef}
-                className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto py-1 scrollbar-none scroll-smooth"
-              >
-                {movies.map((m, idx) => {
-                  const isActive = idx === activeIdx;
-                  return (
-                    <button
-                      key={m.id}
-                      ref={isActive ? activeThumbRef : null}
-                      onClick={() => setActiveIdx(idx)}
-                      className={`relative flex-shrink-0 w-14 sm:w-16 md:w-20 aspect-[2/3] rounded-xl overflow-hidden transition-all duration-300 text-left ${
-                        isActive
-                          ? 'ring-2 ring-cinema-gold scale-105 shadow-[0_4px_20px_rgba(229,169,60,0.4)] z-10'
-                          : 'opacity-50 hover:opacity-90 filter grayscale-[25%] hover:grayscale-0'
-                      }`}
-                      title={`${m.title} (${m.releaseYear})`}
-                    >
-                      <img src={m.posterURL} alt={m.title} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex flex-col justify-end p-1">
-                        <span className="text-[9px] text-cinema-gold font-mono font-bold leading-none">
-                          ★ {m.ratings.compositeScore?.toFixed(1) || 'N/A'}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Botón Indicador para Desplazarse al Archivo Mundial */}
-              <div className="flex justify-center pt-2">
-                <button
-                  onClick={() => document.getElementById('archivo-mundial')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="px-4 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-cinema-textMuted hover:text-white text-xs font-mono flex items-center gap-2 transition-all hover:translate-y-0.5"
+              {/* Riel de Miniaturas Pequeñas CENTRADAS (justify-center) */}
+              <div className="w-full flex items-center justify-center overflow-hidden">
+                <div
+                  ref={reelContainerRef}
+                  className="flex items-center justify-center gap-2 sm:gap-2.5 overflow-x-auto py-1 scrollbar-none scroll-smooth max-w-full"
                 >
-                  <span>Explorar Archivo Mundial de Películas</span>
-                  <span>↓</span>
-                </button>
+                  {movies.map((m, idx) => {
+                    const isActive = idx === activeIdx;
+                    return (
+                      <button
+                        key={m.id}
+                        ref={isActive ? activeThumbRef : null}
+                        onClick={() => setActiveIdx(idx)}
+                        className={`relative flex-shrink-0 w-14 sm:w-16 md:w-20 aspect-[2/3] rounded-xl overflow-hidden transition-all duration-300 text-left ${
+                          isActive
+                            ? 'ring-2 ring-cinema-gold scale-105 shadow-[0_4px_20px_rgba(229,169,60,0.4)] z-10'
+                            : 'opacity-50 hover:opacity-90 filter grayscale-[20%] hover:grayscale-0'
+                        }`}
+                        title={`${m.title} (${m.releaseYear})`}
+                      >
+                        <img src={m.posterURL} alt={m.title} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex flex-col justify-end p-1">
+                          <span className="text-[9px] text-cinema-gold font-mono font-bold leading-none">
+                            ★ {m.ratings.compositeScore?.toFixed(1) || 'N/A'}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
+
           </div>
         ) : null}
-      </section>
-
-      {/* ============================================================== */}
-      {/* 2. SECCIÓN NUEVA: BUSCADOR GLOBAL & ARCHIVO MUNDIAL DE CINE    */}
-      {/* ============================================================== */}
-      <section
-        id="archivo-mundial"
-        className="pt-8 sm:pt-12 border-t border-cinema-border/70 flex flex-col gap-6 sm:gap-8 scroll-mt-6"
-      >
-        
-        {/* Cabecera del Buscador Global */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-2.5">
-              <Globe className="w-6 h-6 text-cinema-gold" />
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white uppercase tracking-tight">
-                Archivo Mundial de Películas
-              </h2>
-            </div>
-            <p className="text-xs sm:text-sm text-cinema-textSecondary max-w-2xl">
-              Busca cualquier película en el catálogo global de TMDB e IMDb con sus puntuaciones oficiales, directores y fichas completas.
-            </p>
-          </div>
-
-          {/* Buscador Global Prominente (Adaptado horizontalmente a 1080p) */}
-          <div className="relative w-full lg:w-[460px] xl:w-[540px]">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-cinema-gold" />
-            <input
-              type="text"
-              value={globalSearch}
-              onChange={(e) => setGlobalSearch(e.target.value)}
-              placeholder="Escribe el título de cualquier película..."
-              className="w-full pl-11 pr-10 py-3.5 rounded-2xl bg-cinema-card border border-cinema-border focus:border-cinema-gold text-sm text-white placeholder-cinema-textMuted outline-none shadow-xl transition-all"
-            />
-            {globalSearch && (
-              <button
-                onClick={() => setGlobalSearch('')}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-cinema-textMuted hover:text-white"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Indicador de Estado de Búsqueda */}
-        {isSearchingGlobal && (
-          <div className="flex items-center gap-2 text-cinema-gold text-xs font-mono">
-            <span className="w-2 h-2 rounded-full bg-cinema-gold animate-ping" />
-            <span>Consultando archivo mundial de TMDB...</span>
-          </div>
-        )}
-
-        {/* RESULTADOS O CATÁLOGO DESTACADO (GRILLA 1080P: HASTA 6 COLS) */}
-        {(() => {
-          const displayList = globalSearch.trim() ? globalResults : defaultCatalog;
-          const isSearching = Boolean(globalSearch.trim());
-
-          if (isSearching && displayList.length === 0 && !isSearchingGlobal) {
-            return (
-              <div className="p-12 text-center rounded-3xl bg-cinema-card/50 border border-cinema-border flex flex-col items-center justify-center gap-2">
-                <Film className="w-8 h-8 text-cinema-textMuted" />
-                <span className="text-sm font-bold text-white">No se encontraron películas con ese título</span>
-                <span className="text-xs text-cinema-textMuted">Intenta escribir el título en español o inglés</span>
-              </div>
-            );
-          }
-
-          return (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
-              {displayList.map((m) => {
-                const score = calculateCompositeScore(m.ratings);
-                return (
-                  <div
-                    key={m.id}
-                    onClick={() => onSelectMovie(m)}
-                    className="group relative aspect-[2/3] rounded-2xl overflow-hidden bg-cinema-card border border-cinema-border hover:border-cinema-gold/70 shadow-lg hover:shadow-2xl hover:shadow-amber-950/30 transition-all duration-300 transform hover:-translate-y-1 cursor-pointer flex flex-col justify-end p-3"
-                  >
-                    <img
-                      src={m.posterURL}
-                      alt={m.title}
-                      loading="lazy"
-                      className="absolute inset-0 w-full h-full object-cover filter brightness-95 group-hover:brightness-105 group-hover:scale-105 transition-all duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none" />
-
-                    {/* Badge de Puntuación Superior */}
-                    <div className="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 rounded-lg bg-black/75 border border-cinema-gold/40 text-cinema-gold font-mono font-bold text-[11px] backdrop-blur-md shadow">
-                      ★ {score > 0 ? score.toFixed(1) : 'N/A'}
-                    </div>
-
-                    {/* Info Inferior */}
-                    <div className="relative z-10 flex flex-col leading-tight">
-                      <span className="text-xs sm:text-sm font-bold text-white line-clamp-1 group-hover:text-cinema-gold transition-colors">
-                        {m.title}
-                      </span>
-                      <div className="flex items-center gap-1.5 text-[11px] text-cinema-textMuted font-mono mt-0.5">
-                        <span>{m.releaseYear}</span>
-                        {m.genres && m.genres.length > 0 && (
-                          <>
-                            <span>•</span>
-                            <span className="truncate">{m.genres[0]}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })()}
       </section>
 
       {/* ============================================================== */}

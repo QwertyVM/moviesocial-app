@@ -148,6 +148,35 @@ function formatTmdbMovie(item: any, isPremiering: boolean = false, countryCode: 
   const trailer = extractBestTrailer(item.videos);
   const cast = extractCast(item.credits);
 
+  const prodCompany =
+    item.production_companies && item.production_companies.length > 0
+      ? item.production_companies[0]?.name
+      : undefined;
+
+  const revenueNum = Number(item.revenue) || 0;
+  let boxOfficeFormatted: string | undefined;
+  if (revenueNum > 0) {
+    if (revenueNum >= 1_000_000_000) {
+      boxOfficeFormatted = `$${(revenueNum / 1_000_000_000).toFixed(2)}B USD`;
+    } else if (revenueNum >= 1_000_000) {
+      boxOfficeFormatted = `$${(revenueNum / 1_000_000).toFixed(1)}M USD`;
+    } else if (revenueNum >= 1_000) {
+      boxOfficeFormatted = `$${(revenueNum / 1_000).toFixed(0)}K USD`;
+    } else {
+      boxOfficeFormatted = `$${revenueNum.toLocaleString()} USD`;
+    }
+  }
+
+  const budgetNum = Number(item.budget) || 0;
+  let budgetFormatted: string | undefined;
+  if (budgetNum > 0) {
+    if (budgetNum >= 1_000_000) {
+      budgetFormatted = `$${(budgetNum / 1_000_000).toFixed(1)}M USD`;
+    } else {
+      budgetFormatted = `$${budgetNum.toLocaleString()} USD`;
+    }
+  }
+
   return {
     id: `tmdb_${item.id}`,
     title: item.title,
@@ -178,6 +207,10 @@ function formatTmdbMovie(item: any, isPremiering: boolean = false, countryCode: 
       : [],
     trailer,
     cast,
+    productionCompany: prodCompany,
+    revenueUSD: revenueNum > 0 ? revenueNum : undefined,
+    boxOfficeFormatted,
+    budgetFormatted,
   };
 }
 
@@ -219,6 +252,9 @@ export async function getTheatricalMovies(countryCode: string = "PE"): Promise<M
                     genres: detail.genres || item.genres,
                     imdb_id: detail.imdb_id,
                     origin_country: detail.origin_country || item.origin_country,
+                    production_companies: detail.production_companies,
+                    revenue: detail.revenue,
+                    budget: detail.budget,
                   };
                 }
               } catch (detailErr) {

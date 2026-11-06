@@ -737,6 +737,62 @@ class MovieSocialAPI {
     const data = await res.json();
     return data;
   }
+
+  // --- Estado personal cinéfilo (Watchlist, Ya la vi, Favorita) & Círculo de amigos ---
+  async getMovieStatus(movieId: string, userId?: string): Promise<{
+    inWatchlist: boolean;
+    isWatched: boolean;
+    isFavorite: boolean;
+    friendsInterested: Array<{ id: string; displayName: string; avatarUrl?: string }>;
+    friendsInterestedCount: number;
+  }> {
+    const targetUserId = userId || this.user?.id;
+    try {
+      const url = targetUserId
+        ? `${API_BASE}/movies/status?movieId=${encodeURIComponent(movieId)}&userId=${encodeURIComponent(targetUserId)}`
+        : `${API_BASE}/movies/status?movieId=${encodeURIComponent(movieId)}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn('Error fetching movie status:', err);
+    }
+    return {
+      inWatchlist: false,
+      isWatched: false,
+      isFavorite: false,
+      friendsInterested: [],
+      friendsInterestedCount: 0,
+    };
+  }
+
+  async toggleMovieStatus(
+    movie: Movie,
+    action: 'toggle_watchlist' | 'toggle_watched' | 'toggle_favorite',
+    userId?: string
+  ): Promise<{ inWatchlist: boolean; isWatched: boolean; isFavorite: boolean }> {
+    const targetUserId = userId || this.user?.id;
+    if (!targetUserId) {
+      throw new Error('Debes iniciar sesión para actualizar el estado de esta película.');
+    }
+    const res = await fetch(`${API_BASE}/movies/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: targetUserId,
+        movieId: movie.id,
+        movieTitle: movie.title,
+        moviePosterUrl: movie.posterURL,
+        action,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Error al actualizar estado');
+    }
+    return await res.json();
+  }
 }
 
 export const api = new MovieSocialAPI();

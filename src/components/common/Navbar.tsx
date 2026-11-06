@@ -6,8 +6,8 @@ import { Film, Users, MessageSquare, User as UserIcon, MapPin, ChevronDown, Chec
 import { AVAILABLE_CITIES } from '../../data/curatedMovies';
 
 interface NavbarProps {
-  activeTab: 'catalog' | 'feed' | 'chats' | 'profile';
-  onSelectTab: (tab: 'catalog' | 'feed' | 'chats' | 'profile') => void;
+  activeTab: 'catalog' | 'archive' | 'feed' | 'chats' | 'profile';
+  onSelectTab: (tab: 'catalog' | 'archive' | 'feed' | 'chats' | 'profile') => void;
   currentUser: User | null;
   currentLocation?: UserLocation;
   onSelectCity: (city: UserLocation) => void;
@@ -193,6 +193,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
 
               <button
+                onClick={() => onSelectTab('archive')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeTab === 'archive'
+                    ? 'bg-cinema-card text-cinema-gold shadow-lg shadow-black/80 border border-cinema-gold/40'
+                    : 'text-cinema-textSecondary hover:text-white hover:bg-cinema-card/50'
+                }`}
+              >
+                <Globe className="w-3.5 h-3.5 text-cinema-gold" />
+                <span>Archivo Mundial</span>
+              </button>
+
+              <button
                 onClick={() => onSelectTab('feed')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                   activeTab === 'feed'
@@ -330,6 +342,16 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <Film className="w-4 h-4" />
           <span>Cartelera</span>
+        </button>
+
+        <button
+          onClick={() => onSelectTab('archive')}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-semibold transition-colors ${
+            activeTab === 'archive' ? 'text-cinema-gold' : 'text-cinema-textMuted'
+          }`}
+        >
+          <Globe className="w-4 h-4" />
+          <span>Archivo</span>
         </button>
 
         <button
